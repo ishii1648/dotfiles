@@ -1,6 +1,3 @@
-# 環境変数
-export LANG=ja_JP.UTF-8
-
 # 色を使用出来るようにする
 autoload -Uz colors
 colors
@@ -95,16 +92,7 @@ alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
 alias pskill='ps aux | fzf | sed 's/  */ /g' | cut -d ' ' -f2 | xargs kill -9'
 alias curl_header='curl -D - -s -o /dev/null'
 
+# 環境変数
+export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export LSCOLORS=DxGxcxdxCxegedabagacad
-
-#
-# fzfの設定
-#
-function select-history() {
-  BUFFER=$(history -n -r 1 | fzf --no-sort +m --query "$LBUFFER" --prompt="History > ")
-  CURSOR=$#BUFFER
-}
-zle -N select-history
-bindkey '^r' select-history
-
