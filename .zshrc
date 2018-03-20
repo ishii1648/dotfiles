@@ -96,3 +96,4 @@ alias curl_header='curl -D - -s -o /dev/null'
 export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export LSCOLORS=DxGxcxdxCxegedabagacad
+export EDITOR='/usr/bin/vim'
