@@ -87,9 +87,8 @@ alias cp='cp -i'
 alias mv='mv -i'
 alias vi='vim'
 alias less='less -NM'
-#alias ssh='~/bin/ssh-iterm-setting.sh'
 alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
-alias pskill='ps aux | fzf | sed 's/  */ /g' | cut -d ' ' -f2 | xargs kill -9'
+alias pskill="pskill"
 alias curl_header='curl -D - -s -o /dev/null'
 
 # 環境変数
@@ -99,7 +98,6 @@ export LSCOLORS=DxGxcxdxCxegedabagacad
 export EDITOR='/usr/bin/vim'
 
 ## peco
-# ヒストリー検索
 function select-history() {
   BUFFER=$(\history -n -r 1 | peco --query "$LBUFFER")
   CURSOR=$#BUFFER
@@ -107,3 +105,11 @@ function select-history() {
 }
 zle -N select-history
 bindkey '^r' select-history
+
+function pskill() {
+  for pid in `ps aux | peco | awk '{ print $2 }'`
+  do
+    kill $pid
+    echo "Killed ${pid}"
+  done
+}
