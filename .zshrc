@@ -97,3 +97,13 @@ export LANG=ja_JP.UTF-8
 export CLICOLOR=1
 export LSCOLORS=DxGxcxdxCxegedabagacad
 export EDITOR='/usr/bin/vim'
+
+## peco
+# ヒストリー検索
+function select-history() {
+  BUFFER=$(\history -n -r 1 | peco --query "$LBUFFER")
+  CURSOR=$#BUFFER
+  zle clear-screen
+}
+zle -N select-history
+bindkey '^r' select-history
