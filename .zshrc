@@ -2,9 +2,6 @@
 autoload -Uz colors
 colors
 
-# vimライクなキーバインドを設定する
-#bindkey -v
-
 # historyの設定
 HISTFILE=~/.zsh_history
 HISTSIZE=1000000
@@ -59,10 +56,6 @@ setopt correct
 # ビープ音を鳴らさない
 setopt no_beep
 setopt nolistbeep
-
-# 先方予測を有効 
-#autoload predict-on
-#predict-on
 
 # プロンプト
 case ${UID} in
