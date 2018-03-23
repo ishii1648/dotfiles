@@ -90,15 +90,31 @@ export CLICOLOR=1
 export LSCOLORS=DxGxcxdxCxegedabagacad
 export EDITOR='/usr/bin/vim'
 
-## peco
-function select-history() {
+### peco
+## widget
+function select_history() {
   BUFFER=$(\history -n -r 1 | peco --query "$LBUFFER")
   CURSOR=$#BUFFER
   zle clear-screen
 }
-zle -N select-history
-bindkey '^r' select-history
+zle -N select_history
+bindkey '^r' select_history
 
+function select_sheet() {
+    local tac
+    if which tac > /dev/null; then
+          tac="tac"
+    else
+          tac="tail -r"
+    fi
+    BUFFER=$(cat ~/.sheets/sh_command | eval $tac | peco --query "$LBUFFER" | sed 's/^### .\+ ### //')
+    CURSOR=$#BUFFER         # move cursor
+    zle -R -c               # refresh
+}
+zle -N select_sheet
+bindkey '^n' select_sheet
+
+## utils
 function pskill() {
   for pid in `ps aux | peco | awk '{ print $2 }'`
   do
