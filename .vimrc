@@ -53,7 +53,7 @@ augroup END
 
 " for edit Markdown
 autocmd BufNewFile,BufRead *.md  set filetype=markdown
-nmap <C-v> :PrevimOpen<CR>
+nmap <C-m> :PrevimOpen<CR>
 let g:vim_markdown_folding_disabled=1
 
 "NeoBundle Scripts-----------------------------
