@@ -1,3 +1,6 @@
+# 読み込まれたことが分かるようにする
+echo 'load ~/.zshrc'
+
 # 色を使用出来るようにする
 autoload -Uz colors
 colors
@@ -81,14 +84,10 @@ alias mv='mv -i'
 alias vi='vim'
 alias less='less -NM'
 alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
-alias pskill="pskill"
+alias p-kill="select_kill"
+alias p-ssh="select_ssh"
+alias phistory="select_history"
 alias curl_header='curl -D - -s -o /dev/null'
-
-# 環境変数
-export LANG=ja_JP.UTF-8
-export CLICOLOR=1
-export LSCOLORS=DxGxcxdxCxegedabagacad
-export EDITOR='/usr/bin/vim'
 
 ### peco
 ## widget
@@ -114,11 +113,31 @@ function select_sheet() {
 zle -N select_sheet
 bindkey '^n' select_sheet
 
-## utils
-function pskill() {
+function select_kill() {
   for pid in `ps aux | peco | awk '{ print $2 }'`
   do
     kill $pid
     echo "Killed ${pid}"
   done
 }
+zle -N select_kill
+bindkey '^@' select_kill
+
+function select_ssh () {
+  local selected_host=$(awk '
+  tolower($1)=="host" {
+    for (i=2; i<=NF; i++) {
+      if ($i !~ "[*?]") {
+        print $i
+      }
+    }
+  }
+  ' ~/.ssh/config | sort | peco --query "$LBUFFER")
+  if [ -n "$selected_host" ]; then
+    BUFFER="ssh ${selected_host}"
+    zle accept-line
+  fi
+  zle clear-screen
+}
+zle -N select_ssh
+bindkey '^@' select_ssh
