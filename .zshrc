@@ -5,6 +5,9 @@ echo 'load ~/.zshrc'
 autoload -Uz colors
 colors
 
+# emacs キーマップを選択
+bindkey -e
+
 # historyの設定
 HISTFILE=~/.zsh_history
 HISTSIZE=1000000
