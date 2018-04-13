@@ -11,3 +11,8 @@ export PATH=/usr/local/opt/coreutils/libexec/gnubin:${PATH}
 export MANPATH=/usr/local/opt/coreutils/libexec/gnuman:${MANPATH}
 export WORKPATH=${HOME}/workspace
 export SNIPETPATH=${WORKPATH}/snipet
+
+# 補完関数のディレクトリ
+if [ -e /usr/local/share/zsh/functions ]; then
+  export FPATH=/usr/local/share/zsh/functions:${FPATH}
+fi

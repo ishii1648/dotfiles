@@ -16,8 +16,8 @@ setopt share_history
 autoload history-search-end
 zle -N history-beginning-search-backward-end history-search-end
 zle -N history-beginning-search-forward-end history-search-end
-bindkey "^P" history-beginning-search-backward-end
-bindkey "^N" history-beginning-search-forward-end
+bindkey "^b" history-beginning-search-backward-end
+bindkey "^f" history-beginning-search-forward-end
 
 # 直前のコマンドの重複を削除
 setopt hist_ignore_dups
@@ -35,11 +35,6 @@ zstyle ':completion:*' verbose yes
 zstyle ':completion:*' format '%B%d%b'
 zstyle ':completion:*:warnings' format 'No matches for: %d'
 zstyle ':completion:*' group-name ''
-
-# 補完関数のディレクトリ
-if [ -e /usr/local/share/zsh/functions ]; then
-  fpath=(/usr/local/share/zsh/functions $fpath)
-fi
 
 # 補完で小文字でも大文字にマッチさせる
 zstyle ':completion:*' matcher-list 'm:{a-z}={A-Z}'
@@ -84,13 +79,9 @@ alias mv='mv -i'
 alias vi='vim'
 alias less='less -NM'
 alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
-alias p-kill="select_kill"
-alias p-ssh="select_ssh"
-alias phistory="select_history"
 alias curl_header='curl -D - -s -o /dev/null'
 
-### peco
-## widget
+# peco
 function select_history() {
   BUFFER=$(\history -n -r 1 | peco --query "$LBUFFER")
   CURSOR=$#BUFFER
@@ -106,12 +97,12 @@ function select_sheet() {
     else
           tac="tail -r"
     fi
-    BUFFER=$(cat ~/.sheets/sh_command | eval $tac | peco --query "$LBUFFER" | sed 's/^### .\+ ### //')
+    BUFFER=$(cat ~/.sheets/sh_command | eval $tac | peco --query "$LBUFFER" | sed 's/^### .* ### //')
     CURSOR=$#BUFFER         # move cursor
     zle -R -c               # refresh
 }
 zle -N select_sheet
-bindkey '^n' select_sheet
+bindkey '^ps' select_sheet
 
 function select_kill() {
   for pid in `ps aux | peco | awk '{ print $2 }'`
@@ -121,23 +112,4 @@ function select_kill() {
   done
 }
 zle -N select_kill
-bindkey '^@' select_kill
-
-function select_ssh () {
-  local selected_host=$(awk '
-  tolower($1)=="host" {
-    for (i=2; i<=NF; i++) {
-      if ($i !~ "[*?]") {
-        print $i
-      }
-    }
-  }
-  ' ~/.ssh/config | sort | peco --query "$LBUFFER")
-  if [ -n "$selected_host" ]; then
-    BUFFER="ssh ${selected_host}"
-    zle accept-line
-  fi
-  zle clear-screen
-}
-zle -N select_ssh
-bindkey '^@' select_ssh
+bindkey '^pk' select_kill
