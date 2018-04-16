@@ -8,7 +8,6 @@ export HOMEBREW_CASK_OPTS="--appdir=/Applications"
 export PATH=/usr/local/opt/coreutils/libexec/gnubin:usr/local/bin:${PATH}
 export MANPATH=/usr/local/opt/coreutils/libexec/gnuman:usr/local/share/man:${MANPATH}
 export WORKPATH=${HOME}/workspace
-export SNIPETPATH=${WORKPATH}/snipet
 
 # 補完関数のディレクトリ
 if [ -e /usr/local/share/zsh/functions ]; then
