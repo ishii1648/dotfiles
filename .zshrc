@@ -74,7 +74,9 @@ esac
 setopt nonomatch
 
 # alias
-alias ls='ls -aF'
+alias ls='ls --color=auto'
+alias la='ls -la --color=auto'
+alias ll='ls -l --color=auto'
 alias ll='ls -l'
 alias rm='rm -i'
 alias cp='cp -i'
