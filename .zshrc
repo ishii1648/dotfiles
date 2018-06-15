@@ -97,20 +97,6 @@ function select_history() {
 zle -N select_history
 bindkey '^r' select_history
 
-function select_sheet() {
-    local tac
-    if which tac > /dev/null; then
-          tac="tac"
-    else
-          tac="tail -r"
-    fi
-    BUFFER=$(cat ~/.sheets/sh_command | eval $tac | peco --query "$LBUFFER" | sed 's/^### .* ### //')
-    CURSOR=$#BUFFER         # move cursor
-    zle -R -c               # refresh
-}
-zle -N select_sheet
-bindkey '^ps' select_sheet
-
 function select_kill() {
   for pid in `ps aux | peco | awk '{ print $2 }'`
   do
