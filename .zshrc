@@ -106,3 +106,13 @@ function select_kill() {
 }
 zle -N select_kill
 bindkey '^pk' select_kill
+
+function select_git_add() {
+    for file in `git status -s | grep -v '^[A|M]' | peco | awk '{print $NF}'`
+    do
+        git add $file
+        echo "git added ${file}"
+    done
+}
+zle -N select_git_add
+bindkey '^G' select_git_add
