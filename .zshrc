@@ -97,22 +97,18 @@ function select_history() {
 zle -N select_history
 bindkey '^r' select_history
 
-function select_kill() {
+function p_kill() {
   for pid in `ps aux | peco | awk '{ print $2 }'`
   do
     kill $pid
     echo "Killed ${pid}"
   done
 }
-zle -N select_kill
-bindkey '^pk' select_kill
 
-function select_git_add() {
+function p_git_add() {
     for file in `git status -s | grep -v '^[A|M]' | peco | awk '{print $NF}'`
     do
         git add $file
         echo "git added ${file}"
     done
 }
-zle -N select_git_add
-bindkey '^G' select_git_add
