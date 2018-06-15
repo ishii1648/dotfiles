@@ -86,6 +86,7 @@ alias less='less -NM'
 alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
 alias curl_header='curl -D - -s -o /dev/null'
 alias s='ssh $(grep -iE "^host[[:space:]]+[^*]" ~/.ssh/config|peco|awk "{print \$2}")'
+alias date='date "+%Y/%m/%d"'
 
 # peco
 function select_history() {
