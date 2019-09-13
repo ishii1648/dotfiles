@@ -1,4 +1,5 @@
 " シンタックス・ハイライトを有効化
+"foldmethodsyntax on
 syntax on
 " カラースキーマ
 colorscheme torte
@@ -28,6 +29,10 @@ set hlsearch
 set clipboard+=unnamed
 " helpをデフォルトで日本語表示
 set helplang=ja,en
+" 折り畳みを無効化
+set foldmethod=syntax
+let perl_fold=1
+set foldlevel=100
 
 " Insertモードのときカーソルの形状を変更
 let &t_SI = "\<Esc>]50;CursorShape=1\x7"
@@ -51,6 +56,7 @@ augroup fileTypeIndent
     autocmd BufNewFile,BufRead *.rb  setlocal tabstop=2 softtabstop=2 shiftwidth=2
     autocmd BufNewFile,BufRead *.yml setlocal tabstop=2 softtabstop=2 shiftwidth=2
     autocmd BufNewFile,BufRead *.md  setlocal tabstop=2 softtabstop=2 shiftwidth=2
+    autocmd BufNewFile,BufRead *.js  setlocal tabstop=2 softtabstop=2 shiftwidth=2
 augroup END
 
 " 拡張子を基にファイル・タイプを定義
