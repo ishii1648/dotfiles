@@ -112,3 +112,21 @@ function p_git_add() {
         echo "git added ${file}"
     done
 }
+
+function ch_py_version() {
+    for version in `pyenv versions | peco`
+    do
+        pyenv global ${version}
+        echo "Current Python version is ${version}"
+    done
+}
+
+# tabtab source for serverless package
+# uninstall by removing these lines or running `tabtab uninstall serverless`
+[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh
+# tabtab source for sls package
+# uninstall by removing these lines or running `tabtab uninstall sls`
+[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh
+# tabtab source for slss package
+# uninstall by removing these lines or running `tabtab uninstall slss`
+[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
