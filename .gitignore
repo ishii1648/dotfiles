@@ -1,2 +1,5 @@
 *.swp
 .vim/bundle
+.hyper_plugins/cache
+.hyper_plugins/local
+.hyper_plugins/node_modules
