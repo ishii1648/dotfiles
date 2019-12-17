@@ -86,7 +86,9 @@ alias less='less -NM'
 alias ctags='/usr/local/Cellar/ctags/5.8_1/bin/ctags'
 alias curl_header='curl -D - -s -o /dev/null'
 alias s='ssh $(grep -iE "^host[[:space:]]+[^*]" ~/.ssh/config|peco|awk "{print \$2}")'
-alias date='date "+%Y/%m/%d"'
+alias a='aws'
+alias g='git'
+alias sm='select_ssm'
 
 # peco
 function select_history() {
@@ -121,12 +123,15 @@ function ch_py_version() {
     done
 }
 
-# tabtab source for serverless package
-# uninstall by removing these lines or running `tabtab uninstall serverless`
-[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/serverless.zsh
-# tabtab source for sls package
-# uninstall by removing these lines or running `tabtab uninstall sls`
-[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/sls.zsh
-# tabtab source for slss package
-# uninstall by removing these lines or running `tabtab uninstall slss`
-[[ -f /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh ]] && . /Users/ishiishou/.nodebrew/node/v11.0.0/lib/node_modules/serverless/node_modules/tabtab/.completions/slss.zsh
+function select_snipet_aws() {
+  BUFFER=$(cat ~/workspace/cheetsheets/aws.snipet | grep -v '^-' | fzf -e --query "$LBUFFER" | awk -F'[*]' '{print $4}' | sed -e 's/^[ \t]*//g')
+  CURSOR=$#BUFFER
+}
+zle -N select_snipet_aws
+bindkey '^z' select_snipet_aws
+
+function select_ssm() {
+  aws ssm start-session --target $(aws ec2 describe-instances --query 'Reservations[].Instances[?State.Name==`running`][].{Name: Tags[?Key==`Name`].Value|[0], InstanceId: InstanceId}' --output text | fzf | awk "{print \$1}")
+}
+
+source ~/.local/bin/aws_zsh_completer.sh
