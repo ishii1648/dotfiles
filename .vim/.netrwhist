@@ -1,6 +1,2 @@
 let g:netrw_dirhistmax  =10
-let g:netrw_dirhist_cnt =4
-let g:netrw_dirhist_1='/tmp'
-let g:netrw_dirhist_2='/Users/ishiishou/workspace/scripts/MyKifu/.git'
-let g:netrw_dirhist_3='/Users/ishiishou/workspace/cheetsheets'
-let g:netrw_dirhist_4='/Users/ishiishou/workspace'
+let g:netrw_dirhist_cnt =0

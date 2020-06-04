@@ -7,9 +7,11 @@
 	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
 	trustExitCode = true
 [user]
-	name = ishiishou
-	email = ishii1492@gmail.com
+	name = Sho Ishii
+	email = sho.i@latona.io
 [credential]
 	helper = osxkeychain
 [alias]
 	c = commit -v
+[url "git@bitbucket.org:"]
+	insteadOf = https://bitbucket.org/
