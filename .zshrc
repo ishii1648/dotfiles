@@ -101,6 +101,7 @@ alias v="vagrant"
 alias sk='select_kube_api_server'
 alias sb='select_branch'
 alias ske='select_kubectl_exec'
+alias e='etcdctl --endpoints http://192.168.35.101:2379'
 #alias cat='bat'
 
 # peco

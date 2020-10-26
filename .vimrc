@@ -1,8 +1,8 @@
-" シンタックス・ハイライトを有効化
+"" シンタックス・ハイライトを有効化
 "foldmethodsyntax on
 syntax on
 " カラースキーマ
-colorscheme torte
+"colorscheme torte
 " コメントの色
 hi Comment ctermfg=240
 
@@ -42,13 +42,13 @@ let &t_EI = "\<Esc>]50;CursorShape=0\x7"
 nmap <C-m> :PrevimOpen<CR>
 
 " 外部ファイルのインポート
-if filereadable(expand("~/.vim/Utils.vim"))
-    source ~/.vim/Utils.vim
-endif
+"if filereadable(expand("~/.vim/Utils.vim"))
+"    source ~/.vim/Utils.vim
+"endif
 
-if filereadable(expand("~/.vim/NeoBundle.vim"))
-    source ~/.vim/NeoBundle.vim
-endif
+"if filereadable(expand("~/.vim/NeoBundle.vim"))
+"    source ~/.vim/NeoBundle.vim
+"endif
 
 " ファイルタイプ別にインデントを設定
 augroup fileTypeIndent
@@ -64,12 +64,6 @@ augroup END
 augroup fileTypeDefine
     autocmd!
     autocmd BufNewFile,BufRead *.md  set filetype=markdown
-augroup END
-
-" 対象のファイルを保存時にSCPで対象ホストに転送
-augroup transmit
-    autocmd!
-    autocmd BufWritePost ~/MTLInfra/monitor-scripts/monitor/* :call SyncFile("/Users/mtlbihin223/MTLInfra/monitor-scripts/monitor", "monitor:/home/webmanager/")
 augroup END
 
 
