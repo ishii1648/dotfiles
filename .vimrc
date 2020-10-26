@@ -1,77 +1,124 @@
-"" シンタックス・ハイライトを有効化
-"foldmethodsyntax on
-syntax on
-" カラースキーマ
-"colorscheme torte
-" コメントの色
-hi Comment ctermfg=240
+" Use Vim settings, rather then Vi settings (much better!).
+" This must be first, because it changes other options as a side effect.
+set nocompatible
 
-" 行番号を記述
-set number
-" バックスペースの設定
-set backspace=indent,eol,start
-" インデントやタブの設定（共通）
-set expandtab
+" TODO: this may not be in the correct place. It is intended to allow overriding <Leader>.
+" source ~/.vimrc.before if it exists.
+if filereadable(expand("~/.vimrc.before"))
+  source ~/.vimrc.before
+endif
+
+" ================ General Config ====================
+
+set number                      "Line numbers are good
+set backspace=indent,eol,start  "Allow backspace in insert mode
+set history=1000                "Store lots of :cmdline history
+set showcmd                     "Show incomplete cmds down the bottom
+set showmode                    "Show current mode down the bottom
+set gcr=a:blinkon0              "Disable cursor blink
+set visualbell                  "No sounds
+set autoread                    "Reload files changed outside vim
+
+
+" This makes vim act like all other editors, buffers can
+" exist in the background without being in a window.
+" http://items.sjbach.com/319/configuring-vim-right
+set hidden
+
+"turn on syntax highlighting
+syntax on
+
+" Change leader to a comma because the backslash is too far away
+" That means all \x commands turn into ,x
+" The mapleader has to be set before vundle starts loading all
+" the plugins.
+let mapleader=","
+
+" =============== Vundle Initialization ===============
+" This loads all the plugins specified in ~/.vim/vundles.vim
+" Use Vundle plugin to manage all other plugins
+if filereadable(expand("~/.vim/vundles.vim"))
+  source ~/.vim/vundles.vim
+endif
+au BufNewFile,BufRead *.vundle set filetype=vim
+
+" ================ Turn Off Swap Files ==============
+
+set noswapfile
+set nobackup
+set nowb
+
+" ================ Persistent Undo ==================
+" Keep undo history across sessions, by storing in file.
+" Only works all the time.
+if has('persistent_undo') && isdirectory(expand('~').'/.vim/backups')
+  silent !mkdir ~/.vim/backups > /dev/null 2>&1
+  set undodir=~/.vim/backups
+  set undofile
+endif
+
+" ================ Indentation ======================
+
+set autoindent
+set smartindent
+set smarttab
 set shiftwidth=2
 set softtabstop=2
 set tabstop=2
-" 文字エンコーディングの設定
-set encoding=utf-8
-" 検索時に大文字小文字を無視 (noignorecase:無視しない)
-set ignorecase
-" 大文字小文字の両方が含まれている場合は大文字小文字を区別
-set smartcase
-" インクリメンタルサーチ
-set incsearch
-" 検索ハイライト
-set hlsearch
-" ヤンクをクリップボードへ保存
-set clipboard+=unnamed
-" helpをデフォルトで日本語表示
-set helplang=ja,en
-" 折り畳みを無効化
-set foldmethod=syntax
-let perl_fold=1
-set foldlevel=100
-set fileencodings=ucs-bom,iso-2022-jp-3,iso-2022-jp,eucjp-ms,euc-jisx0213,euc-jp,sjis,cp932,utf-8
+set expandtab
 
-" Insertモードのときカーソルの形状を変更
-let &t_SI = "\<Esc>]50;CursorShape=1\x7"
-let &t_EI = "\<Esc>]50;CursorShape=0\x7"
-" キーの割り当て
-nmap <C-m> :PrevimOpen<CR>
+" Auto indent pasted text
+nnoremap p p=`]<C-o>
+nnoremap P P=`]<C-o>
 
-" 外部ファイルのインポート
-"if filereadable(expand("~/.vim/Utils.vim"))
-"    source ~/.vim/Utils.vim
-"endif
+filetype plugin on
+filetype indent on
 
-"if filereadable(expand("~/.vim/NeoBundle.vim"))
-"    source ~/.vim/NeoBundle.vim
-"endif
+" Display tabs and trailing spaces visually
+set list listchars=tab:\ \ ,trail:·
 
-" ファイルタイプ別にインデントを設定
-augroup fileTypeIndent
-    autocmd!
-    autocmd BufNewFile,BufRead *.py  setlocal tabstop=4 softtabstop=4 shiftwidth=4
-    autocmd BufNewFile,BufRead *.rb  setlocal tabstop=2 softtabstop=2 shiftwidth=2
-    autocmd BufNewFile,BufRead *.yml setlocal tabstop=2 softtabstop=2 shiftwidth=2
-    autocmd BufNewFile,BufRead *.md  setlocal tabstop=2 softtabstop=2 shiftwidth=2
-    autocmd BufNewFile,BufRead *.js  setlocal tabstop=2 softtabstop=2 shiftwidth=2
-augroup END
+set nowrap       "Don't wrap lines
+set linebreak    "Wrap lines at convenient points
 
-" 拡張子を基にファイル・タイプを定義
-augroup fileTypeDefine
-    autocmd!
-    autocmd BufNewFile,BufRead *.md  set filetype=markdown
-augroup END
+" ================ Folds ============================
 
+set foldmethod=indent   "fold based on indent
+set foldnestmax=3       "deepest fold is 3 levels
+set nofoldenable        "dont fold by default
 
-if has('vim_starting')
-    " 挿入モード時に非点滅の縦棒タイプのカーソル
-    let &t_SI .= "\e[6 q"
-    " ノーマルモード時に非点滅のブロックタイプのカーソル
-    let &t_EI .= "\e[2 q"
-    " 置換モード時に非点滅の下線タイプのカーソル
-    let &t_SR .= "\e[4 q"
-endif
+" ================ Completion =======================
+
+set wildmode=list:longest
+set wildmenu                "enable ctrl-n and ctrl-p to scroll thru matches
+set wildignore=*.o,*.obj,*~ "stuff to ignore when tab completing
+set wildignore+=*vim/backups*
+set wildignore+=*sass-cache*
+set wildignore+=*DS_Store*
+set wildignore+=vendor/rails/**
+set wildignore+=vendor/cache/**
+set wildignore+=*.gem
+set wildignore+=log/**
+set wildignore+=tmp/**
+set wildignore+=*.png,*.jpg,*.gif
+
+" ================ Scrolling ========================
+
+set scrolloff=8         "Start scrolling when we're 8 lines away from margins
+set sidescrolloff=15
+set sidescroll=1
+
+" ================ Search ===========================
+
+set incsearch       " Find the next match as we type the search
+set hlsearch        " Highlight searches by default
+set ignorecase      " Ignore case when searching...
+set smartcase       " ...unless we type a capital
+
+" ================ Security ==========================
+set modelines=0
+set nomodeline
+
+" ================ Custom Settings ========================
+so ~/.yadr/vim/settings.vim
+
+colorscheme darkblue
