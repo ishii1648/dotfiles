@@ -1,0 +1,25 @@
+---
+# aqua - Declarative CLI Version Manager
+# https://aquaproj.github.io/
+# checksum:
+#   # https://aquaproj.github.io/docs/reference/checksum/
+#   enabled: true
+#   require_checksum: true
+#   supported_envs:
+#   - all
+registries:
+- type: standard
+  ref: v4.167.0 # renovate: depName=aquaproj/aqua-registry
+packages:
+- name: golang/go@go1.22.2
+- name: aquaproj/registry-tool@v0.2.4
+- name: kubernetes-sigs/kind@v0.22.0
+- name: kubernetes/kubectl@v1.30.0
+  #- name: abiosoft/colima@v0.5.6 # pin version to workaround see. https://github.com/abiosoft/colima/issues/994
+  #- name: lima-vm/lima@v0.21.0 # required for colima
+  #- name: docker/cli@v26.1.0 # required for colima
+- name: ahmetb/kubectx@v0.9.5
+- name: istio/istio/istioctl@1.21.2
+- name: helm/helm@v3.15.0
+- name: helmfile/helmfile@v0.164.0
+- name: derailed/k9s@v0.32.4
