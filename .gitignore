@@ -3,3 +3,19 @@
 .hyper_plugins/cache
 .hyper_plugins/local
 .hyper_plugins/node_modules
+
+.claude/settings.local.json
+.gitconfig.local
+
+# Fish shell
+.config/fish/fish_variables
+.config/fish/conf.d/local.fish
+.config/fish/functions/a_eks_kubeconfig.fish
+.config/fish/functions/a_profile.fish
+.config/fish/functions/a_saml2aws.fish
+.config/fish/functions/a_sso_login.fish
+.config/fish/functions/claude.fish
+.config/fish/functions/g_create_pr.fish
+
+# Git worktree
+.worktree/
