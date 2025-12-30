@@ -1,17 +1,21 @@
-[core]
-	excludesfile = /Users/ishiishou/.gitignore_global
-[difftool "sourcetree"]
-	cmd = opendiff \"$LOCAL\" \"$REMOTE\"
-	path = 
-[mergetool "sourcetree"]
-	cmd = /Applications/Sourcetree.app/Contents/Resources/opendiff-w.sh \"$LOCAL\" \"$REMOTE\" -ancestor \"$BASE\" -merge \"$MERGED\"
-	trustExitCode = true
 [user]
-	name = Sho Ishii
-	email = sho.i@latona.io
-[credential]
-	helper = osxkeychain
+# Please adapt and uncomment the following lines:
+name = Sho Ishii
+email = ishii1492@gmail.com
+        signingkey = /Users/sho/.ssh/asgard.pub
+
+[url "github:"]
+  InsteadOf = https://github.com/
+  InsteadOf = git@github.com:
+[ghq]
+  root = ~/src
+[core]
+  excludesFile = /Users/sho/.gitignore_global
+[commit]
+   gpgsign = true
+[gpg]
+   format = ssh
 [alias]
-	c = commit -v
-[url "git@bitbucket.org:"]
-	insteadOf = https://bitbucket.org/
+  push-f = push --force-with-lease
+        c = commit -s
+  amend = commit --amend -a
