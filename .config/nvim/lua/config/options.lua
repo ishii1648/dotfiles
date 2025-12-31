@@ -24,5 +24,6 @@ opt.backup = false
 opt.writebackup = false
 opt.swapfile = false
 opt.undofile = true
+opt.clipboard = "unnamedplus"
 
 vim.g.loaded_netrw = 1
