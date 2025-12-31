@@ -22,12 +22,12 @@ return {
     },
     event = { "BufReadPre", "BufNewFile" },
     config = function()
-      local lspconfig = require("lspconfig")
       local capabilities = require("cmp_nvim_lsp").default_capabilities()
 
-      lspconfig.ts_ls.setup({
+      vim.lsp.config("ts_ls", {
         capabilities = capabilities,
       })
+      vim.lsp.enable("ts_ls")
 
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)
