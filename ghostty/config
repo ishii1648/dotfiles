@@ -1,0 +1,13 @@
+font-family = "BIZ UDGothic Bold"
+theme = Dracula
+unfocused-split-opacity = 0.85
+cursor-opacity = 1.0
+window-save-state = always
+font-thicken
+macos-titlebar-style = tabs
+
+keybind = super+shift+j=goto_split:previous
+keybind = super+shift+k=goto_split:next
+
+# claude code
+keybind = shift+enter=text:\x1b\r
