@@ -5,9 +5,8 @@ function fish_prompt
     printf '\e]133;A\a'
 
     # pwd
-    set_color blue
-    echo -n (prompt_pwd)
-    set_color normal
+    set_color -b 535d7f white
+    echo -n (string replace $HOME '~' $PWD)" "
 
     # git (ディレクトリ変更時のみ更新)
     set -l current_pwd (pwd)
@@ -16,14 +15,22 @@ function fish_prompt
         __fish_prompt_update_git
     end
 
-    if set -q __fish_git_prompt_cache
-        echo -n $__fish_git_prompt_cache
+    if test -n "$__fish_git_prompt_cache"
+        # pwd→git 遷移三角: 前景=灰色(前の背景), 背景=緑(次の背景)
+        set_color -b green 535d7f
+        printf '\ue0b0'
+        # git内容: 背景=緑, 前景=黒
+        set_color -b green black
+        echo -n "$__fish_git_prompt_cache "
+        # git終端三角: 前景=緑(前の背景), 背景=なし
+        set_color -b normal green
+        printf '\ue0b0'
+    else
+        # pwd終端三角: 前景=灰色(前の背景), 背景=なし
+        set_color -b normal 535d7f
+        printf '\ue0b0'
     end
-
-    # kubernetes
-    if set -q __fish_kube_prompt_cache
-        echo -n $__fish_kube_prompt_cache
-    end
+    set_color normal
 
     # newline + character
     echo
@@ -45,7 +52,7 @@ function __fish_prompt_update_git
     if git rev-parse --git-dir >/dev/null 2>&1
         set -l branch (git branch --show-current 2>/dev/null)
         test -z "$branch" && set branch (git rev-parse --short HEAD 2>/dev/null)
-        set -g __fish_git_prompt_cache (set_color magenta)" $branch"(set_color normal)
+        set -g __fish_git_prompt_cache " $branch"
     end
 end
 
@@ -57,7 +64,7 @@ function __fish_prompt_update_kube
         if test -n "$ctx"
             set -l ns (kubectl config view --minify -o jsonpath='{..namespace}' 2>/dev/null)
             test -z "$ns" && set ns "default"
-            set -g __fish_kube_prompt_cache (set_color cyan)" $ctx/$ns"(set_color normal)
+            set -g __fish_kube_prompt_cache " $ctx/$ns"
         end
     end
 end
