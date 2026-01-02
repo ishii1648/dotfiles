@@ -3,3 +3,8 @@
 .hyper_plugins/cache
 .hyper_plugins/local
 .hyper_plugins/node_modules
+
+.claude/settings.local.json
+
+# Fish shell
+.config/fish/fish_variables
