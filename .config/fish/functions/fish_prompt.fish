@@ -1,6 +1,9 @@
 function fish_prompt
     set -l last_status $status
 
+    # OSC 133;A - プロンプト開始
+    printf '\e]133;A\a'
+
     # pwd
     set_color blue
     echo -n (prompt_pwd)
@@ -31,6 +34,9 @@ function fish_prompt
     end
     echo -n "❯ "
     set_color normal
+
+    # OSC 133;B - プロンプト終了
+    printf '\e]133;B\a'
 end
 
 function __fish_prompt_update_git
@@ -56,8 +62,16 @@ function __fish_prompt_update_kube
     end
 end
 
-# kubectx/aws 実行後にk8s context更新
-function __fish_prompt_postexec --on-event fish_postexec
+# OSC 133;C - コマンド実行開始
+function __fish_osc133_preexec --on-event fish_preexec
+    printf '\e]133;C\a'
+end
+
+# OSC 133;D - コマンド終了 + kubectx/aws後のk8s更新
+function __fish_osc133_postexec --on-event fish_postexec
+    printf '\e]133;D;%s\a' $status
+
+    # kubectx/aws 実行後にk8s context更新
     set -l cmd (string split ' ' $argv[1])[1]
     if contains $cmd kubectx kubens aws
         __fish_prompt_update_kube
