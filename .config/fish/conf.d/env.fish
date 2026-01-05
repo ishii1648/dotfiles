@@ -2,8 +2,6 @@
 
 # Go configuration
 set -gx GOPATH $HOME/go
-set -gx GOOS darwin
-set -gx GOARCH amd64
 set -gx GO111MODULE on
 
 # Editor configuration

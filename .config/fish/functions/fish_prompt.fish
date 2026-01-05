@@ -74,12 +74,16 @@ function __fish_osc133_preexec --on-event fish_preexec
     printf '\e]133;C\a'
 end
 
-# OSC 133;D - コマンド終了 + kubectx/aws後のk8s更新
+# OSC 133;D - コマンド終了 + git/kubectx/aws後の更新
 function __fish_osc133_postexec --on-event fish_postexec
     printf '\e]133;D;%s\a' $status
 
-    # kubectx/aws 実行後にk8s context更新
     set -l cmd (string split ' ' $argv[1])[1]
+    # git コマンド実行後にブランチ情報更新
+    if test "$cmd" = git
+        __fish_prompt_update_git
+    end
+    # kubectx/aws 実行後にk8s context更新
     if contains $cmd kubectx kubens aws
         __fish_prompt_update_kube
     end

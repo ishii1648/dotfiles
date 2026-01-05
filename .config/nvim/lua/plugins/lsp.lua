@@ -11,6 +11,7 @@ return {
     opts = {
       ensure_installed = {
         "ts_ls",
+        "gopls",
       },
     },
   },
@@ -28,6 +29,11 @@ return {
         capabilities = capabilities,
       })
       vim.lsp.enable("ts_ls")
+
+      vim.lsp.config("gopls", {
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("gopls")
 
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)

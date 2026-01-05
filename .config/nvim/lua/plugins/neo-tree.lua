@@ -30,6 +30,9 @@ return {
           ".git",
           "node_modules",
         },
+        always_show = {
+          ".claude",
+        },
       },
     },
   },
