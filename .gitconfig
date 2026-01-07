@@ -1,21 +1,32 @@
 [user]
-# Please adapt and uncomment the following lines:
-name = Sho Ishii
-email = ishii1492@gmail.com
-        signingkey = /Users/sho/.ssh/asgard.pub
-
-[url "github:"]
-  InsteadOf = https://github.com/
-  InsteadOf = git@github.com:
-[ghq]
-  root = ~/src
-[core]
-  excludesFile = /Users/sho/.gitignore_global
+        name = sho ishii
+        email = sho-ishii@c-fo.com
+        signingkey = ~/.ssh/id_ed25519.pub
 [commit]
-   gpgsign = true
+        gpgsign = true
 [gpg]
-   format = ssh
+        format = ssh
 [alias]
-  push-f = push --force-with-lease
-        c = commit -s
-  amend = commit --amend -a
+        push-f = push --force-with-lease
+        st = status -sb
+        co = checkout
+        br = branch -vv
+        sw = switch
+        aa = add -A
+        cm = commit -m
+        amend = commit --amend --no-edit
+        unstage = reset HEAD --
+        discard = checkout --
+        lg = log --oneline --graph --decorate -20
+        ll = log --pretty=format:'%C(yellow)%h%Creset %s %C(cyan)<%an>%Creset %C(green)(%cr)%Creset' -20
+        df = diff
+        dfs = diff --staged
+        stash-all = stash push -u
+        wip = !git add -A && git commit -m 'WIP'
+        undo = reset --soft HEAD~1
+[credential]
+        helper = osxkeychain
+[url "git@github.com:"]
+        insteadOf = https://github.com/
+[include]
+        path = ~/.gitconfig.local

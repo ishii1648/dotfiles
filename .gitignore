@@ -5,6 +5,7 @@
 .hyper_plugins/node_modules
 
 .claude/settings.local.json
+.gitconfig.local
 
 # Fish shell
 .config/fish/fish_variables

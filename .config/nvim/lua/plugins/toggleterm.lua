@@ -8,6 +8,7 @@ return {
     { "<leader>tv", "<cmd>ToggleTerm direction=vertical<cr>", desc = "Vertical terminal" },
   },
   opts = {
+    dir = "%:p:h",
     size = function(term)
       if term.direction == "horizontal" then
         return 15
