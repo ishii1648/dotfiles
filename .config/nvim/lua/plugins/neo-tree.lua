@@ -25,11 +25,13 @@ return {
         hide_by_name = {
           ".git",
           ".terraform",
+          ".worktree",
           "node_modules",
         },
         never_show = {
           ".git",
           ".terraform",
+          ".worktree",
           "node_modules",
         },
         always_show = {
