@@ -39,6 +39,7 @@ map("n", "<leader>ff", telescope("find_files"), {
 
 -- for Git
 map("n", "<leader>gb", telescope("git_branches"), { desc = "Switch git branch" })
+map("n", "<leader>gp", "<cmd>!git pull<CR>", { desc = "Git pull" })
 
 -- GitHub link
 map({ "n", "v" }, "<leader>gl", function()
