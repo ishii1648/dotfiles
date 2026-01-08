@@ -24,10 +24,12 @@ return {
         hide_gitignored = true,
         hide_by_name = {
           ".git",
+          ".terraform",
           "node_modules",
         },
         never_show = {
           ".git",
+          ".terraform",
           "node_modules",
         },
         always_show = {

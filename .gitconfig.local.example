@@ -1,0 +1,6 @@
+# Copy this file to ~/.gitconfig.local and customize for your environment
+# This file is ignored by git
+
+[core]
+        hooksPath = /Users/sho-ishii/.fdev-git-hooks
+        excludesfile = /Users/sho-ishii/.config/git/ignore
