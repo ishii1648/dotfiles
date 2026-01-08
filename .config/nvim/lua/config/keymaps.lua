@@ -43,11 +43,3 @@ map("n", "<leader>gs", function() vim.cmd("LazyGit") end, { desc = "Open LazyGit
 map('n', '<leader>gb', '<cmd>Telescope git_branches<cr>', { desc = 'Checkout branch' })
 map("n", "<leader>gB", function() require("gitsigns").toggle_current_line_blame() end, { desc = "Toggle Git blame (line)" })
 --map("n", "<leader>gB", function() require("gitsigns").blame_line({ full = true }) end, { desc = "Git blame (full)" })
-
--- GitHub link
-map({ "n", "v" }, "<leader>gl", function()
-  require("utils.github-link").copy_github_url(false)
-end, { desc = "Copy GitHub permalink" })
-map({ "n", "v" }, "<leader>gL", function()
-  require("utils.github-link").copy_github_url(true)
-end, { desc = "Copy GitHub link (branch)" })
