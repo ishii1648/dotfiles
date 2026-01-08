@@ -78,13 +78,12 @@ end
 function __fish_osc133_postexec --on-event fish_postexec
     printf '\e]133;D;%s\a' $status
 
-    set -l cmd (string split ' ' $argv[1])[1]
-    # git コマンド実行後にブランチ情報更新
-    if test "$cmd" = git
-        __fish_prompt_update_git
+    # git コマンド実行後にキャッシュ無効化（次のプロンプトで更新）
+    if string match -qr '^(git|g)( |$)' -- "$argv[1]"
+        set -g __fish_prompt_pwd_cache ""
     end
     # kubectx/aws 実行後にk8s context更新
-    if contains $cmd kubectx kubens aws
+    if string match -qr '^(kubectx|kubens|aws)( |$)' -- "$argv[1]"
         __fish_prompt_update_kube
     end
 end

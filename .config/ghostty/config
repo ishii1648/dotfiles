@@ -15,7 +15,7 @@ keybind = shift+enter=text:\x1b\r
 
 # 分割機能をCmd+Nに移動（デフォルトのCmd+Dから変更）
 keybind = super+n=new_split:right
-keybind = super+N=new_split:down
+keybind = super+shift+n=new_split:down
 
 # vim-visual-multi (multi cursor)
 keybind = super+d=text:\x1b[100;9u
