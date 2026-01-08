@@ -10,6 +10,7 @@ return {
           "node_modules/",
           "git/",
           ".terraform/",
+          ".worktree/",
         },
       },
       pickers = {

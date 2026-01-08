@@ -16,3 +16,6 @@
 .config/fish/functions/a_sso_login.fish
 .config/fish/functions/claude.fish
 .config/fish/functions/g_create_pr.fish
+
+# Git worktree
+.worktree/

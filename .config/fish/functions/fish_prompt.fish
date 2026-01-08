@@ -16,14 +16,17 @@ function fish_prompt
     end
 
     if test -n "$__fish_git_prompt_cache"
-        # pwd→git 遷移三角: 前景=灰色(前の背景), 背景=緑(次の背景)
-        set_color -b green 535d7f
+        # worktree状態で背景色を決定: worktree内=緑, 通常=灰色
+        set -l git_bg 9a9a9a
+        test "$__fish_git_is_worktree" = "1" && set git_bg green
+        # pwd→git 遷移三角: 前景=灰色(前の背景), 背景=git_bg
+        set_color -b $git_bg 535d7f
         printf '\ue0b0'
-        # git内容: 背景=緑, 前景=黒
-        set_color -b green black
+        # git内容: 背景=git_bg, 前景=黒
+        set_color -b $git_bg black
         echo -n "$__fish_git_prompt_cache "
-        # git終端三角: 前景=緑(前の背景), 背景=なし
-        set_color -b normal green
+        # git終端三角: 前景=git_bg(前の背景), 背景=なし
+        set_color -b normal $git_bg
         printf '\ue0b0'
     else
         # pwd終端三角: 前景=灰色(前の背景), 背景=なし
@@ -48,11 +51,18 @@ end
 
 function __fish_prompt_update_git
     set -g __fish_git_prompt_cache ""
+    set -g __fish_git_is_worktree "0"
 
     if git rev-parse --git-dir >/dev/null 2>&1
         set -l branch (git branch --show-current 2>/dev/null)
         test -z "$branch" && set branch (git rev-parse --short HEAD 2>/dev/null)
         set -g __fish_git_prompt_cache " $branch"
+
+        # worktree判定: worktreeが2つ以上あれば有効
+        set -l worktree_count (git worktree list 2>/dev/null | count)
+        if test $worktree_count -gt 1
+            set -g __fish_git_is_worktree "1"
+        end
     end
 end
 
