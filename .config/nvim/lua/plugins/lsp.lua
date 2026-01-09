@@ -12,6 +12,9 @@ return {
       ensure_installed = {
         "ts_ls",
         "gopls",
+        "yamlls",
+        "helm_ls",
+        "terraformls",
       },
     },
   },
@@ -34,6 +37,35 @@ return {
         capabilities = capabilities,
       })
       vim.lsp.enable("gopls")
+
+      vim.lsp.config("yamlls", {
+        capabilities = capabilities,
+        settings = {
+          yaml = {
+            schemas = {
+              ["https://json.schemastore.org/helmfile.json"] = "helmfile*.yaml",
+            },
+          },
+        },
+      })
+      vim.lsp.enable("yamlls")
+
+      vim.lsp.config("helm_ls", {
+        capabilities = capabilities,
+        settings = {
+          ["helm-ls"] = {
+            yamlls = {
+              path = "yaml-language-server",
+            },
+          },
+        },
+      })
+      vim.lsp.enable("helm_ls")
+
+      vim.lsp.config("terraformls", {
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("terraformls")
 
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)

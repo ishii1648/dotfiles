@@ -20,3 +20,11 @@ vim.api.nvim_create_autocmd("VimEnter", {
 --    end)
 --  end,
 --})
+
+-- Helm file type detection
+vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
+  pattern = { "*/templates/*.yaml", "*/templates/*.tpl", "Chart.yaml", "values*.yaml" },
+  callback = function()
+    vim.bo.filetype = "helm"
+  end,
+})
