@@ -10,6 +10,7 @@ return {
       "html",
       "css",
       "lua",
+      "yaml",
     })
   end,
 }
