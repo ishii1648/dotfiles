@@ -6,6 +6,50 @@ local function telescope(builtin_fn)
   end
 end
 
+-- Custom git_branches picker with branch creation support
+local function git_branches_with_create()
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+
+  require("telescope.builtin").git_branches({
+    attach_mappings = function(prompt_bufnr, _)
+      actions.select_default:replace(function()
+        local selection = action_state.get_selected_entry()
+        local input = action_state.get_current_line()
+
+        actions.close(prompt_bufnr)
+
+        if selection and selection.value then
+          -- 既存ブランチにチェックアウト
+          local branch = selection.value:gsub("^origin/", "")
+          vim.fn.system("git checkout " .. vim.fn.shellescape(branch))
+          if vim.v.shell_error == 0 then
+            vim.notify("Switched to branch: " .. branch, vim.log.levels.INFO)
+          else
+            vim.notify("Failed to checkout branch: " .. branch, vim.log.levels.ERROR)
+          end
+        elseif input and input ~= "" then
+          -- 新規ブランチ作成（確認ダイアログ付き）
+          local confirm = vim.fn.confirm(
+            "Create and checkout new branch '" .. input .. "'?",
+            "&Yes\n&No",
+            2
+          )
+          if confirm == 1 then
+            vim.fn.system("git checkout -b " .. vim.fn.shellescape(input))
+            if vim.v.shell_error == 0 then
+              vim.notify("Created and switched to branch: " .. input, vim.log.levels.INFO)
+            else
+              vim.notify("Failed to create branch: " .. input, vim.log.levels.ERROR)
+            end
+          end
+        end
+      end)
+      return true
+    end,
+  })
+end
+
 map("n", "<Esc>", "<cmd>nohlsearch<CR>")
 
 -- window
@@ -38,7 +82,7 @@ map("n", "<leader>ff", telescope("find_files"), {
 })
 
 -- for Git
-map("n", "<leader>gb", telescope("git_branches"), { desc = "Switch git branch" })
+map("n", "<leader>gb", git_branches_with_create, { desc = "Switch/Create git branch" })
 map("n", "<leader>gp", "<cmd>!git pull<CR>", { desc = "Git pull" })
 
 -- GitHub link

@@ -25,6 +25,28 @@ log_step() {
     echo -e "${BLUE}[STEP]${NC} $1"
 }
 
+# Detect default branch (main or master)
+get_default_branch() {
+    # Try to get from remote HEAD
+    local default_branch
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+
+    if [ -n "$default_branch" ]; then
+        echo "$default_branch"
+        return
+    fi
+
+    # Fallback: check if main or master exists
+    if git show-ref --verify --quiet refs/heads/main; then
+        echo "main"
+    elif git show-ref --verify --quiet refs/heads/master; then
+        echo "master"
+    else
+        log_error "Could not detect default branch (neither 'main' nor 'master' found)"
+        exit 1
+    fi
+}
+
 # Usage
 usage() {
     echo "Usage: $0 <feature-name>"
@@ -80,8 +102,9 @@ if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
     log_info "Creating worktree from existing branch..."
     git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"
 else
-    log_step "Creating new branch and worktree..."
-    git worktree add -b "${BRANCH_NAME}" "${WORKTREE_DIR}" main
+    DEFAULT_BRANCH=$(get_default_branch)
+    log_step "Creating new branch and worktree from ${DEFAULT_BRANCH}..."
+    git worktree add -b "${BRANCH_NAME}" "${WORKTREE_DIR}" "${DEFAULT_BRANCH}"
 fi
 
 log_info "Worktree created successfully"
