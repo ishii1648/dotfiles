@@ -1,6 +1,6 @@
 ---
 name: pr-and-cleanup
-description: Create a PR and automatically cleanup the worktree. Keeps local and remote branches intact.
+description: Create a PR and cleanup the worktree after implementation is complete. Auto-applies when code changes, feature implementation, or bug fixes are done.
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(cd:*), Bash(pwd:*)
 ---
 
