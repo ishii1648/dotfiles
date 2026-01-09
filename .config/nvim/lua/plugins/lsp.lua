@@ -14,6 +14,7 @@ return {
         "gopls",
         "yamlls",
         "helm_ls",
+        "terraformls",
       },
     },
   },
@@ -60,6 +61,11 @@ return {
         },
       })
       vim.lsp.enable("helm_ls")
+
+      vim.lsp.config("terraformls", {
+        capabilities = capabilities,
+      })
+      vim.lsp.enable("terraformls")
 
       vim.api.nvim_create_autocmd("LspAttach", {
         callback = function(args)

@@ -11,6 +11,8 @@ return {
       "css",
       "lua",
       "yaml",
+      "hcl",
+      "terraform",
     })
   end,
 }
