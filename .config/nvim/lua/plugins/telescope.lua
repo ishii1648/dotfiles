@@ -16,7 +16,7 @@ return {
       pickers = {
         find_files = {
           hidden = true,
-          find_command = { "fd", "--type", "f", "--strip-cwd-prefix" },
+          find_command = { "fd", "--type", "f", "--strip-cwd-prefix", "--no-ignore-vcs" },
         },
       },
     },
