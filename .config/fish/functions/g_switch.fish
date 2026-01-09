@@ -34,7 +34,36 @@ function g_switch -d "Interactive git branch switch with fzf"
         return 0
     end
 
-    # origin/プレフィックスを除去してswitch
+    # origin/プレフィックスを除去
     set -l branch_name (string replace -r '^origin/' '' $selected)
-    git switch $branch_name
+
+    # worktreeに紐づいているかチェック
+    set -l worktree_path (_g_switch_find_worktree $branch_name)
+
+    if test -n "$worktree_path"
+        # worktreeが存在する場合はcdで移動
+        echo "Switching to worktree: $worktree_path"
+        cd $worktree_path
+    else
+        # worktreeがない場合は通常のgit switch
+        git switch $branch_name
+    end
+end
+
+function _g_switch_find_worktree -a branch_name
+    # git worktree list --porcelainの出力を解析
+    # 形式:
+    #   worktree /path/to/worktree
+    #   HEAD abc123
+    #   branch refs/heads/branch-name
+    set -l current_worktree ""
+    for line in (git worktree list --porcelain 2>/dev/null)
+        if string match -q "worktree *" $line
+            set current_worktree (string replace "worktree " "" $line)
+        else if string match -q "branch refs/heads/$branch_name" $line
+            echo $current_worktree
+            return 0
+        end
+    end
+    return 1
 end
