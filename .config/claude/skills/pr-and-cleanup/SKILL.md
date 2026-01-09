@@ -1,6 +1,6 @@
 ---
 name: pr-and-cleanup
-description: 実装作業が完了したらPRを作成しworktreeをクリーンアップする。コード変更、機能実装、バグ修正などの作業完了時に自動で適用。
+description: Create a PR and cleanup the worktree after implementation is complete. Auto-applies when code changes, feature implementation, or bug fixes are done.
 allowed-tools: Bash(git:*), Bash(gh:*), Bash(cd:*), Bash(pwd:*)
 ---
 
