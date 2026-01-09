@@ -3,12 +3,12 @@ return {
     "nvim-telescope/telescope.nvim",
     dependencies = {
       "nvim-lua/plenary.nvim",
+      { "nvim-telescope/telescope-fzf-native.nvim", build = "make" },
     },
     opts = {
       defaults = {
         file_ignore_patterns = {
-          "node_modules/",
-          "git/",
+          ".git/",
           ".terraform/",
           ".worktree/",
         },
@@ -16,9 +16,14 @@ return {
       pickers = {
         find_files = {
           hidden = true,
-          no_ignore = true,
+          find_command = { "fd", "--type", "f", "--strip-cwd-prefix" },
         },
       },
     },
+    config = function(_, opts)
+      local telescope = require("telescope")
+      telescope.setup(opts)
+      telescope.load_extension("fzf")
+    end,
   },
 }
