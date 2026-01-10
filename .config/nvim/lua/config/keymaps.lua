@@ -92,3 +92,8 @@ end, { desc = "Copy GitHub permalink" })
 map({ "n", "v" }, "<leader>gL", function()
   require("utils.github-link").copy_github_url(true)
 end, { desc = "Copy GitHub link (branch)" })
+
+-- Claude Code reference
+map({ "n", "v" }, "<leader>cc", function()
+  require("utils.claude-ref").copy_claude_ref()
+end, { desc = "Copy Claude Code reference" })
