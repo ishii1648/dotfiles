@@ -1,18 +1,17 @@
 # Command aliases
 
-alias cat=nyan
-alias g=git
-alias k=kubectl
-alias d=docker
-alias t=terraform
-alias gc=gcloud
-alias a=aws
-alias e=eksctl
-alias python=python3
-alias cc=claude
-alias ic=istioctl
-alias grep=ggrep
-alias rgrep="grep -r"
-alias date="gdate"
-alias sed=gsed
-alias cc=claude
+abbr -a cat nyan
+abbr -a g git
+abbr -a k kubectl
+abbr -a d docker
+abbr -a t terraform
+abbr -a gc gcloud
+abbr -a a aws
+abbr -a e eksctl
+abbr -a python python3
+abbr -a cc claude
+abbr -a ic istioctl
+abbr -a grep ggrep
+abbr -a rgrep "grep -r"
+abbr -a date gdate
+abbr -a sed gsed
