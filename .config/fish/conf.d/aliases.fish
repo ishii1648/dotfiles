@@ -15,3 +15,4 @@ alias grep=ggrep
 alias rgrep="grep -r"
 alias date="gdate"
 alias sed=gsed
+alias cc=claude
