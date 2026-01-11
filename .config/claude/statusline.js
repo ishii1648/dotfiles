@@ -24,6 +24,8 @@ process.stdin.on('end', async () => {
 
     const branch = getCurrentBranch(cwd);
     const isWorktree = isGitWorktree(cwd);
+    const dirtyCount = getDirtyFileCount(cwd);
+    const prInfo = getPrInfo(cwd);
     const sessionId = data.session_id;
 
     // Calculate token usage for current session
@@ -70,8 +72,20 @@ process.stdin.on('end', async () => {
       gitInfo = ` | ${worktreeIcon} ${branchDisplay}`;
     }
 
+    // Build dirty files info
+    let dirtyInfo = '';
+    if (dirtyCount > 0) {
+      dirtyInfo = ` | \x1b[33m✎ ${dirtyCount}\x1b[0m`;
+    }
+
+    // Build PR link info
+    let prLinkInfo = '';
+    if (prInfo) {
+      prLinkInfo = ` | \x1b[36m#${prInfo.number}\x1b[0m`;
+    }
+
     // Build status line
-    const statusLine = `[${model}] 📁 ${repoName}${gitInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
+    const statusLine = `[${model}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
 
     console.log(statusLine);
   } catch (error) {
@@ -180,5 +194,23 @@ function getDirtyFileCount(cwd) {
     return lines.length;
   } catch (e) {
     return 0;
+  }
+}
+
+function getPrInfo(cwd) {
+  try {
+    const output = execSync('gh pr view --json url,number -q ".number,.url"', {
+      cwd: cwd,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+      timeout: 5000
+    });
+    const lines = output.trim().split('\n');
+    if (lines.length >= 2) {
+      return { number: lines[0], url: lines[1] };
+    }
+    return null;
+  } catch (e) {
+    return null;
   }
 }
