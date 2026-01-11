@@ -75,13 +75,14 @@ process.stdin.on('end', async () => {
     // Build dirty files info
     let dirtyInfo = '';
     if (dirtyCount > 0) {
-      dirtyInfo = ` | \x1b[33m✎ ${dirtyCount}\x1b[0m`;
+      dirtyInfo = ` | \x1b[33m📝 ${dirtyCount}\x1b[0m`;
     }
 
-    // Build PR link info
+    // Build PR link info (clickable using OSC 8 hyperlink escape sequence)
     let prLinkInfo = '';
     if (prInfo) {
-      prLinkInfo = ` | \x1b[36m#${prInfo.number}\x1b[0m`;
+      // OSC 8 format: \x1b]8;;URL\x07TEXT\x1b]8;;\x07
+      prLinkInfo = ` | \x1b]8;;${prInfo.url}\x07\x1b[36m#${prInfo.number}\x1b[0m\x1b]8;;\x07`;
     }
 
     // Build status line
