@@ -4,10 +4,19 @@ function gw_cd -d "Change directory to a git worktree"
         return 1
     end
 
+    set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
+    set -l default_branch (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | string replace 'refs/remotes/origin/' '')
+
     if test "$argv[1]" = "/"
-        set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
         if test -n "$main_worktree"
-            cd "$main_worktree"
+            if test "$PWD" = "$main_worktree"
+                # 既に main worktree にいる場合は default branch にチェックアウト
+                if test -n "$default_branch"
+                    git checkout "$default_branch"
+                end
+            else
+                cd "$main_worktree"
+            end
         end
         return 0
     end
@@ -27,5 +36,12 @@ function gw_cd -d "Change directory to a git worktree"
         return 0
     end
 
-    cd "$selected"
+    if test "$selected" = "$main_worktree" -a "$PWD" = "$main_worktree"
+        # main worktree を選択し、既にそこにいる場合は default branch にチェックアウト
+        if test -n "$default_branch"
+            git checkout "$default_branch"
+        end
+    else
+        cd "$selected"
+    end
 end
