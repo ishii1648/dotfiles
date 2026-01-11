@@ -97,7 +97,10 @@ process.stdin.on('end', async () => {
 
 async function calculateTokensFromTranscript(filePath) {
   return new Promise((resolve, reject) => {
-    let lastUsage = null;
+    let totalInputTokens = 0;
+    let totalOutputTokens = 0;
+    let totalCacheCreationTokens = 0;
+    let totalCacheReadTokens = 0;
 
     const fileStream = fs.createReadStream(filePath);
     const rl = readline.createInterface({
@@ -111,7 +114,11 @@ async function calculateTokensFromTranscript(filePath) {
 
         // Check if this is an assistant message with usage data
         if (entry.type === 'assistant' && entry.message?.usage) {
-          lastUsage = entry.message.usage;
+          const usage = entry.message.usage;
+          totalInputTokens += usage.input_tokens || 0;
+          totalOutputTokens += usage.output_tokens || 0;
+          totalCacheCreationTokens += usage.cache_creation_input_tokens || 0;
+          totalCacheReadTokens += usage.cache_read_input_tokens || 0;
         }
       } catch (e) {
         // Skip invalid JSON lines
@@ -119,16 +126,9 @@ async function calculateTokensFromTranscript(filePath) {
     });
 
     rl.on('close', () => {
-      if (lastUsage) {
-        // The last usage entry contains cumulative tokens
-        const totalTokens = (lastUsage.input_tokens || 0) +
-          (lastUsage.output_tokens || 0) +
-          (lastUsage.cache_creation_input_tokens || 0) +
-          (lastUsage.cache_read_input_tokens || 0);
-        resolve(totalTokens);
-      } else {
-        resolve(0);
-      }
+      const totalTokens = totalInputTokens + totalOutputTokens +
+        totalCacheCreationTokens + totalCacheReadTokens;
+      resolve(totalTokens);
     });
 
     rl.on('error', (err) => {
