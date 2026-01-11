@@ -8,7 +8,7 @@ unfocused-split-fill = #1a1a2e
 focus-follows-mouse = false
 
 # 区切り線の色（Dracula Purple - 落ち着いた紫）
-split-color = #bd93f9
+split-divider-color = #bd93f9
 
 cursor-opacity = 1.0
 window-save-state = always
