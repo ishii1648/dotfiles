@@ -168,3 +168,17 @@ function getRepoName(cwd) {
     return null;
   }
 }
+
+function getDirtyFileCount(cwd) {
+  try {
+    const output = execSync('git status --porcelain', {
+      cwd: cwd,
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    const lines = output.trim().split('\n').filter(l => l.length > 0);
+    return lines.length;
+  } catch (e) {
+    return 0;
+  }
+}
