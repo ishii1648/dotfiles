@@ -3,7 +3,7 @@ set -euo pipefail
 
 # 共通関数ライブラリを読み込み
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-source "${SCRIPT_DIR}/worktree-common.sh"
+source "${SCRIPT_DIR}/_worktree.sh"
 setup_error_handler
 
 # デバッグログ
