@@ -115,7 +115,10 @@ if [ -d "${WORKTREE_DIR}" ]; then
         log_info "Command copied to clipboard: ${NEXT_COMMAND}"
     fi
 
-    echo "{\"continue\": false, \"stopReason\": \"[WARN] Worktree already exists at ${WORKTREE_FULL_PATH}. Please start a new session: ${NEXT_COMMAND}\"}"
+    # フラグファイルを作成（Stopフックで検出するため）
+    echo "${WORKTREE_FULL_PATH}|${NEXT_COMMAND}" > /tmp/worktree-created-flag
+
+    echo "{\"reason\": \"[WARN] Worktree already exists at ${WORKTREE_FULL_PATH}. Please start a new session: ${NEXT_COMMAND}\"}"
     exit 0
 fi
 
@@ -205,4 +208,7 @@ if command -v pbcopy &> /dev/null; then
     log_info "Command copied to clipboard: ${NEXT_COMMAND}"
 fi
 
-echo "{\"continue\": false, \"stopReason\": \"Worktree created at ${WORKTREE_FULL_PATH}. Please start a new session: ${NEXT_COMMAND}\"}"
+# フラグファイルを作成（Stopフックで検出するため）
+echo "${WORKTREE_FULL_PATH}|${NEXT_COMMAND}" > /tmp/worktree-created-flag
+
+echo "{\"reason\": \"Worktree created at ${WORKTREE_FULL_PATH}. Please start a new session: ${NEXT_COMMAND}\"}"
