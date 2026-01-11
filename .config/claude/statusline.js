@@ -97,10 +97,8 @@ process.stdin.on('end', async () => {
 
 async function calculateTokensFromTranscript(filePath) {
   return new Promise((resolve, reject) => {
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
-    let totalCacheCreationTokens = 0;
-    let totalCacheReadTokens = 0;
+    // コンテキスト使用量を計算するため、最後のリクエストのusage情報を使用
+    let lastUsage = null;
 
     const fileStream = fs.createReadStream(filePath);
     const rl = readline.createInterface({
@@ -114,11 +112,7 @@ async function calculateTokensFromTranscript(filePath) {
 
         // Check if this is an assistant message with usage data
         if (entry.type === 'assistant' && entry.message?.usage) {
-          const usage = entry.message.usage;
-          totalInputTokens += usage.input_tokens || 0;
-          totalOutputTokens += usage.output_tokens || 0;
-          totalCacheCreationTokens += usage.cache_creation_input_tokens || 0;
-          totalCacheReadTokens += usage.cache_read_input_tokens || 0;
+          lastUsage = entry.message.usage;
         }
       } catch (e) {
         // Skip invalid JSON lines
@@ -126,9 +120,17 @@ async function calculateTokensFromTranscript(filePath) {
     });
 
     rl.on('close', () => {
-      const totalTokens = totalInputTokens + totalOutputTokens +
-        totalCacheCreationTokens + totalCacheReadTokens;
-      resolve(totalTokens);
+      if (lastUsage) {
+        // 最後のリクエスト時点でのコンテキストサイズ
+        // = 入力トークン（キャッシュ含む）+ 出力トークン
+        const contextSize = (lastUsage.input_tokens || 0) +
+          (lastUsage.output_tokens || 0) +
+          (lastUsage.cache_creation_input_tokens || 0) +
+          (lastUsage.cache_read_input_tokens || 0);
+        resolve(contextSize);
+      } else {
+        resolve(0);
+      }
     });
 
     rl.on('error', (err) => {

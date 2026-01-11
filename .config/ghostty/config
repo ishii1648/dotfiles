@@ -5,7 +5,7 @@ theme = Dracula
 # フォーカス表示の改善
 unfocused-split-opacity = 0.6
 unfocused-split-fill = #1a1a2e
-focus-follows-mouse = true
+focus-follows-mouse = false
 
 # 区切り線の色（Dracula Purple - 落ち着いた紫）
 split-color = #bd93f9
