@@ -108,8 +108,8 @@ fi
 
 # 5. JSON出力
 WORKTREE_FULL_PATH="${REPO_ROOT}/${WORKTREE_DIR}"
-NEXT_COMMAND="cd ${WORKTREE_FULL_PATH} && claude"
+NEXT_COMMAND="cd ${WORKTREE_FULL_PATH} && claude --resume ${FEATURE_NAME}"
 echo -n "$NEXT_COMMAND" | pbcopy 2>/dev/null || true
 log_info "Command copied to clipboard"
 
-echo "{\"continue\": false, \"stopReason\": \"Worktree created at ${WORKTREE_FULL_PATH}. Please start a new session: ${NEXT_COMMAND}\"}"
+echo "{\"continue\": false, \"stopReason\": \"Worktree created at ${WORKTREE_FULL_PATH}. Resume session with: ${NEXT_COMMAND}\"}"

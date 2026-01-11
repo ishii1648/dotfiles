@@ -21,9 +21,19 @@ Analyze the current session context to generate an appropriate feature name:
 - Be descriptive of the feature/fix/change
 - Examples: `add-dark-mode`, `fix-validation-error`, `update-api-endpoints`
 
-## Step 2: Execute Worktree Creation
+## Step 2: Rename Current Session
 
-Once you have determined the feature name, run:
+Before creating the worktree, rename the current session so it can be resumed in the new worktree:
+
+```
+/rename <feature-name>
+```
+
+This allows the session to be resumed with `claude --resume <feature-name>` in the new worktree.
+
+## Step 3: Execute Worktree Creation
+
+Once you have renamed the session, run:
 
 ```bash
 bash ~/.claude/scripts/worktree-command.sh <feature-name>
