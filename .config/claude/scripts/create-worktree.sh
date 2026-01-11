@@ -105,7 +105,14 @@ log_info "Creating worktree for feature: ${FEATURE_NAME}"
 log_info "Branch: ${BRANCH_NAME}"
 log_info "Worktree directory: ${WORKTREE_DIR}"
 
-# Check if we're in a git repository
+# worktree内で実行された場合は早期終了
+if [ -f ".git" ]; then
+    log_warn "Already in a worktree. Skipping worktree creation."
+    echo '{"continue": true}'
+    exit 0
+fi
+
+# gitリポジトリかどうかをチェック
 if [ ! -d ".git" ]; then
     echo '{"result": "error", "message": "Not a git repository"}'
     exit 0
