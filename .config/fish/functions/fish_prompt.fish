@@ -89,7 +89,7 @@ function __fish_osc133_postexec --on-event fish_postexec
     printf '\e]133;D;%s\a' $status
 
     # git コマンド実行後にキャッシュ無効化（次のプロンプトで更新）
-    if string match -qr '^(git|g|gw_)( |$)' -- "$argv[1]"
+    if string match -qr '^(git|g|gw_)' -- "$argv[1]"
         set -g __fish_prompt_pwd_cache ""
     end
     # kubectx/aws 実行後にk8s context更新
