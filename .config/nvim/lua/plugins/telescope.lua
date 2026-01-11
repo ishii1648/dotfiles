@@ -8,9 +8,9 @@ return {
     opts = {
       defaults = {
         file_ignore_patterns = {
-          ".git/",
-          ".terraform/",
-          ".worktree/",
+          "%.git/",
+          "%.terraform/",
+          "%.worktree/",
         },
       },
       pickers = {

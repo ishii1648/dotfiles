@@ -66,7 +66,8 @@ process.stdin.on('end', async () => {
     let gitInfo = '';
     if (branch) {
       const worktreeIcon = isWorktree ? '🌳' : '🌿';
-      gitInfo = ` | ${worktreeIcon} ${branch}`;
+      const branchDisplay = isWorktree ? `\x1b[32m${branch}\x1b[0m` : branch;
+      gitInfo = ` | ${worktreeIcon} ${branchDisplay}`;
     }
 
     // Build status line
