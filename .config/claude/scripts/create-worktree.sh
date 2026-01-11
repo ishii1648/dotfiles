@@ -1,6 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
+# エラーハンドラー - エラー時もJSON出力を返す
+cleanup_on_error() {
+    local exit_code=$?
+    local line_no=$1
+    echo "[ERROR] Script failed at line $line_no with exit code $exit_code" >&2
+    echo "{\"continue\": false, \"stopReason\": \"[ERROR] Worktree creation failed at line $line_no. Check /tmp/create-worktree-debug.log for details.\"}"
+    exit 0
+}
+
+trap 'cleanup_on_error $LINENO' ERR
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -94,7 +105,14 @@ log_info "Creating worktree for feature: ${FEATURE_NAME}"
 log_info "Branch: ${BRANCH_NAME}"
 log_info "Worktree directory: ${WORKTREE_DIR}"
 
-# Check if we're in a git repository
+# worktree内で実行された場合は早期終了
+if [ -f ".git" ]; then
+    log_warn "Already in a worktree. Skipping worktree creation."
+    echo '{"continue": true}'
+    exit 0
+fi
+
+# gitリポジトリかどうかをチェック
 if [ ! -d ".git" ]; then
     echo '{"result": "error", "message": "Not a git repository"}'
     exit 0
