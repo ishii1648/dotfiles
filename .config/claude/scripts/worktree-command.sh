@@ -21,6 +21,27 @@ log_info() { echo -e "${GREEN}[INFO]${NC} $1" >&2; }
 log_warn() { echo -e "${YELLOW}[WARN]${NC} $1" >&2; }
 log_step() { echo -e "${BLUE}[STEP]${NC} $1" >&2; }
 
+# Detect default branch (main or master)
+get_default_branch() {
+    local default_branch
+    default_branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@')
+
+    if [ -n "$default_branch" ]; then
+        echo "$default_branch"
+        return
+    fi
+
+    if git show-ref --verify --quiet refs/heads/main; then
+        echo "main"
+    elif git show-ref --verify --quiet refs/heads/master; then
+        echo "master"
+    else
+        echo "[ERROR] Could not detect default branch (neither 'main' nor 'master' found)" >&2
+        echo "{\"continue\": false, \"stopReason\": \"[ERROR] Could not detect default branch.\"}"
+        exit 0
+    fi
+}
+
 # 引数チェック
 if [ -z "${1:-}" ]; then
     echo "{\"continue\": false, \"stopReason\": \"[ERROR] Usage: /worktree <feature-name>\"}"
@@ -53,7 +74,7 @@ if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --o
 fi
 
 # 2. worktree作成
-DEFAULT_BRANCH=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "master")
+DEFAULT_BRANCH=$(get_default_branch)
 if git show-ref --verify --quiet "refs/heads/${BRANCH_NAME}"; then
     log_warn "Branch ${BRANCH_NAME} already exists, using existing branch"
     git worktree add "${WORKTREE_DIR}" "${BRANCH_NAME}"
@@ -62,19 +83,22 @@ else
     git worktree add -b "${BRANCH_NAME}" "${WORKTREE_DIR}" "${DEFAULT_BRANCH}"
 fi
 
-# 3. settings.local.json シンボリックリンク
-if [ -f ".claude/settings.local.json" ]; then
-    mkdir -p "${WORKTREE_DIR}/.claude"
-    ln -sf "${REPO_ROOT}/.claude/settings.local.json" "${WORKTREE_DIR}/.claude/settings.local.json"
-    log_info "Symlinked: .claude/settings.local.json"
-fi
-
-# 4. 新worktreeでstash適用
+# 3. 新worktreeでstash適用（シンボリックリンク作成前に実行して競合を防ぐ）
 if [ "$HAS_CHANGES" = true ]; then
     log_step "Applying stashed changes to new worktree..."
     cd "${WORKTREE_DIR}"
     git stash pop
     log_info "Changes transferred to worktree"
+    cd "$REPO_ROOT"
+fi
+
+# 4. settings.local.json シンボリックリンク（stash pop後に作成）
+if [ -f ".claude/settings.local.json" ]; then
+    mkdir -p "${WORKTREE_DIR}/.claude"
+    # stashから復元されたファイルがあれば削除してシンボリックリンクに置き換え
+    rm -f "${WORKTREE_DIR}/.claude/settings.local.json"
+    ln -sf "${REPO_ROOT}/.claude/settings.local.json" "${WORKTREE_DIR}/.claude/settings.local.json"
+    log_info "Symlinked: .claude/settings.local.json"
 fi
 
 # 5. JSON出力
