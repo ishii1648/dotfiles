@@ -4,11 +4,11 @@ function gw_add -d "Add a git worktree and cd into it"
         return 1
     end
 
-    set -l branch_name $argv[1]
-    if test -z "$branch_name"
-        read -P "Branch name: " branch_name
-        if test -z "$branch_name"
-            echo "gw_add: Branch name is required." >&2
+    set -l worktree_name $argv[1]
+    if test -z "$worktree_name"
+        read -P "Worktree name: " worktree_name
+        if test -z "$worktree_name"
+            echo "gw_add: Worktree name is required." >&2
             return 1
         end
     end
@@ -19,7 +19,7 @@ function gw_add -d "Add a git worktree and cd into it"
         return 1
     end
 
-    set -l worktree_path "$main_worktree/.worktrees/$branch_name"
+    set -l worktree_path "$main_worktree/.worktrees/$worktree_name"
 
     if test -d "$worktree_path"
         echo "gw_add: Warning: Worktree already exists at $worktree_path" >&2
@@ -29,7 +29,7 @@ function gw_add -d "Add a git worktree and cd into it"
 
     mkdir -p "$main_worktree/.worktrees"
 
-    git worktree add "$worktree_path" -b "$branch_name"
+    git worktree add "$worktree_path" -b "$worktree_name"
     if test $status -ne 0
         echo "gw_add: Failed to create worktree" >&2
         return 1
