@@ -65,12 +65,16 @@ if [ -d "${WORKTREE_DIR}" ]; then
     exit 0
 fi
 
-# 1. 未コミット変更をstash
+# 1. 未コミット変更をstash（元ブランチに残しつつ新worktreeにもコピー）
 HAS_CHANGES=false
 if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     HAS_CHANGES=true
     log_step "Stashing uncommitted changes..."
     git stash -u -m "worktree: ${FEATURE_NAME}"
+
+    # 元ブランチに変更を復元（stashは残る）
+    log_step "Restoring changes to original branch..."
+    git stash apply
 fi
 
 # 2. worktree作成
@@ -83,20 +87,21 @@ else
     git worktree add -b "${BRANCH_NAME}" "${WORKTREE_DIR}" "${DEFAULT_BRANCH}"
 fi
 
-# 3. 新worktreeでstash適用（シンボリックリンク作成前に実行して競合を防ぐ）
+# 3. 新worktreeでstash適用（シンボリックリンク作成前）
 if [ "$HAS_CHANGES" = true ]; then
-    log_step "Applying stashed changes to new worktree..."
+    log_step "Copying changes to new worktree..."
     cd "${WORKTREE_DIR}"
-    git stash pop
-    log_info "Changes transferred to worktree"
+    git stash apply
+    log_info "Changes copied to worktree"
+
+    # stashを削除（両方に適用済み）
+    git stash drop
     cd "$REPO_ROOT"
 fi
 
-# 4. settings.local.json シンボリックリンク（stash pop後に作成）
+# 4. settings.local.json シンボリックリンク
 if [ -f ".claude/settings.local.json" ]; then
     mkdir -p "${WORKTREE_DIR}/.claude"
-    # stashから復元されたファイルがあれば削除してシンボリックリンクに置き換え
-    rm -f "${WORKTREE_DIR}/.claude/settings.local.json"
     ln -sf "${REPO_ROOT}/.claude/settings.local.json" "${WORKTREE_DIR}/.claude/settings.local.json"
     log_info "Symlinked: .claude/settings.local.json"
 fi
