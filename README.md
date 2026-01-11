@@ -10,3 +10,37 @@ ln -s ~/workspace/dotfiles/.zshrc ~/.zshrc
 ```
 
 ※リポジトリ管理用ディレクトリへシンボリックリンクを張ると、ファイル内容をGit管理できないためリポジトリ管理用ディレクトリからリンクを貼るようにする
+
+## Claude Code Hooks 設定
+
+`~/.claude/settings.json` に以下のhooks設定を追加:
+
+```json
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/create-worktree.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### Hooks の説明
+
+| Hook | 説明 |
+|------|------|
+| `PostToolUse (ExitPlanMode)` | plan mode終了時にgit worktreeを自動作成し、会話を停止する |
+
+### スクリプトのセットアップ
+
+```bash
+ln -s ~/workspace/dotfiles/.config/claude/scripts ~/.claude/scripts
+```
