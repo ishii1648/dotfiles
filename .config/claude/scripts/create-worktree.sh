@@ -1,6 +1,17 @@
 #!/bin/bash
 set -euo pipefail
 
+# エラーハンドラー - エラー時もJSON出力を返す
+cleanup_on_error() {
+    local exit_code=$?
+    local line_no=$1
+    echo "[ERROR] Script failed at line $line_no with exit code $exit_code" >&2
+    echo "{\"continue\": false, \"stopReason\": \"[ERROR] Worktree creation failed at line $line_no. Check /tmp/create-worktree-debug.log for details.\"}"
+    exit 0
+}
+
+trap 'cleanup_on_error $LINENO' ERR
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
