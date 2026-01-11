@@ -1,8 +1,13 @@
 font-family = "BIZ UDGothic Bold"
 adjust-cell-height = 20%
 theme = Dracula
-unfocused-split-opacity = 0.7
+
+# フォーカス表示の改善
+unfocused-split-opacity = 0.6
+unfocused-split-fill = #1a1a2e
 split-divider-color = #FF79C6
+focus-follows-mouse = true
+
 cursor-opacity = 1.0
 window-save-state = always
 font-thicken
