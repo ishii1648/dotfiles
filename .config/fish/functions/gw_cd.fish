@@ -4,6 +4,14 @@ function gw_cd -d "Change directory to a git worktree"
         return 1
     end
 
+    if test "$argv[1]" = "/"
+        set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
+        if test -n "$main_worktree"
+            cd "$main_worktree"
+        end
+        return 0
+    end
+
     set -l worktrees (git worktree list | awk '{print $1}')
 
     if test (count $worktrees) -le 1
