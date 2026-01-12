@@ -1,4 +1,4 @@
-function gw_remove -d "Remove stale worktrees (merged, no remote, old, or same HEAD as default branch)"
+function gw_rm -d "Remove stale worktrees (merged, no remote, old, or same HEAD as default branch)"
     # Parse arguments
     set -l dry_run false
     set -l days 30
@@ -13,25 +13,25 @@ function gw_remove -d "Remove stale worktrees (merged, no remote, old, or same H
                 if test $i -le (count $argv)
                     set days $argv[$i]
                 else
-                    echo "gw_remove: --days requires a number" >&2
+                    echo "gw_rm: --days requires a number" >&2
                     return 1
                 end
             case '-*'
-                echo "gw_remove: Unknown option $argv[$i]" >&2
-                echo "Usage: gw_remove [--dry-run | -n] [--days N]" >&2
+                echo "gw_rm: Unknown option $argv[$i]" >&2
+                echo "Usage: gw_rm [--dry-run | -n] [--days N]" >&2
                 return 1
         end
         set i (math $i + 1)
     end
 
     if not git rev-parse --git-dir >/dev/null 2>&1
-        echo "gw_remove: Not in a git repository." >&2
+        echo "gw_rm: Not in a git repository." >&2
         return 1
     end
 
     set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
     if test -z "$main_worktree"
-        echo "gw_remove: Could not determine main worktree path" >&2
+        echo "gw_rm: Could not determine main worktree path" >&2
         return 1
     end
 
@@ -43,14 +43,14 @@ function gw_remove -d "Remove stale worktrees (merged, no remote, old, or same H
         else if git show-ref --verify --quiet refs/heads/master
             set default_branch "master"
         else
-            echo "gw_remove: Could not detect default branch" >&2
+            echo "gw_rm: Could not detect default branch" >&2
             return 1
         end
     end
 
     set -l default_head (git rev-parse "refs/heads/$default_branch" 2>/dev/null)
     if test -z "$default_head"
-        echo "gw_remove: Could not get HEAD of $default_branch" >&2
+        echo "gw_rm: Could not get HEAD of $default_branch" >&2
         return 1
     end
 
