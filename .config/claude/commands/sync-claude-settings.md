@@ -47,7 +47,7 @@ fi
 mkdir -p "$PARENT_ROOT/.claude"
 
 # コピー実行
-cp "$WORKTREE_ROOT/.claude/settings.local.json" "$PARENT_ROOT/.claude/settings.local.json"
+cp -f "$WORKTREE_ROOT/.claude/settings.local.json" "$PARENT_ROOT/.claude/settings.local.json"
 
 echo "Synced: $WORKTREE_ROOT/.claude/settings.local.json"
 echo "    -> $PARENT_ROOT/.claude/settings.local.json"
