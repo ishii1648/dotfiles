@@ -173,8 +173,35 @@ function isGitWorktree(cwd) {
   }
 }
 
+function getParentRepoRoot(cwd) {
+  try {
+    const gitPath = path.join(cwd, '.git');
+    const gitContent = fs.readFileSync(gitPath, 'utf8');
+    // gitdir: /path/to/parent/.git/worktrees/<name>
+    const match = gitContent.match(/gitdir:\s*(.+)/);
+    if (match) {
+      const gitdir = match[1].trim();
+      // .git/worktrees/<name> を削除して親リポジトリのルートを取得
+      const parentGitDir = gitdir.replace(/\/worktrees\/[^/]+$/, '');
+      // .git を削除してリポジトリルートを取得
+      return parentGitDir.replace(/\/.git$/, '');
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function getRepoName(cwd) {
   try {
+    // worktreeの場合、親リポジトリ名を取得
+    if (isGitWorktree(cwd)) {
+      const parentRepoRoot = getParentRepoRoot(cwd);
+      if (parentRepoRoot) {
+        return path.basename(parentRepoRoot);
+      }
+    }
+    // 通常のリポジトリの場合
     const repoRoot = execSync('git rev-parse --show-toplevel', {
       cwd: cwd,
       encoding: 'utf8',
