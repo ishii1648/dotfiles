@@ -28,6 +28,16 @@ ln -s ~/workspace/dotfiles/.zshrc ~/.zshrc
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/sync-settings-local.sh"
+          }
+        ]
+      }
     ]
   }
 }
@@ -38,6 +48,7 @@ ln -s ~/workspace/dotfiles/.zshrc ~/.zshrc
 | Hook | 説明 |
 |------|------|
 | `PostToolUse (ExitPlanMode)` | plan mode終了時にgit worktreeを自動作成し、会話を停止する |
+| `Stop` | Claudeの応答完了時にworktreeの`.claude/settings.local.json`を親リポジトリに同期する |
 
 ### スクリプトのセットアップ
 
