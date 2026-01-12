@@ -16,6 +16,7 @@ function gw_cd -d "Change directory to a git worktree"
                 end
             else
                 cd "$main_worktree"
+                git pull origin "$default_branch"
             end
         end
         return 0
@@ -41,6 +42,9 @@ function gw_cd -d "Change directory to a git worktree"
         if test -n "$default_branch"
             git checkout "$default_branch"
         end
+    else if test "$selected" = "$main_worktree"
+        cd "$selected"
+        git pull origin "$default_branch"
     else
         cd "$selected"
     end
