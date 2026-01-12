@@ -1,32 +1,32 @@
 ---
 name: format-validator
 description: |
-  Use this agent when a create-* command completes to validate the generated file, or when the user asks to "validate format", "check component format", "verify markdown structure", "フォーマットチェック", "形式検証". Examples:
+  Use this agent when a create-* command completes to validate the generated file, or when the user asks to "validate format", "check component format", "verify markdown structure". Examples:
 
   <example>
-  Context: create-command が完了した直後
+  Context: Right after create-command completed
   user: "Validate the command format for .config/claude/commands/review-pr.md"
   assistant: "I'll validate the format."
   <commentary>
-  create-* コマンドから自動呼び出しされたケース。ファイルパスが指定されている。
+  Auto-invoked from create-* command with file path specified.
   </commentary>
   </example>
 
   <example>
-  Context: ユーザーが既存ファイルの形式を確認したい
-  user: "このagentのフォーマットをチェックして"
-  assistant: "形式を検証します。"
+  Context: User wants to check existing file format
+  user: "Check the format of this agent"
+  assistant: "I'll verify the format."
   <commentary>
-  明示的な検証リクエスト。対象ファイルを特定してチェックする。
+  Explicit validation request. Identify target file and check.
   </commentary>
   </example>
 
   <example>
-  Context: 複数ファイルの一括検証
-  user: "commands/ 配下のファイルを全部チェックして"
-  assistant: "コマンドファイルを順次検証します。"
+  Context: Batch validation of multiple files
+  user: "Check all files under commands/"
+  assistant: "I'll validate command files sequentially."
   <commentary>
-  ディレクトリ内の複数ファイルを検証するケース。
+  Validating multiple files in a directory.
   </commentary>
   </example>
 
