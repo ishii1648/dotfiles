@@ -35,5 +35,11 @@ function gw_add -d "Add a git worktree and cd into it"
         return 1
     end
 
+    # .claude/settings.local.json をコピー
+    if test -f "$main_worktree/.claude/settings.local.json"
+        mkdir -p "$worktree_path/.claude"
+        cp "$main_worktree/.claude/settings.local.json" "$worktree_path/.claude/settings.local.json"
+    end
+
     cd "$worktree_path"
 end
