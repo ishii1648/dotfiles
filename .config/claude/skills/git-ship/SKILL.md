@@ -1,6 +1,6 @@
 ---
 name: Git Ship
-description: This skill should be used when the user asks to "ship changes", "create a PR", "commit and push", "git-ship", or when code implementation is complete and uncommitted changes exist. Automates the complete git workflow from uncommitted changes to draft PR creation.
+description: Automatically triggered when code implementation is complete with uncommitted changes on a feature/fix/docs/chore branch. Creates commits and draft PRs as part of the automated development workflow. Can also be manually invoked with "/git-ship" or phrases like "ship changes", "create a PR".
 version: 0.1.0
 allowed-tools: TodoWrite, Read, Grep, "Bash(git:*)", "Bash(gh:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)"
 argument-hint: "[draft] [--no-pr] [--base branch-name] [custom commit message]"
