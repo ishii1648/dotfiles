@@ -5,7 +5,15 @@ function gw_cd -d "Change directory to a git worktree"
     end
 
     set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
+    # default branch を取得（origin/HEAD → main → master の順でフォールバック）
     set -l default_branch (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | string replace 'refs/remotes/origin/' '')
+    if test -z "$default_branch"
+        if git show-ref --verify --quiet refs/remotes/origin/main
+            set default_branch "main"
+        else if git show-ref --verify --quiet refs/remotes/origin/master
+            set default_branch "master"
+        end
+    end
 
     set -l worktrees (git worktree list | awk '{print $1}')
 
