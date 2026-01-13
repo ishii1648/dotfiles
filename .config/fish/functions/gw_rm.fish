@@ -96,10 +96,14 @@ function gw_rm -d "Remove stale worktrees (merged, no remote, old, or same HEAD 
             end
         end
 
-        # Check 3: No corresponding remote branch
+        # Check 3: No corresponding remote branch AND old
         if test -z "$reason"
             if not git show-ref --verify --quiet "refs/remotes/origin/$wt_branch" 2>/dev/null
-                set reason "no remote branch"
+                set -l last_modified (stat -f %m "$wt_path" 2>/dev/null)
+                if test -n "$last_modified" -a "$last_modified" -lt "$threshold_ts"
+                    set -l days_ago (math \(( date +%s ) - $last_modified \) / 86400)
+                    set reason "no remote branch and not updated for $days_ago days"
+                end
             end
         end
 
