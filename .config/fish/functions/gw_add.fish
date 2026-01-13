@@ -29,7 +29,18 @@ function gw_add -d "Add a git worktree and cd into it"
 
     mkdir -p "$main_worktree/.worktrees"
 
-    git worktree add "$worktree_path" -b "$worktree_name"
+    # リモートブランチの存在確認
+    set -l remote_branch_exists (git ls-remote --heads origin "$worktree_name" 2>/dev/null)
+
+    if test -n "$remote_branch_exists"
+        # リモートブランチが存在する場合: fetch してから追跡ブランチとして作成
+        git fetch origin "$worktree_name":"$worktree_name"
+        git worktree add "$worktree_path" "$worktree_name"
+    else
+        # リモートブランチが存在しない場合: 新規ブランチ作成
+        git worktree add "$worktree_path" -b "$worktree_name"
+    end
+
     if test $status -ne 0
         echo "gw_add: Failed to create worktree" >&2
         return 1
