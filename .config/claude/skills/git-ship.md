@@ -1,6 +1,6 @@
 ---
 allowed-tools: TodoWrite, Read, Grep, "Bash(git:*)", "Bash(gh:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)"
-description: "Automate git workflow: create branch, commit, push, and create PR with template"
+description: "Auto-run when code implementation is complete and uncommitted changes exist. Creates a draft PR."
 argument-hint: "[draft] [--no-pr] [--base branch-name] [custom commit message]"
 ---
 
@@ -51,12 +51,13 @@ Automates the complete git workflow from uncommitted changes to PR creation.
   - List of changed files
   - Test cases if test files modified
 - Create PR with `gh pr create`
-  - Add `--draft` if specified
+  - **Default: Create as draft PR** (use `--no-draft` to create as ready for review)
   - Use filled template as body with Japanese content
 
 ## Arguments
 
-- `draft` - Create draft PR
+- `draft` - Create draft PR (default behavior)
+- `--no-draft` - Create PR as ready for review
 - `--no-pr` - Skip PR creation, only commit and push changes
 - `--base branch` - Target branch for PR
 - `"message"` - Custom commit message
@@ -64,8 +65,8 @@ Automates the complete git workflow from uncommitted changes to PR creation.
 ## Examples
 
 ```bash
-/git-ship                     # Full automation
-/git-ship draft               # Create draft PR
+/git-ship                     # Full automation (draft PR)
+/git-ship --no-draft          # Create PR ready for review
 /git-ship --no-pr             # Commit and push only
 /git-ship "fix: urgent bug"   # Custom commit message
 ```
