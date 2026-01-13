@@ -1,16 +1,25 @@
--- Custom branch component with worktree awareness
-local function git_branch_worktree()
-  local branch = vim.fn.system("git branch --show-current 2>/dev/null"):gsub("\n", "")
-  if branch == "" then
-    return ""
+local worktree_cache = {
+  is_worktree = false,
+  cwd = nil,
+}
+
+local function is_in_worktree()
+  local cwd = vim.fn.getcwd()
+  if worktree_cache.cwd == cwd then
+    return worktree_cache.is_worktree
   end
-  return branch
+
+  local count = vim.fn.system("git worktree list 2>/dev/null | wc -l")
+  worktree_cache.cwd = cwd
+  worktree_cache.is_worktree = tonumber(count:gsub("%s+", "")) and tonumber(count:gsub("%s+", "")) > 1
+  return worktree_cache.is_worktree
 end
 
-local function is_worktree_active()
-  local count = vim.fn.system("git worktree list 2>/dev/null | wc -l"):gsub("%s+", "")
-  return tonumber(count) and tonumber(count) > 1
-end
+vim.api.nvim_create_autocmd({ "DirChanged", "BufEnter" }, {
+  callback = function()
+    worktree_cache.cwd = nil
+  end,
+})
 
 return {
   "nvim-lualine/lualine.nvim",
@@ -19,13 +28,10 @@ return {
     sections = {
       lualine_b = {
         {
-          git_branch_worktree,
-          icon = "",
+          "branch",
           color = function()
-            if is_worktree_active() then
-              return { fg = "#50fa7b" } -- bright green
-            else
-              return { fg = "#9a9a9a" } -- gray
+            if is_in_worktree() then
+              return { fg = "#50fa7b" }
             end
           end,
         },
