@@ -7,22 +7,45 @@ function gw_cd -d "Change directory to a git worktree"
     set -l main_worktree (git worktree list --porcelain | head -n1 | string replace 'worktree ' '')
     set -l default_branch (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | string replace 'refs/remotes/origin/' '')
 
-    if test "$argv[1]" = "/"
-        if test -n "$main_worktree"
-            if test "$PWD" = "$main_worktree"
-                # 既に main worktree にいる場合は default branch にチェックアウト
-                if test -n "$default_branch"
-                    git checkout "$default_branch"
+    set -l worktrees (git worktree list | awk '{print $1}')
+
+    if test -n "$argv[1]"
+        if test "$argv[1]" = "/"
+            # "/" の場合は main worktree に移動
+            if test -n "$main_worktree"
+                if test "$PWD" = "$main_worktree"
+                    # 既に main worktree にいる場合は default branch にチェックアウト
+                    if test -n "$default_branch"
+                        git checkout "$default_branch"
+                    end
+                else
+                    cd "$main_worktree"
+                    git pull origin "$default_branch"
                 end
-            else
-                cd "$main_worktree"
-                git pull origin "$default_branch"
+            end
+            return 0
+        end
+
+        # ブランチ名でworktreeを検索
+        for wt in $worktrees
+            set -l wt_branch (git -C "$wt" rev-parse --abbrev-ref HEAD 2>/dev/null)
+            if test "$wt_branch" = "$argv[1]"
+                cd "$wt"
+                return 0
             end
         end
-        return 0
-    end
 
-    set -l worktrees (git worktree list | awk '{print $1}')
+        # パスの一部としてマッチするworktreeを検索
+        for wt in $worktrees
+            if string match -q "*/$argv[1]" "$wt"; or string match -q "*/$argv[1]/*" "$wt"
+                cd "$wt"
+                return 0
+            end
+        end
+
+        echo "gw_cd: Worktree for '$argv[1]' not found." >&2
+        return 1
+    end
 
     if test (count $worktrees) -le 1
         echo "gw_cd: No other worktrees found."
