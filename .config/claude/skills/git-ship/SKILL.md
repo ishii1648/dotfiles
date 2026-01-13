@@ -1,25 +1,32 @@
 ---
+name: Git Ship
+description: This skill should be used when the user asks to "ship changes", "create a PR", "commit and push", "git-ship", or when code implementation is complete and uncommitted changes exist. Automates the complete git workflow from uncommitted changes to draft PR creation.
+version: 0.1.0
 allowed-tools: TodoWrite, Read, Grep, "Bash(git:*)", "Bash(gh:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)"
-description: "Auto-run when code implementation is complete and uncommitted changes exist. Creates a draft PR."
 argument-hint: "[draft] [--no-pr] [--base branch-name] [custom commit message]"
 ---
 
 # Git Ship - Automated Git Workflow
 
 ## Overview
-Automates the complete git workflow from uncommitted changes to PR creation.
+
+Automates the complete git workflow from uncommitted changes to PR creation. This skill handles branch management, commit creation, pushing to remote, and draft PR creation in a single automated flow.
+
 **PR descriptions will be written in Japanese (日本語) for this repository.**
 
 ## Workflow Steps
 
 ### 1. Pre-flight Checks
+
 - Check for uncommitted changes with `git status`
 - If no changes: Exit with "Nothing to commit"
 - Check for PR template at `.github/pull_request_template.md` or `.github/PULL_REQUEST_TEMPLATE.md`
 - If creating PR and no template found: Stop and request template creation
 
 ### 2. Branch Management
-**Check current branch and create new if needed:**
+
+Check current branch and create new if needed:
+
 - Get current branch: `git branch --show-current`
 - If on main branch with uncommitted changes:
   - Stash any uncommitted changes: `git stash --include-untracked`
@@ -36,15 +43,18 @@ Automates the complete git workflow from uncommitted changes to PR creation.
   - Continue with current branch (no new branch creation)
 
 ### 3. Commit Changes
+
 - Stage all changes: `git add -A`
 - Generate or use provided commit message
 - Follow conventional commits: `type: description`
 - Create the commit
 
 ### 4. Push to Remote
+
 - Push the new branch: `git push -u origin branch-name`
 
 ### 5. Create Pull Request (unless --no-pr)
+
 - Determine base branch (default: main)
 - Fill PR template with **Japanese descriptions**:
   - Summary from commit messages (日本語で記載)
@@ -72,7 +82,14 @@ Automates the complete git workflow from uncommitted changes to PR creation.
 ```
 
 ## Error Handling
-- No changes → Exit gracefully
-- No template → Stop (for PR creation)
-- Push failures → Check remote configuration
-- PR exists → Show existing PR link
+
+- No changes: Exit gracefully
+- No template: Stop (for PR creation)
+- Push failures: Check remote configuration
+- PR exists: Show existing PR link
+
+## Best Practices
+
+- Always ensure changes are tested before shipping
+- Use meaningful commit messages that describe the "why"
+- Review the generated PR description before finalizing
