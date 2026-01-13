@@ -6,10 +6,12 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 
 vim.api.nvim_create_autocmd("VimEnter", {
   callback = function()
-    require("neo-tree.command").execute({
-      action = "show",
-      source = "filesystem",
-    })
+    vim.schedule(function()
+      require("neo-tree.command").execute({
+        action = "show",
+        source = "filesystem",
+      })
+    end)
   end,
 })
 
