@@ -4,6 +4,9 @@ function gw_add -d "Add a git worktree and cd into it"
         return 1
     end
 
+    argparse 'c/claude' -- $argv
+    or return 1
+
     set -l worktree_name $argv[1]
     if test -z "$worktree_name"
         read -P "Worktree name: " worktree_name
@@ -24,6 +27,9 @@ function gw_add -d "Add a git worktree and cd into it"
     if test -d "$worktree_path"
         echo "gw_add: Warning: Worktree already exists at $worktree_path" >&2
         cd "$worktree_path"
+        if set -q _flag_claude
+            claude
+        end
         return 0
     end
 
@@ -53,4 +59,7 @@ function gw_add -d "Add a git worktree and cd into it"
     end
 
     cd "$worktree_path"
+    if set -q _flag_claude
+        claude
+    end
 end

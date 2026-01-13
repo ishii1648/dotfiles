@@ -15,3 +15,4 @@ abbr -a grep ggrep
 abbr -a rgrep "grep -r"
 abbr -a date gdate
 abbr -a sed gsed
+abbr -a nn "nvim ."
