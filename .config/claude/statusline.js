@@ -82,7 +82,9 @@ process.stdin.on('end', async () => {
     let prLinkInfo = '';
     if (prInfo) {
       // OSC 8 format: \x1b]8;;URL\x07TEXT\x1b]8;;\x07
-      prLinkInfo = ` | \x1b]8;;${prInfo.url}\x07\x1b[36m#${prInfo.number}\x1b[0m\x1b]8;;\x07`;
+      // draft: gray (\x1b[90m), open: green (\x1b[32m)
+      const prColor = prInfo.isDraft ? '\x1b[90m' : '\x1b[32m';
+      prLinkInfo = ` | \x1b]8;;${prInfo.url}\x07${prColor}#${prInfo.number}\x1b[0m\x1b]8;;\x07`;
     }
 
     // Build status line
@@ -229,15 +231,15 @@ function getDirtyFileCount(cwd) {
 
 function getPrInfo(cwd) {
   try {
-    const output = execSync('gh pr view --json url,number -q ".number,.url"', {
+    const output = execSync('gh pr view --json url,number,isDraft -q ".number,.url,.isDraft"', {
       cwd: cwd,
       encoding: 'utf8',
       stdio: ['pipe', 'pipe', 'pipe'],
       timeout: 5000
     });
     const lines = output.trim().split('\n');
-    if (lines.length >= 2) {
-      return { number: lines[0], url: lines[1] };
+    if (lines.length >= 3) {
+      return { number: lines[0], url: lines[1], isDraft: lines[2] === 'true' };
     }
     return null;
   } catch (e) {
