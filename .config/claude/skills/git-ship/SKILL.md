@@ -64,6 +64,13 @@ Check current branch and create new if needed:
   - **Default: Create as draft PR** (use `--no-draft` to create as ready for review)
   - Use filled template as body with Japanese content
 
+### 6. Add Labels (C-FO organization only)
+
+If the repository organization is `C-FO`:
+- Add `ai-contribution-level:3` label to the PR
+- Use `gh pr create --label "ai-contribution-level:3"` if supported
+- If `--label` option is not available, use `gh pr edit <PR-NUMBER> --add-label "ai-contribution-level:3"` after PR creation
+
 ## Arguments
 
 - `draft` - Create draft PR (default behavior)
