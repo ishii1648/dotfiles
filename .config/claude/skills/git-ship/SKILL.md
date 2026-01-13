@@ -1,5 +1,5 @@
 ---
-name: Git Ship
+name: git-ship
 description: This skill should be used when code implementation is complete and uncommitted changes exist on a feature/fix/docs/chore branch. It automates the complete git workflow from branch creation and commits to draft PR creation, and can also be manually invoked with "/git-ship" or phrases like "ship changes", "create a PR".
 version: 0.1.0
 allowed-tools: TodoWrite, Read, Grep, "Bash(git:*)", "Bash(gh:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)"
