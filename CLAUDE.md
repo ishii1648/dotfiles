@@ -26,3 +26,18 @@
 - メインリポジトリ: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles`
 - worktree配置先: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles/.worktrees/<branch-name>`
 - 編集対象は常に`$PWD`配下であることを確認してから編集する
+
+## 実装完了時の自動PR作成
+
+コード実装タスクが完了した際は、以下の条件を**すべて**満たす場合に `git-ship` skill を自動実行してDraft PRを作成する：
+
+### 実行条件
+1. 未コミットの変更がある（git status で変更が検出される）
+2. feature/fix/docs/chore ブランチ上にいる（main/master ではない）
+3. 実装タスクである（調査、質問回答、コードレビューのみの場合は対象外）
+
+### 対象外のケース
+- 質問への回答のみ
+- コードベースの調査・探索のみ
+- 既存コードの説明のみ
+- PRレビューやコメント対応のみ

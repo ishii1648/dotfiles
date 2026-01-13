@@ -1,6 +1,6 @@
 ---
 allowed-tools: TodoWrite, Read, Grep, "Bash(git:*)", "Bash(gh:*)", "Bash(find:*)", "Bash(cat:*)", "Bash(ls:*)"
-description: "コード実装タスクが完了し、未コミットの変更がある場合に自動実行。Draft PRを作成する。"
+description: "Auto-run when code implementation is complete and uncommitted changes exist. Creates a draft PR."
 argument-hint: "[draft] [--no-pr] [--base branch-name] [custom commit message]"
 ---
 
