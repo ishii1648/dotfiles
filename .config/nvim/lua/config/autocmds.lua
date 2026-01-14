@@ -23,11 +23,11 @@ vim.api.nvim_create_autocmd("VimEnter", {
 --  end,
 --})
 
--- Helmfile file type detection
+-- Helmfile file type detection (use gotmpl for Go template support)
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   pattern = { "helmfile.yaml", "helmfile*.yaml", "*/helmfile.d/*.yaml" },
   callback = function()
-    vim.bo.filetype = "yaml"
+    vim.bo.filetype = "gotmpl"
   end,
 })
 
@@ -50,11 +50,12 @@ vim.api.nvim_create_autocmd("FileType", {
     "css",
     "lua",
     "yaml",
+    "gotmpl",
     "helm",
     "hcl",
     "terraform",
   },
   callback = function()
-    vim.treesitter.start()
+    pcall(vim.treesitter.start)
   end,
 })
