@@ -11,6 +11,10 @@ return {
     { "<leader>e", "<cmd>Neotree toggle<CR>", desc = "Explorer" },
   },
   opts = {
+    async_directory_scan = "auto",
+    git_status = {
+      async = true,
+    },
     filesystem = {
       bind_to_cwd = true,
       follow_symlinks = false,
