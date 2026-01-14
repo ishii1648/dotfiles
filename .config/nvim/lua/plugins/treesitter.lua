@@ -1,24 +1,19 @@
 return {
   "nvim-treesitter/nvim-treesitter",
+  lazy = false,
   build = ":TSUpdate",
-  event = { "BufReadPost", "BufNewFile" },
   config = function()
-    require("nvim-treesitter.configs").setup({
-      ensure_installed = {
-        "javascript",
-        "typescript",
-        "tsx",
-        "json",
-        "html",
-        "css",
-        "lua",
-        "yaml",
-        "hcl",
-        "terraform",
-      },
-      highlight = {
-        enable = true,
-      },
+    require("nvim-treesitter").install({
+      "javascript",
+      "typescript",
+      "tsx",
+      "json",
+      "html",
+      "css",
+      "lua",
+      "yaml",
+      "hcl",
+      "terraform",
     })
   end,
 }
