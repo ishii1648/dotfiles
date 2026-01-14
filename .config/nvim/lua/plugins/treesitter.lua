@@ -12,6 +12,7 @@ return {
       "css",
       "lua",
       "yaml",
+      "gotmpl",
       "hcl",
       "terraform",
     })
