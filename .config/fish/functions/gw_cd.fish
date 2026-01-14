@@ -61,8 +61,7 @@ function gw_cd -d "Change directory to a git worktree"
     end
 
     set -l selected (printf '%s\n' $worktrees | fzf \
-        --prompt="Select worktree> " \
-        --preview="git -C {} log --oneline -5 2>/dev/null || echo 'No commits'")
+        --prompt="Select worktree> ")
 
     if test -z "$selected"
         return 0
