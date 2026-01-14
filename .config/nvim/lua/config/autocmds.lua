@@ -33,15 +33,28 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
 
 -- Helm file type detection
 vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
-  pattern = {
-    "*/templates/*.yaml",
-    "*/templates/*.tpl",
-    "Chart.yaml",
-    "values*.yaml",
-    "helmfile*.yaml",
-    "*/helmfile.d/*.yaml",
-  },
+  pattern = { "*/templates/*.yaml", "*/templates/*.tpl", "Chart.yaml", "values*.yaml" },
   callback = function()
     vim.bo.filetype = "helm"
+  end,
+})
+
+-- Enable treesitter highlighting for supported filetypes
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = {
+    "javascript",
+    "typescript",
+    "tsx",
+    "json",
+    "html",
+    "css",
+    "lua",
+    "yaml",
+    "helm",
+    "hcl",
+    "terraform",
+  },
+  callback = function()
+    vim.treesitter.start()
   end,
 })
