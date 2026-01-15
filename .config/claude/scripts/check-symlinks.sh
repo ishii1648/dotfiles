@@ -1,8 +1,10 @@
 #!/bin/bash
-# ~/.claude/ 配下のシンボリックリンクが適切に設定されているかチェック
+# dotfiles のシンボリックリンクが適切に設定されているかチェック
 #
-# .config/claude/ 配下の全エントリに対して、対応する ~/.claude/ の
-# シンボリックリンクが正しく設定されているか検証する。
+# チェック対象:
+#   1. ~/.config/ 配下のディレクトリ (fish, nvim)
+#   2. ~/.config/ghostty/config (ファイル単体)
+#   3. ~/.claude/ 配下 (.config/claude/* の各エントリ)
 #
 # 終了コード:
 #   0 - 全てOK
@@ -13,69 +15,120 @@ set -euo pipefail
 # dotfiles リポジトリのパスを取得（このスクリプトの位置から算出）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOTFILES_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-SOURCE_DIR="$DOTFILES_DIR/.config/claude"
-TARGET_DIR="$HOME/.claude"
 
 # カラー出力
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
-
-echo "Checking Claude Code symlinks..."
-echo "Source: $SOURCE_DIR"
-echo ""
 
 ok_count=0
 fail_count=0
 total_count=0
 
-# .config/claude/ 配下のエントリをスキャン
-for entry in "$SOURCE_DIR"/*; do
-    name=$(basename "$entry")
-    target_path="$TARGET_DIR/$name"
-    expected_target="$entry"
+# シンボリックリンクをチェックする関数
+# 引数: $1=表示名, $2=リンクパス, $3=期待するターゲット
+check_symlink() {
+    local name="$1"
+    local link_path="$2"
+    local expected_target="$3"
 
     total_count=$((total_count + 1))
 
     # シンボリックリンクが存在するかチェック
-    if [[ ! -e "$target_path" && ! -L "$target_path" ]]; then
-        echo -e "${RED}$name${NC}\t✗ MISSING (symlink not found)"
-        echo "  Fix: ln -s $expected_target $target_path"
-        echo ""
+    if [[ ! -e "$link_path" && ! -L "$link_path" ]]; then
+        echo -e "  ${RED}$name${NC}\t✗ MISSING"
+        echo "    Fix: ln -s $expected_target $link_path"
         fail_count=$((fail_count + 1))
-        continue
+        return
     fi
 
     # シンボリックリンクであるかチェック
-    if [[ ! -L "$target_path" ]]; then
-        echo -e "${YELLOW}$name${NC}\t✗ NOT A SYMLINK (regular file/directory exists)"
-        echo "  Current: $(file "$target_path")"
-        echo "  Fix: rm -rf $target_path && ln -s $expected_target $target_path"
-        echo ""
+    if [[ ! -L "$link_path" ]]; then
+        echo -e "  ${YELLOW}$name${NC}\t✗ NOT A SYMLINK"
+        echo "    Fix: rm -rf $link_path && ln -s $expected_target $link_path"
         fail_count=$((fail_count + 1))
-        continue
+        return
     fi
 
     # リンク先が正しいかチェック
-    actual_target=$(readlink "$target_path")
-    if [[ "$actual_target" != "$expected_target" && "$actual_target" != "$expected_target/" ]]; then
-        echo -e "${YELLOW}$name${NC}\t✗ WRONG TARGET"
-        echo "  Current:  $actual_target"
-        echo "  Expected: $expected_target"
-        echo "  Fix: rm $target_path && ln -s $expected_target $target_path"
-        echo ""
+    local actual_target
+    actual_target=$(readlink "$link_path")
+    # 末尾スラッシュの有無を無視して比較
+    local expected_normalized="${expected_target%/}"
+    local actual_normalized="${actual_target%/}"
+    if [[ "$actual_normalized" != "$expected_normalized" ]]; then
+        echo -e "  ${YELLOW}$name${NC}\t✗ WRONG TARGET"
+        echo "    Current:  $actual_target"
+        echo "    Expected: $expected_target"
+        echo "    Fix: rm $link_path && ln -s $expected_target $link_path"
         fail_count=$((fail_count + 1))
-        continue
+        return
     fi
 
     # OK
-    echo -e "${GREEN}$name${NC}\t✓ OK"
+    echo -e "  ${GREEN}$name${NC}\t✓ OK"
     ok_count=$((ok_count + 1))
-done
+}
+
+echo "Checking dotfiles symlinks..."
+echo "Dotfiles: $DOTFILES_DIR"
+echo ""
+
+# ========================================
+# 1. ~/.config/ 配下のディレクトリ
+# ========================================
+echo -e "${CYAN}~/.config/ directories:${NC}"
+
+# fish
+if [[ -d "$DOTFILES_DIR/.config/fish" ]]; then
+    check_symlink "fish" "$HOME/.config/fish" "$DOTFILES_DIR/.config/fish"
+fi
+
+# nvim
+if [[ -d "$DOTFILES_DIR/.config/nvim" ]]; then
+    check_symlink "nvim" "$HOME/.config/nvim" "$DOTFILES_DIR/.config/nvim"
+fi
 
 echo ""
-echo "Result: $ok_count/$total_count OK"
+
+# ========================================
+# 2. ~/.config/ghostty/config (ファイル単体)
+# ========================================
+echo -e "${CYAN}~/.config/ghostty/:${NC}"
+
+if [[ -f "$DOTFILES_DIR/.config/ghostty/config" ]]; then
+    check_symlink "config" "$HOME/.config/ghostty/config" "$DOTFILES_DIR/.config/ghostty/config"
+fi
+
+echo ""
+
+# ========================================
+# 3. ~/.claude/ 配下 (.config/claude/* の各エントリ)
+# ========================================
+echo -e "${CYAN}~/.claude/:${NC}"
+
+CLAUDE_SOURCE_DIR="$DOTFILES_DIR/.config/claude"
+if [[ -d "$CLAUDE_SOURCE_DIR" ]]; then
+    for entry in "$CLAUDE_SOURCE_DIR"/*; do
+        name=$(basename "$entry")
+        # scripts ディレクトリ自体はスキップ（このスクリプトが含まれる）
+        check_symlink "$name" "$HOME/.claude/$name" "$entry"
+    done
+fi
+
+echo ""
+
+# ========================================
+# 結果サマリー
+# ========================================
+echo "========================================"
+if [[ $fail_count -eq 0 ]]; then
+    echo -e "Result: ${GREEN}$ok_count/$total_count OK${NC}"
+else
+    echo -e "Result: ${RED}$ok_count/$total_count OK ($fail_count failed)${NC}"
+fi
 
 if [[ $fail_count -gt 0 ]]; then
     exit 1
