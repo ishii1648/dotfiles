@@ -6,9 +6,9 @@
 
 | シンボリックリンク | 実態 |
 |-------------------|------|
-| `~/.claude/hooks` | `.config/claude/hooks` |
 | `~/.claude/commands` | `.config/claude/commands` |
 | `~/.claude/skills` | `.config/claude/skills` |
+| `~/.claude/agents` | `.config/claude/agents` |
 
 編集する際は `.config/claude/` 配下のファイルを編集してください。
 
