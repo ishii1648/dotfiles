@@ -28,6 +28,7 @@ ln -s ~/workspace/dotfiles/.zshrc ~/.zshrc
 | シンボリックリンク | ターゲット |
 |-------------------|-----------|
 | `~/.claude/agents` | `.config/claude/agents/` |
+| `~/.claude/CLAUDE.md` | `.config/claude/CLAUDE.md` |
 | `~/.claude/commands` | `.config/claude/commands/` |
 | `~/.claude/scripts` | `.config/claude/scripts/` |
 | `~/.claude/skills` | `.config/claude/skills/` |
