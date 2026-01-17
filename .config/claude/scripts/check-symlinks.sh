@@ -112,13 +112,25 @@ echo ""
 echo -e "${CYAN}~/.claude/:${NC}"
 
 CLAUDE_SOURCE_DIR="$DOTFILES_DIR/.config/claude"
-if [[ -d "$CLAUDE_SOURCE_DIR" ]]; then
-    for entry in "$CLAUDE_SOURCE_DIR"/*; do
-        name=$(basename "$entry")
-        # scripts ディレクトリ自体はスキップ（このスクリプトが含まれる）
+
+# チェック対象を明示的に定義（README.mdと同期すること）
+CLAUDE_ENTRIES=(
+    "agents"
+    "CLAUDE.md"
+    "commands"
+    "scripts"
+    "skills"
+    "statusline.js"
+)
+
+for name in "${CLAUDE_ENTRIES[@]}"; do
+    entry="$CLAUDE_SOURCE_DIR/$name"
+    if [[ -e "$entry" ]]; then
         check_symlink "$name" "$HOME/.claude/$name" "$entry"
-    done
-fi
+    else
+        echo -e "  ${YELLOW}$name${NC}\t⚠ SOURCE NOT FOUND: $entry"
+    fi
+done
 
 echo ""
 
