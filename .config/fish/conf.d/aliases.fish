@@ -9,7 +9,6 @@ abbr -a gc gcloud
 abbr -a a aws
 abbr -a e eksctl
 abbr -a python python3
-abbr -a cc claude
 abbr -a ic istioctl
 abbr -a grep ggrep
 abbr -a rgrep "grep -r"
