@@ -5,6 +5,8 @@
 #   1. ~/.config/ 配下のディレクトリ (fish, nvim)
 #   2. ~/.config/ghostty/config (ファイル単体)
 #   3. ~/.claude/ 配下 (.config/claude/* の各エントリ)
+#      - agents/, commands/, scripts/, skills/ (ディレクトリ)
+#      - CLAUDE.md, statusline.js (ファイル)
 #
 # 終了コード:
 #   0 - 全てOK
