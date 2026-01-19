@@ -31,7 +31,7 @@
 ### パス確認
 
 - メインリポジトリ: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles`
-- worktree配置先: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles/.worktrees/<branch-name>`
+- worktree配置先: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles@<branch-name>`
 - 編集対象は常に`$PWD`配下であることを確認してから編集する
 
 ## 実装完了時の自動PR作成
