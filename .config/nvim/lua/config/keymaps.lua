@@ -88,8 +88,7 @@ local function git_worktrees()
             -- Create new worktree
             local confirm = vim.fn.confirm("Create new worktree '" .. input .. "'?", "&Yes\n&No", 2)
             if confirm == 1 then
-              local worktree_path = main_worktree .. "/.worktrees/" .. input
-              vim.fn.mkdir(main_worktree .. "/.worktrees", "p")
+              local worktree_path = main_worktree .. "@" .. input
               local result = vim.fn.system(
                 string.format(
                   "git worktree add %s -b %s",
