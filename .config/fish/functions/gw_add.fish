@@ -22,7 +22,7 @@ function gw_add -d "Add a git worktree and cd into it"
         return 1
     end
 
-    set -l worktree_path "$main_worktree/.worktrees/$worktree_name"
+    set -l worktree_path "$main_worktree@$worktree_name"
 
     if test -d "$worktree_path"
         echo "gw_add: Warning: Worktree already exists at $worktree_path" >&2
@@ -32,8 +32,6 @@ function gw_add -d "Add a git worktree and cd into it"
         end
         return 0
     end
-
-    mkdir -p "$main_worktree/.worktrees"
 
     # リモートブランチの存在確認
     set -l remote_branch_exists (git ls-remote --heads origin "$worktree_name" 2>/dev/null)
