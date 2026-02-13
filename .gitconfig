@@ -1,11 +1,3 @@
-[user]
-        name = sho ishii
-        email = sho-ishii@c-fo.com
-        signingkey = ~/.ssh/id_ed25519.pub
-[commit]
-        gpgsign = true
-[gpg]
-        format = ssh
 [alias]
         push-f = push --force-with-lease
         st = status -sb

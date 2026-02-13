@@ -1,50 +1,61 @@
-# What is this ?
-PCで利用する設定ファイル（.vimrc、.zshrc等）を一括管理するリポジトリです。
+# dotfiles
 
-## 管理方法
-リポジトリ管理用ディレクトリで設定ファイルを作成し、必要なディレクトリへシンボリックリンクを張る
+開発環境の設定ファイルを管理するリポジトリ。
 
+## セットアップ
+
+リポジトリからホームディレクトリへシンボリックリンクを作成する。
+
+```bash
+# シンボリックリンクの状態チェック
+bash configs/claude/scripts/check-symlinks.sh
 ```
-（例）
-ln -s ~/workspace/dotfiles/.zshrc ~/.zshrc
-```
-
-※リポジトリ管理用ディレクトリへシンボリックリンクを張ると、ファイル内容をGit管理できないためリポジトリ管理用ディレクトリからリンクを貼るようにする
 
 ## シンボリックリンク構成
+
+### ホームディレクトリ直下
+
+| シンボリックリンク | ターゲット |
+|-------------------|-----------|
+| `~/.gitconfig` | `.gitconfig` |
+| `~/.tmux.conf` | `configs/tmux/tmux.conf` |
 
 ### ~/.config/ 配下
 
 | シンボリックリンク | ターゲット |
 |-------------------|-----------|
-| `~/.config/fish` | `.config/fish/` |
-| `~/.config/nvim` | `.config/nvim/` |
-| `~/.config/ghostty/config` | `.config/ghostty/config` |
+| `~/.config/fish` | `configs/fish/` |
+| `~/.config/nvim` | `configs/nvim/` |
+| `~/.config/ghostty/config` | `configs/ghostty/config` |
 
 ### ~/.claude/ 配下
 
-`.config/claude/` 配下の各エントリに対応するシンボリックリンクを作成:
-
 | シンボリックリンク | ターゲット |
 |-------------------|-----------|
-| `~/.claude/agents` | `.config/claude/agents/` |
-| `~/.claude/CLAUDE.md` | `.config/claude/CLAUDE.md` |
-| `~/.claude/commands` | `.config/claude/commands/` |
-| `~/.claude/scripts` | `.config/claude/scripts/` |
-| `~/.claude/skills` | `.config/claude/skills/` |
-| `~/.claude/statusline.js` | `.config/claude/statusline.js` |
+| `~/.claude/CLAUDE.md` | `configs/claude/CLAUDE.md` |
+| `~/.claude/agents` | `configs/claude/agents/` |
+| `~/.claude/commands` | `configs/claude/commands/` |
+| `~/.claude/scripts` | `configs/claude/scripts/` |
+| `~/.claude/skills` | `configs/claude/skills/` |
+| `~/.claude/statusline.js` | `configs/claude/statusline.js` |
 
-### シンボリックリンクのチェック
+## ローカルオーバーライド
 
-以下のスクリプトで全シンボリックリンクの状態を確認できます:
+環境固有の設定（メールアドレス、組織名等）は git 管理外の local ファイルで上書きする。
+各ツールに `.example` テンプレートを用意している。
 
-```bash
-bash .config/claude/scripts/check-symlinks.sh
-```
+| ツール | ローカルファイル | テンプレート |
+|--------|-----------------|-------------|
+| Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
+| Fish | `configs/fish/conf.d/local.fish` | — |
+| Fish (tmw) | `configs/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
+| Ghostty | `configs/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
+| tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
+| Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
 
 ## Claude Code Hooks 設定
 
-`~/.claude/settings.json` に以下のhooks設定を追加:
+`~/.claude/settings.json` に以下の hooks 設定を追加:
 
 ```json
 {
@@ -58,19 +69,23 @@ bash .config/claude/scripts/check-symlinks.sh
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/open-plan-pane.sh"
+          }
+        ]
+      }
     ]
   }
 }
 ```
 
-### Hooks の説明
-
 | Hook | 説明 |
 |------|------|
 | `Stop` | Claudeの応答完了時にworktreeの`.claude/settings.local.json`を親リポジトリに同期する |
-
-### スクリプトのセットアップ
-
-```bash
-ln -s ~/workspace/dotfiles/.config/claude/scripts ~/.claude/scripts
-```
+| `PostToolUse` (ExitPlanMode) | plan mode 完了時に tmux の右側 pane を開いて最新の plan ファイルを nvim で表示する |

@@ -8,14 +8,19 @@
 .gitconfig.local
 
 # Fish shell
-.config/fish/fish_variables
-.config/fish/conf.d/local.fish
-.config/fish/functions/a_eks_kubeconfig.fish
-.config/fish/functions/a_profile.fish
-.config/fish/functions/a_saml2aws.fish
-.config/fish/functions/a_sso_login.fish
-.config/fish/functions/claude.fish
-.config/fish/functions/g_create_pr.fish
+configs/fish/fish_variables
+configs/fish/conf.d/local.fish
+configs/fish/functions/a_eks_kubeconfig.fish
+configs/fish/functions/a_profile.fish
+configs/fish/functions/a_saml2aws.fish
+configs/fish/functions/a_sso_login.fish
+configs/fish/functions/claude.fish
+configs/fish/functions/g_create_pr.fish
+
+# Local override files (machine/org-specific)
+configs/ghostty/local.conf
+configs/nvim/lua/local.lua
+configs/fish/conf.d/tmw_direct_repos.conf
 
 # Git worktree
 .worktree/

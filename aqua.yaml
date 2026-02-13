@@ -15,9 +15,6 @@ packages:
 - name: aquaproj/registry-tool@v0.2.4
 - name: kubernetes-sigs/kind@v0.22.0
 - name: kubernetes/kubectl@v1.30.0
-  #- name: abiosoft/colima@v0.5.6 # pin version to workaround see. https://github.com/abiosoft/colima/issues/994
-  #- name: lima-vm/lima@v0.21.0 # required for colima
-  #- name: docker/cli@v26.1.0 # required for colima
 - name: ahmetb/kubectx@v0.9.5
 - name: istio/istio/istioctl@1.21.2
 - name: helm/helm@v3.15.0

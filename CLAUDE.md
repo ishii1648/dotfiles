@@ -6,11 +6,11 @@
 
 | シンボリックリンク | 実態 |
 |-------------------|------|
-| `~/.claude/commands` | `.config/claude/commands` |
-| `~/.claude/skills` | `.config/claude/skills` |
-| `~/.claude/agents` | `.config/claude/agents` |
+| `~/.claude/commands` | `configs/claude/commands` |
+| `~/.claude/skills` | `configs/claude/skills` |
+| `~/.claude/agents` | `configs/claude/agents` |
 
-編集する際は `.config/claude/` 配下のファイルを編集してください。
+編集する際は `configs/claude/` 配下のファイルを編集してください。
 
 ## Worktree作業時のルール
 
@@ -19,9 +19,9 @@
 ### 全操作共通ルール
 
 - **全ての操作（Read/Glob/Grep/Edit/Write）は常に`$PWD`配下のパスを使用**
-- メインリポジトリの絶対パス（`/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles/`）は使用禁止
+- メインリポジトリの絶対パス（`$HOME/ghq/github.com/<user>/<repo>/`）は使用禁止
 - ファイル検索結果から選択する際は、現在のworktreeパス内のファイルを選択する
-- `~/.claude/`配下は参照専用。編集が必要な場合は`$PWD/.config/claude/`を編集
+- `~/.claude/`配下は参照専用。編集が必要な場合は`$PWD/configs/claude/`を編集
 
 ### 読み取り・探索操作の注意
 
@@ -30,8 +30,8 @@
 
 ### パス確認
 
-- メインリポジトリ: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles`
-- worktree配置先: `/Users/sho-ishii/ghq/github.com/ishii1648/dotfiles@<branch-name>`
+- メインリポジトリ: `$HOME/ghq/github.com/<user>/<repo>`
+- worktree配置先: `$HOME/ghq/github.com/<user>/<repo>@<branch-name>`
 - 編集対象は常に`$PWD`配下であることを確認してから編集する
 
 ## 実装完了時の自動PR作成

@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# tmux-fzf-url extra filter: #NNN patterns → GitHub PR URLs
+# Output format: colored-branch URL (URL is always the last field, uncolored)
+# Usage: echo "$content" | tmux-fzf-url-pr-filter
+
+pane_path=$(tmux display-message -p '#{pane_current_path}' 2>/dev/null)
+[ -z "$pane_path" ] && exit 0
+
+remote_url=$(git -C "$pane_path" remote get-url origin 2>/dev/null)
+[ -z "$remote_url" ] && exit 0
+
+# SSH or HTTPS remote → https://github.com/{owner}/{repo}
+github_base=$(echo "$remote_url" | sed -E 's#git@github\.com:(.+)(\.git)?$#https://github.com/\1#; s#https://github\.com/(.+)(\.git)?$#https://github.com/\1#; s/\.git$//')
+[ -z "$github_base" ] && exit 0
+
+branch=$(git -C "$pane_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "-")
+pane_cmd=$(tmux display-message -p '#{pane_current_command}' 2>/dev/null)
+
+grep -oE '#[0-9]+' | sort -u | while read -r match; do
+    num=${match#\#}
+    # Claude Code セッションの場合のみブランチ名を表示
+    if [[ "$pane_cmd" == "claude" ]]; then
+        echo -e "\033[32m${branch}\033[0m \033[36m${github_base}/pull/${num}\033[0m"
+    else
+        echo -e "\033[36m${github_base}/pull/${num}\033[0m"
+    fi
+done

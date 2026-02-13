@@ -1,0 +1,6 @@
+# Ghostty ローカル設定（マシン固有のオーバーライド）
+# local.conf にコピーしてカスタマイズ
+#
+# 例:
+# font-size = 14
+# background-opacity = 0.85

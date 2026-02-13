@@ -1,0 +1,75 @@
+command = /opt/homebrew/bin/tmux new-session -A -s main
+font-family = "BIZ UDGothic Bold"
+adjust-cell-height = 20%
+theme = Dracula
+
+# 背景を暗くして壁紙透過時の視認性を確保
+background = #181a2a
+background-opacity = 0.9
+minimum-contrast = 1.2
+cursor-opacity = 1.0
+window-save-state = always
+font-thicken
+macos-titlebar-style = tabs
+macos-option-as-alt = true
+
+keybind = super+r=reload_config
+keybind = super+shift+r=text:\x00r
+
+# claude code
+keybind = shift+enter=text:\x1b\r
+
+# vim-visual-multi (multi cursor)
+keybind = super+d=text:\x1b[100;9u
+
+# Neovim: Cmd+Shift+F → live_grep, Cmd+P → find_files (tmux経由はAltにリマップ)
+keybind = super+shift+f=text:\x1bF
+keybind = super+p=text:\x1bp
+
+# --- tmux 操作 (prefix = Ctrl+Space = \x00) ---
+
+# ペイン分割
+keybind = super+n=text:\x00n
+keybind = super+shift+n=text:\x00v
+
+# ペイン移動
+keybind = super+shift+h=text:\x00h
+keybind = super+shift+j=text:\x00j
+keybind = super+shift+k=text:\x00k
+keybind = super+shift+l=text:\x00l
+
+# コピーモード (prefix + i)
+keybind = super+i=text:\x00i
+
+# URL一覧表示 (prefix + u → tmux-fzf-url)
+keybind = super+u=text:\x00u
+
+# ウィンドウ/セッション操作
+keybind = super+t=text:\x00c
+keybind = super+w=text:\x00x
+keybind = super+s=text:\x00s
+keybind = super+shift+s=text:\x00S
+
+# tmux ウィンドウ移動 (Ctrl+Tab / Ctrl+Shift+Tab → CSI u シーケンス)
+keybind = ctrl+tab=text:\x1b[9;5u
+keybind = ctrl+shift+tab=text:\x1b[9;6u
+
+# ペインスクロール (tmux user-keys経由)
+keybind = super+up=text:\x1b[1;9A
+keybind = super+down=text:\x1b[1;9B
+keybind = super+k=text:\x1b[107;9~
+keybind = super+j=text:\x1b[106;9~
+
+# ウィンドウ切替 (super+1~9)
+keybind = super+one=text:\x001
+keybind = super+two=text:\x002
+keybind = super+three=text:\x003
+keybind = super+four=text:\x004
+keybind = super+five=text:\x005
+keybind = super+six=text:\x006
+keybind = super+seven=text:\x007
+keybind = super+eight=text:\x008
+keybind = super+nine=text:\x009
+
+# ローカル設定（オプション、git管理外）
+config-file = ?local.conf

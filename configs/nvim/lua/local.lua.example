@@ -1,0 +1,6 @@
+-- Neovim ローカル設定（マシン固有のオーバーライド）
+-- local.lua にコピーしてカスタマイズ
+--
+-- 例:
+-- vim.o.background = "light"
+-- vim.g.copilot_enabled = true
