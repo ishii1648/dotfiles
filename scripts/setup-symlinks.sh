@@ -29,7 +29,7 @@ fi
 
 # dotfiles リポジトリのパスを取得（このスクリプトの位置から算出）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DOTFILES_DIR="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+DOTFILES_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # カラー出力
 RED='\033[0;31m'
