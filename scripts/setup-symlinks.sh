@@ -2,8 +2,15 @@
 # dotfiles のシンボリックリンクを設定する
 #
 # 使い方:
-#   setup-symlinks.sh            # シンボリックリンクを作成/修復
-#   setup-symlinks.sh --dry-run  # チェックのみ（変更しない）
+#   setup-symlinks.sh [--dry-run] [--profile <name>]
+#
+# オプション:
+#   --dry-run              チェックのみ（変更しない）
+#   --profile <name>       プロファイル指定（デフォルト: full）
+#
+# プロファイル:
+#   full    - 全コンポーネント（デフォルト）
+#   remote  - fish, nvim, claude, aqua のみ（リモートマシン用）
 #
 # チェック対象:
 #   1. ~/.config/ 配下のディレクトリ (fish, nvim)
@@ -14,6 +21,7 @@
 #   6. ~/.claude/ 配下 (configs/claude/* の各エントリ)
 #      - agents/, commands/, scripts/, skills/ (ディレクトリ)
 #      - CLAUDE.md, statusline.js (ファイル)
+#   7. ~/.config/aquaproj-aqua/aqua.yaml
 #
 # 終了コード:
 #   0 - 全てOK
@@ -23,9 +31,37 @@ set -euo pipefail
 
 # オプション解析
 DRY_RUN=false
-if [[ "${1:-}" == "--dry-run" ]]; then
-    DRY_RUN=true
-fi
+PROFILE="full"
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        --profile)
+            PROFILE="${2:-}"
+            if [[ -z "$PROFILE" ]]; then
+                echo "Error: --profile requires a value" >&2
+                exit 1
+            fi
+            shift 2
+            ;;
+        *)
+            echo "Error: Unknown option: $1" >&2
+            exit 1
+            ;;
+    esac
+done
+
+# プロファイル検証
+case "$PROFILE" in
+    full|remote) ;;
+    *)
+        echo "Error: Unknown profile: $PROFILE (available: full, remote)" >&2
+        exit 1
+        ;;
+esac
 
 # dotfiles リポジトリのパスを取得（このスクリプトの位置から算出）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -121,101 +157,121 @@ ensure_symlink() {
     ok_count=$((ok_count + 1))
 }
 
+# ========================================
+# コンポーネント関数
+# ========================================
+
+setup_fish() {
+    echo -e "${CYAN}~/.config/ directories:${NC}"
+    if [[ -d "$DOTFILES_DIR/configs/fish" ]]; then
+        ensure_symlink "fish" "$HOME/.config/fish" "$DOTFILES_DIR/configs/fish"
+    fi
+}
+
+setup_nvim() {
+    if [[ -d "$DOTFILES_DIR/configs/nvim" ]]; then
+        ensure_symlink "nvim" "$HOME/.config/nvim" "$DOTFILES_DIR/configs/nvim"
+    fi
+}
+
+setup_ghostty() {
+    echo -e "${CYAN}~/.config/ghostty/:${NC}"
+    if [[ -f "$DOTFILES_DIR/configs/ghostty/config" ]]; then
+        ensure_symlink "config" "$HOME/.config/ghostty/config" "$DOTFILES_DIR/configs/ghostty/config"
+    fi
+}
+
+setup_wezterm() {
+    echo -e "${CYAN}~/.config/wezterm/:${NC}"
+    if [[ -f "$DOTFILES_DIR/configs/wezterm/wezterm.lua" ]]; then
+        ensure_symlink "wezterm.lua" "$HOME/.config/wezterm/wezterm.lua" "$DOTFILES_DIR/configs/wezterm/wezterm.lua"
+    fi
+}
+
+setup_tmux() {
+    echo -e "${CYAN}~/:${NC}"
+    if [[ -f "$DOTFILES_DIR/configs/tmux/tmux.conf" ]]; then
+        ensure_symlink "tmux.conf" "$HOME/.tmux.conf" "$DOTFILES_DIR/configs/tmux/tmux.conf"
+    fi
+    echo ""
+    echo -e "${CYAN}~/.local/bin/:${NC}"
+    if [[ -f "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter" ]]; then
+        ensure_symlink "tmux-fzf-url-pr-filter" "$HOME/.local/bin/tmux-fzf-url-pr-filter" "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter"
+    fi
+}
+
+setup_claude() {
+    echo -e "${CYAN}~/.claude/:${NC}"
+    local CLAUDE_SOURCE_DIR="$DOTFILES_DIR/configs/claude"
+    local CLAUDE_ENTRIES=(
+        "agents"
+        "CLAUDE.md"
+        "commands"
+        "scripts"
+        "skills"
+        "statusline.js"
+    )
+    for name in "${CLAUDE_ENTRIES[@]}"; do
+        local entry="$CLAUDE_SOURCE_DIR/$name"
+        if [[ -e "$entry" ]]; then
+            ensure_symlink "$name" "$HOME/.claude/$name" "$entry"
+        else
+            echo -e "  ${YELLOW}$name${NC}\t⚠ SOURCE NOT FOUND: $entry"
+        fi
+    done
+}
+
+setup_aqua() {
+    echo -e "${CYAN}~/.config/aquaproj-aqua/:${NC}"
+    if [[ -f "$DOTFILES_DIR/aqua.yaml" ]]; then
+        ensure_symlink "aqua.yaml" "$HOME/.config/aquaproj-aqua/aqua.yaml" "$DOTFILES_DIR/aqua.yaml"
+    fi
+}
+
+# ========================================
+# プロファイル定義
+# ========================================
+
+run_profile_full() {
+    setup_fish
+    setup_nvim
+    echo ""
+    setup_ghostty
+    echo ""
+    setup_wezterm
+    echo ""
+    setup_tmux
+    echo ""
+    setup_claude
+    echo ""
+    setup_aqua
+}
+
+run_profile_remote() {
+    setup_fish
+    setup_nvim
+    echo ""
+    setup_claude
+    echo ""
+    setup_aqua
+}
+
+# ========================================
+# メイン実行
+# ========================================
+
 if $DRY_RUN; then
-    echo "Checking dotfiles symlinks... (dry-run)"
+    echo "Checking dotfiles symlinks... (dry-run, profile: $PROFILE)"
 else
-    echo "Setting up dotfiles symlinks..."
+    echo "Setting up dotfiles symlinks... (profile: $PROFILE)"
 fi
 echo "Dotfiles: $DOTFILES_DIR"
 echo ""
 
-# ========================================
-# 1. ~/.config/ 配下のディレクトリ
-# ========================================
-echo -e "${CYAN}~/.config/ directories:${NC}"
-
-if [[ -d "$DOTFILES_DIR/configs/fish" ]]; then
-    ensure_symlink "fish" "$HOME/.config/fish" "$DOTFILES_DIR/configs/fish"
-fi
-
-if [[ -d "$DOTFILES_DIR/configs/nvim" ]]; then
-    ensure_symlink "nvim" "$HOME/.config/nvim" "$DOTFILES_DIR/configs/nvim"
-fi
-
-echo ""
-
-# ========================================
-# 2. ~/.config/ghostty/config (ファイル単体)
-# ========================================
-echo -e "${CYAN}~/.config/ghostty/:${NC}"
-
-if [[ -f "$DOTFILES_DIR/configs/ghostty/config" ]]; then
-    ensure_symlink "config" "$HOME/.config/ghostty/config" "$DOTFILES_DIR/configs/ghostty/config"
-fi
-
-echo ""
-
-# ========================================
-# 3. ~/.config/wezterm/wezterm.lua (ファイル単体)
-# ========================================
-echo -e "${CYAN}~/.config/wezterm/:${NC}"
-
-if [[ -f "$DOTFILES_DIR/configs/wezterm/wezterm.lua" ]]; then
-    ensure_symlink "wezterm.lua" "$HOME/.config/wezterm/wezterm.lua" "$DOTFILES_DIR/configs/wezterm/wezterm.lua"
-fi
-
-echo ""
-
-# ========================================
-# 4. ~/.tmux.conf
-# ========================================
-echo -e "${CYAN}~/:${NC}"
-
-if [[ -f "$DOTFILES_DIR/configs/tmux/tmux.conf" ]]; then
-    ensure_symlink "tmux.conf" "$HOME/.tmux.conf" "$DOTFILES_DIR/configs/tmux/tmux.conf"
-fi
-
-echo ""
-
-# ========================================
-# 5. ~/.local/bin/
-# ========================================
-echo -e "${CYAN}~/.local/bin/:${NC}"
-
-if [[ -f "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter" ]]; then
-    ensure_symlink "tmux-fzf-url-pr-filter" "$HOME/.local/bin/tmux-fzf-url-pr-filter" "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter"
-fi
-
-if [[ -f "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh" ]]; then
-    ensure_symlink "ghostty-tmux-init" "$HOME/.local/bin/ghostty-tmux-init" "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh"
-fi
-
-echo ""
-
-# ========================================
-# 6. ~/.claude/ 配下 (configs/claude/* の各エントリ)
-# ========================================
-echo -e "${CYAN}~/.claude/:${NC}"
-
-CLAUDE_SOURCE_DIR="$DOTFILES_DIR/configs/claude"
-
-CLAUDE_ENTRIES=(
-    "agents"
-    "CLAUDE.md"
-    "commands"
-    "scripts"
-    "skills"
-    "statusline.js"
-)
-
-for name in "${CLAUDE_ENTRIES[@]}"; do
-    entry="$CLAUDE_SOURCE_DIR/$name"
-    if [[ -e "$entry" ]]; then
-        ensure_symlink "$name" "$HOME/.claude/$name" "$entry"
-    else
-        echo -e "  ${YELLOW}$name${NC}\t⚠ SOURCE NOT FOUND: $entry"
-    fi
-done
+case "$PROFILE" in
+    full)   run_profile_full ;;
+    remote) run_profile_remote ;;
+esac
 
 echo ""
 
