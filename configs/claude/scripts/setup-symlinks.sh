@@ -1,5 +1,9 @@
 #!/bin/bash
-# dotfiles のシンボリックリンクが適切に設定されているかチェック
+# dotfiles のシンボリックリンクを設定する
+#
+# 使い方:
+#   setup-symlinks.sh            # シンボリックリンクを作成/修復
+#   setup-symlinks.sh --dry-run  # チェックのみ（変更しない）
 #
 # チェック対象:
 #   1. ~/.config/ 配下のディレクトリ (fish, nvim)
@@ -13,9 +17,15 @@
 #
 # 終了コード:
 #   0 - 全てOK
-#   1 - 問題あり
+#   1 - 問題あり（--dry-run時）または設定失敗
 
 set -euo pipefail
+
+# オプション解析
+DRY_RUN=false
+if [[ "${1:-}" == "--dry-run" ]]; then
+    DRY_RUN=true
+fi
 
 # dotfiles リポジトリのパスを取得（このスクリプトの位置から算出）
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -29,12 +39,28 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 ok_count=0
+fix_count=0
 fail_count=0
 total_count=0
 
-# シンボリックリンクをチェックする関数
+# シンボリックリンクを作成する関数
+create_symlink() {
+    local link_path="$1"
+    local target="$2"
+
+    # 親ディレクトリがなければ作成
+    local parent_dir
+    parent_dir="$(dirname "$link_path")"
+    if [[ ! -d "$parent_dir" ]]; then
+        mkdir -p "$parent_dir"
+    fi
+
+    ln -s "$target" "$link_path"
+}
+
+# シンボリックリンクをチェック・設定する関数
 # 引数: $1=表示名, $2=リンクパス, $3=期待するターゲット
-check_symlink() {
+ensure_symlink() {
     local name="$1"
     local link_path="$2"
     local expected_target="$3"
@@ -43,32 +69,50 @@ check_symlink() {
 
     # シンボリックリンクが存在するかチェック
     if [[ ! -e "$link_path" && ! -L "$link_path" ]]; then
-        echo -e "  ${RED}$name${NC}\t✗ MISSING"
-        echo "    Fix: ln -s $expected_target $link_path"
-        fail_count=$((fail_count + 1))
+        if $DRY_RUN; then
+            echo -e "  ${RED}$name${NC}\t✗ MISSING"
+            echo "    Fix: ln -s $expected_target $link_path"
+            fail_count=$((fail_count + 1))
+        else
+            create_symlink "$link_path" "$expected_target"
+            echo -e "  ${GREEN}$name${NC}\t✓ CREATED"
+            fix_count=$((fix_count + 1))
+        fi
         return
     fi
 
     # シンボリックリンクであるかチェック
     if [[ ! -L "$link_path" ]]; then
-        echo -e "  ${YELLOW}$name${NC}\t✗ NOT A SYMLINK"
-        echo "    Fix: rm -rf $link_path && ln -s $expected_target $link_path"
-        fail_count=$((fail_count + 1))
+        if $DRY_RUN; then
+            echo -e "  ${YELLOW}$name${NC}\t✗ NOT A SYMLINK"
+            echo "    Fix: rm -rf $link_path && ln -s $expected_target $link_path"
+            fail_count=$((fail_count + 1))
+        else
+            echo -e "  ${YELLOW}$name${NC}\t✗ NOT A SYMLINK (skipped: remove manually)"
+            echo "    Fix: rm -rf $link_path && ln -s $expected_target $link_path"
+            fail_count=$((fail_count + 1))
+        fi
         return
     fi
 
     # リンク先が正しいかチェック
     local actual_target
     actual_target=$(readlink "$link_path")
-    # 末尾スラッシュの有無を無視して比較
     local expected_normalized="${expected_target%/}"
     local actual_normalized="${actual_target%/}"
     if [[ "$actual_normalized" != "$expected_normalized" ]]; then
-        echo -e "  ${YELLOW}$name${NC}\t✗ WRONG TARGET"
-        echo "    Current:  $actual_target"
-        echo "    Expected: $expected_target"
-        echo "    Fix: rm $link_path && ln -s $expected_target $link_path"
-        fail_count=$((fail_count + 1))
+        if $DRY_RUN; then
+            echo -e "  ${YELLOW}$name${NC}\t✗ WRONG TARGET"
+            echo "    Current:  $actual_target"
+            echo "    Expected: $expected_target"
+            echo "    Fix: rm $link_path && ln -s $expected_target $link_path"
+            fail_count=$((fail_count + 1))
+        else
+            rm "$link_path"
+            create_symlink "$link_path" "$expected_target"
+            echo -e "  ${GREEN}$name${NC}\t✓ FIXED (was: $actual_target)"
+            fix_count=$((fix_count + 1))
+        fi
         return
     fi
 
@@ -77,7 +121,11 @@ check_symlink() {
     ok_count=$((ok_count + 1))
 }
 
-echo "Checking dotfiles symlinks..."
+if $DRY_RUN; then
+    echo "Checking dotfiles symlinks... (dry-run)"
+else
+    echo "Setting up dotfiles symlinks..."
+fi
 echo "Dotfiles: $DOTFILES_DIR"
 echo ""
 
@@ -86,33 +134,12 @@ echo ""
 # ========================================
 echo -e "${CYAN}~/.config/ directories:${NC}"
 
-# fish
 if [[ -d "$DOTFILES_DIR/configs/fish" ]]; then
-    FISH_SRC="$DOTFILES_DIR/configs/fish"
-    # conf.d（共通ファイル個別チェック）
-    for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish path.fish \
-              tmw_direct_repos.conf.example; do
-        [[ -f "$FISH_SRC/conf.d/$f" ]] && \
-            check_symlink "conf.d/$f" "$HOME/.config/fish/conf.d/$f" "$FISH_SRC/conf.d/$f"
-    done
-    # completions ディレクトリ
-    check_symlink "completions" "$HOME/.config/fish/completions" "$FISH_SRC/completions"
-    # functions（tracked ファイル個別チェック）
-    while IFS= read -r f; do
-        name=$(basename "$f")
-        check_symlink "functions/$name" "$HOME/.config/fish/functions/$name" "$f"
-    done < <(git -C "$DOTFILES_DIR" ls-files configs/fish/functions/ | \
-             sed "s|configs/fish/functions/|$FISH_SRC/functions/|" | sort)
-    # ルートファイル
-    for f in config.fish fish_plugins fish_variables; do
-        [[ -f "$FISH_SRC/$f" ]] && \
-            check_symlink "$f" "$HOME/.config/fish/$f" "$FISH_SRC/$f"
-    done
+    ensure_symlink "fish" "$HOME/.config/fish" "$DOTFILES_DIR/configs/fish"
 fi
 
-# nvim
 if [[ -d "$DOTFILES_DIR/configs/nvim" ]]; then
-    check_symlink "nvim" "$HOME/.config/nvim" "$DOTFILES_DIR/configs/nvim"
+    ensure_symlink "nvim" "$HOME/.config/nvim" "$DOTFILES_DIR/configs/nvim"
 fi
 
 echo ""
@@ -123,7 +150,7 @@ echo ""
 echo -e "${CYAN}~/.config/ghostty/:${NC}"
 
 if [[ -f "$DOTFILES_DIR/configs/ghostty/config" ]]; then
-    check_symlink "config" "$HOME/.config/ghostty/config" "$DOTFILES_DIR/configs/ghostty/config"
+    ensure_symlink "config" "$HOME/.config/ghostty/config" "$DOTFILES_DIR/configs/ghostty/config"
 fi
 
 echo ""
@@ -134,7 +161,7 @@ echo ""
 echo -e "${CYAN}~/.config/wezterm/:${NC}"
 
 if [[ -f "$DOTFILES_DIR/configs/wezterm/wezterm.lua" ]]; then
-    check_symlink "wezterm.lua" "$HOME/.config/wezterm/wezterm.lua" "$DOTFILES_DIR/configs/wezterm/wezterm.lua"
+    ensure_symlink "wezterm.lua" "$HOME/.config/wezterm/wezterm.lua" "$DOTFILES_DIR/configs/wezterm/wezterm.lua"
 fi
 
 echo ""
@@ -145,7 +172,7 @@ echo ""
 echo -e "${CYAN}~/:${NC}"
 
 if [[ -f "$DOTFILES_DIR/configs/tmux/tmux.conf" ]]; then
-    check_symlink "tmux.conf" "$HOME/.tmux.conf" "$DOTFILES_DIR/configs/tmux/tmux.conf"
+    ensure_symlink "tmux.conf" "$HOME/.tmux.conf" "$DOTFILES_DIR/configs/tmux/tmux.conf"
 fi
 
 echo ""
@@ -156,11 +183,11 @@ echo ""
 echo -e "${CYAN}~/.local/bin/:${NC}"
 
 if [[ -f "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter" ]]; then
-    check_symlink "tmux-fzf-url-pr-filter" "$HOME/.local/bin/tmux-fzf-url-pr-filter" "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter"
+    ensure_symlink "tmux-fzf-url-pr-filter" "$HOME/.local/bin/tmux-fzf-url-pr-filter" "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter"
 fi
 
 if [[ -f "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh" ]]; then
-    check_symlink "ghostty-tmux-init" "$HOME/.local/bin/ghostty-tmux-init" "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh"
+    ensure_symlink "ghostty-tmux-init" "$HOME/.local/bin/ghostty-tmux-init" "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh"
 fi
 
 echo ""
@@ -172,7 +199,6 @@ echo -e "${CYAN}~/.claude/:${NC}"
 
 CLAUDE_SOURCE_DIR="$DOTFILES_DIR/configs/claude"
 
-# チェック対象を明示的に定義（README.mdと同期すること）
 CLAUDE_ENTRIES=(
     "agents"
     "CLAUDE.md"
@@ -185,7 +211,7 @@ CLAUDE_ENTRIES=(
 for name in "${CLAUDE_ENTRIES[@]}"; do
     entry="$CLAUDE_SOURCE_DIR/$name"
     if [[ -e "$entry" ]]; then
-        check_symlink "$name" "$HOME/.claude/$name" "$entry"
+        ensure_symlink "$name" "$HOME/.claude/$name" "$entry"
     else
         echo -e "  ${YELLOW}$name${NC}\t⚠ SOURCE NOT FOUND: $entry"
     fi
@@ -197,10 +223,18 @@ echo ""
 # 結果サマリー
 # ========================================
 echo "========================================"
-if [[ $fail_count -eq 0 ]]; then
-    echo -e "Result: ${GREEN}$ok_count/$total_count OK${NC}"
+if $DRY_RUN; then
+    if [[ $fail_count -eq 0 ]]; then
+        echo -e "Result: ${GREEN}$ok_count/$total_count OK${NC}"
+    else
+        echo -e "Result: ${RED}$ok_count/$total_count OK ($fail_count failed)${NC}"
+    fi
 else
-    echo -e "Result: ${RED}$ok_count/$total_count OK ($fail_count failed)${NC}"
+    if [[ $fail_count -eq 0 ]]; then
+        echo -e "Result: ${GREEN}All $total_count symlinks OK${NC} (created/fixed: $fix_count)"
+    else
+        echo -e "Result: ${YELLOW}$ok_count OK, $fix_count fixed, $fail_count failed${NC}"
+    fi
 fi
 
 if [[ $fail_count -gt 0 ]]; then

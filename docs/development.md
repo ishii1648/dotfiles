@@ -133,7 +133,8 @@ Claude Code の `git-ship` skill で commit → push → Draft PR 作成を自�
 
 ### Symlink 管理
 
-`configs/claude/scripts/check-symlinks.sh` で dotfiles のシンボリックリンク状態を検証。
+`configs/claude/scripts/setup-symlinks.sh` で dotfiles のシンボリックリンクを設定・検証。
+`--dry-run` でチェックのみ実行可能。
 チェック対象: `~/.config/{fish,nvim}`, `~/.config/ghostty/config`, `~/.tmux.conf`, `~/.claude/` 配下。
 
 ### tmux 課題対応

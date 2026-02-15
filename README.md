@@ -8,8 +8,8 @@
 # 1. fish 共通設定（ファイル単位 symlink を作成）
 bash configs/fish/setup.sh
 
-# 2. symlink の状態確認
-bash configs/claude/scripts/check-symlinks.sh
+# 2. symlink の設定（存在しない場合は作成）
+bash configs/claude/scripts/setup-symlinks.sh
 
 # 3. 端末固有設定（端末固有リポジトリの setup script を実行）
 bash <端末固有リポジトリ>/setup.sh
