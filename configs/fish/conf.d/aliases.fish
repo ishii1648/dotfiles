@@ -15,3 +15,16 @@ abbr -a rgrep "grep -r"
 abbr -a date gdate
 abbr -a sed gsed
 abbr -a n "nvim ."
+abbr -a cc claude
+
+# claude session 中に tmux window 名がバージョン番号になるのを防ぐ
+function claude --wraps claude
+    if set -q TMUX
+        tmux set-option -w automatic-rename off
+        tmux rename-window claude
+    end
+    command claude $argv
+    if set -q TMUX
+        tmux set-option -w automatic-rename on
+    end
+end
