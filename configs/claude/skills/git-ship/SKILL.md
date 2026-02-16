@@ -105,15 +105,16 @@ PRテンプレートに以下を日本語で記入:
 
 ### 6. ラベル追加（組織リポジトリの場合）
 
-リポジトリの組織を動的に判定し、組織固有のラベルを付与する:
+組織リポジトリの場合、`ai-contribution-level:3` ラベルを付与する:
 
 ```bash
-# リポジトリの組織を取得
-ORG=$(gh repo view --json owner -q '.owner.login')
+# リポジトリの所有者タイプを確認
+OWNER_TYPE=$(gh repo view --json owner -q '.owner.type')
 
-# 組織に応じたラベルを付与（例: ai-contribution-level）
-# 組織ごとのラベルルールは各組織リポジトリの CLAUDE.md で定義
-gh pr edit <PR-NUMBER> --add-label "<label>"
+# Organization の場合のみラベルを付与
+if [ "$OWNER_TYPE" = "Organization" ]; then
+  gh pr edit <PR-NUMBER> --add-label "ai-contribution-level:3"
+fi
 ```
 
 ## 引数
