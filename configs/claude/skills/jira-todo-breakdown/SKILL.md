@@ -71,14 +71,9 @@ ancestor = 2312601820 AND title ~ "<keyword1>" AND title ~ "<keyword2>"
 
 Atlassian MCPの `searchConfluenceUsingCql` で検索し、ヒットしたADRの本文を `getConfluencePage` で取得する。
 
-#### 2c. ADRテンプレート検索（条件付き）
+#### 2c. ADRテンプレート参照（条件付き）
 
-チケットの完了条件にADR作成が含まれる場合のみ実行する。
-
-CQLクエリ:
-```
-space = SPO AND title ~ "ADR テンプレ"
-```
+チケットの完了条件にADR作成が含まれる場合、`references/adr-template.md` を参照する（Confluence取得不要）。
 
 #### 2d. description内リンク先の取得
 
@@ -145,5 +140,6 @@ Step 2の調査結果を統合し、`.outputs/claude/<チケットキー>-todos.
 ## 追加リソース
 
 ### 参照ファイル
+- **`references/adr-template.md`** - t9s ADRテンプレート（Confluenceから取得済み）。ADRドラフト作成時のセクション構成として使用
 - **`references/output-format.md`** - アウトプットの7セクション構成とテーブルフォーマットの詳細仕様
 - **`references/skill-spec.md`** - スキルの詳細仕様書。AI/人の担当振り分け基準の具体例、キーワード抽出ルール、CQLクエリのテンプレート、Jiraチケットの最小構成要件を含む
