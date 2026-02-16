@@ -61,17 +61,34 @@ Phase別にグルーピングして記載する。
 
 ### セクション7: 実行フロー
 
-Phase間の依存関係をASCIIフロー図で表現する。
+TODO間の順序・依存関係をmermaid図で表現する。並列実行可能なタスクは同じ段に配置し、人担当タスク（H-x）との受け渡しポイントを明示する。
 
-```text
-Phase 1: 調査・分析
-    │
-    ├─ TODO 1
-    ├─ TODO 2
-    │
-    ↓
-Phase 2: 実装
-    │
-    ├─ TODO 3 ← H-1（人の意思決定待ち）
-    ...
+````markdown
+```mermaid
+graph TD
+    subgraph "Phase 1: 調査・分析"
+        T1["1. タスク内容"]
+        T2["2. タスク内容"]
+    end
+
+    subgraph "Phase 2: 実装"
+        T3["3. タスク内容"]
+        T4["4. タスク内容"]
+    end
+
+    H1["H-1. 人担当タスク"]:::human
+
+    T1 --> T3
+    T2 --> T3
+    T3 --> H1
+    H1 --> T4
+
+    classDef human fill:#fdd,stroke:#c33
 ```
+````
+
+mermaid図のルール:
+- AI担当TODOは番号のみ（例: `1. タスク内容`）
+- 人担当TODOは `H-` prefix付き、`human` classで色分け
+- 並列実行可能なタスクは依存関係の矢印を持たない
+- Phase境界は `subgraph` で表現

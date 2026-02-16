@@ -110,7 +110,7 @@ Step 2の調査結果を統合し、`.outputs/claude/<チケットキー>-todos.
 4. 対象領域の現状（表形式）
 5. AI担当TODO（Phase別グルーピング、3列: #, TODO, 完了条件）
 6. 人担当TODO（1テーブル、4列: #, TODO, 理由, 完了条件、番号は `H-` prefix）
-7. 実行フロー（ASCIIフロー図）
+7. 実行フロー（mermaid図）
 
 ## 担当振り分けルール
 
