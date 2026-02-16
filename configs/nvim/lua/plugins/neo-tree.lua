@@ -40,6 +40,7 @@ return {
         },
         always_show = {
           ".claude",
+          ".outputs",
         },
       },
     },

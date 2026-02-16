@@ -16,11 +16,21 @@ return {
       pickers = {
         find_files = {
           hidden = true,
-          find_command = { "fd", "--type", "f", "--strip-cwd-prefix", "--hidden" },
+          find_command = {
+            "bash",
+            "-c",
+            "fd --type f --strip-cwd-prefix --hidden; "
+              .. "fd --type f --strip-cwd-prefix --hidden --no-ignore-vcs --search-path .outputs/claude 2>/dev/null || true",
+          },
         },
       },
     },
     config = function(_, opts)
+      local ignore_overrides = vim.fn.stdpath("config") .. "/ignore_overrides"
+      opts.pickers.live_grep = {
+        additional_args = { "--ignore-file", ignore_overrides },
+      }
+
       local telescope = require("telescope")
       telescope.setup(opts)
       telescope.load_extension("fzf")
