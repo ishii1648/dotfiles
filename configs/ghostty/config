@@ -10,7 +10,7 @@ minimum-contrast = 1.2
 cursor-opacity = 1.0
 window-save-state = always
 font-thicken
-macos-titlebar-style = tabs
+macos-titlebar-style = hidden
 macos-option-as-alt = true
 
 keybind = super+r=reload_config
@@ -47,6 +47,7 @@ keybind = super+u=text:\x00u
 # ウィンドウ/セッション操作
 keybind = super+t=text:\x00c
 keybind = super+w=text:\x00x
+keybind = super+s=text:\x00s
 keybind = super+shift+s=text:\x00S
 
 # tmux ウィンドウ移動 (Ctrl+Tab / Ctrl+Shift+Tab → CSI u シーケンス)
