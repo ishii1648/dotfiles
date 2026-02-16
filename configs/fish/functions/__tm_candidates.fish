@@ -1,7 +1,7 @@
 function __tm_candidates --description 'tm用のセッション候補一覧を生成（TAB区切り: key\t表示テキスト）'
     argparse 'sessions-only' -- $argv
 
-    set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null | string match -v 'main')
+    set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null | string match -v 'main' | string match -v 'monitor')
     set -l current_session (tmux display-message -p '#{session_name}' 2>/dev/null)
     set -l all_repos (ghq list)
     set -l existing_repos
@@ -23,7 +23,19 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
             for win in (tmux list-windows -t "$name" -F '#{window_index}:#{window_name}' 2>/dev/null)
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
-                printf '%s\t%s\n' "$name:$win_idx" "  $dim$win_idx: $win_name  $repo$reset"
+                set -l claude_badge ''
+                set -l cs (__tm_claude_state $name $win_idx)
+                if test -n "$cs"
+                    set -l purple (printf '\e[35m')
+                    set -l red (printf '\e[31m')
+                    switch $cs
+                        case running;    set claude_badge " $purple""[running]""$reset"
+                        case permission; set claude_badge " $red""[perm]""$reset"
+                        case ask;        set claude_badge " $red""[ask]""$reset"
+                        case idle;       set claude_badge " $dim""[idle]""$reset"
+                    end
+                end
+                printf '%s\t%s\n' "$name:$win_idx" "  $dim$win_idx: $win_name$claude_badge  $repo$reset"
             end
         end
     end
@@ -47,7 +59,19 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
             for win in (tmux list-windows -t "$s" -F '#{window_index}:#{window_name}' 2>/dev/null)
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
-                printf '%s\t%s\n' "$s:$win_idx" "  $dim$win_idx: $win_name  $s$reset"
+                set -l claude_badge ''
+                set -l cs (__tm_claude_state $s $win_idx)
+                if test -n "$cs"
+                    set -l purple (printf '\e[35m')
+                    set -l red (printf '\e[31m')
+                    switch $cs
+                        case running;    set claude_badge " $purple""[running]""$reset"
+                        case permission; set claude_badge " $red""[perm]""$reset"
+                        case ask;        set claude_badge " $red""[ask]""$reset"
+                        case idle;       set claude_badge " $dim""[idle]""$reset"
+                    end
+                end
+                printf '%s\t%s\n' "$s:$win_idx" "  $dim$win_idx: $win_name$claude_badge  $s$reset"
             end
         end
     end
