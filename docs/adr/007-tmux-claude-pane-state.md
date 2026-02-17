@@ -32,6 +32,12 @@ Stop → idle
 SessionEnd → ファイル削除
 ```
 
+> **注意**: `PostToolUse` で `running` を設定する際、第2引数 `post` を渡して呼び出す。`post` が指定された場合、`permission`/`ask`/`idle` が5秒以内に設定されていれば `running` への上書きをスキップする。これにより以下の競合を防止する:
+> - 並列ツールの PostToolUse が `permission`/`ask` を上書きする問題
+> - Stop 直後の PostToolUse が `idle` を `running` に戻す問題
+>
+> `UserPromptSubmit` は `post` なしで呼び出すため、ガードの影響を受けずに常に `running` を設定できる。
+
 ### バッジ表示
 
 | 状態 | バッジ | 色 |
@@ -60,6 +66,7 @@ prefix+s (fzf セッションリスト)
 - **JSON パース不要**: 状態は hook イベント種別で一意に決まるため、コマンド引数で渡す
 - **複数ペイン優先度**: 1ウィンドウに複数 Claude ペインがある場合、アクション必要な状態を優先（`permission > ask > running > idle`）
 - **tmux 外では無動作**: `$TMUX_PANE` 未設定時は即座に exit
+- **stale running 検知**: 読み取り時に tmux の `pane_idle`（ペインへの最終出力からの秒数）を確認。`running` 状態だがペインに15秒以上出力がない場合、Stop 未発火とみなし `idle` に補正する
 
 ## 結果
 

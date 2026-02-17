@@ -19,6 +19,14 @@ function __tm_claude_state --description 'ウィンドウ内のClaudeペイン�
                 continue
             end
             set -l state (string trim < $state_file)
+            # running だがペインに15秒以上出力がない → Stop未発火の stale running
+            if test "$state" = running
+                set -l pane_idle (tmux display-message -p -t "$pane_id" '#{pane_idle}' 2>/dev/null)
+                if test -n "$pane_idle" -a "$pane_idle" -gt 15
+                    set state idle
+                    echo idle > $state_file
+                end
+            end
             set -l priority 0
             switch $state
                 case permission; set priority 4

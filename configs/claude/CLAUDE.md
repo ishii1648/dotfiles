@@ -3,11 +3,12 @@
 - SubAgentを使ってできるだけ並列化して進めて
 
 ## ツール使用ルール
-- ファイル検索には Bash の `find` ではなく Glob ツールを使用する
-- テキスト検索には Bash の `grep`/`rg` ではなく Grep ツールを使用する
-- ファイル読み取りには `cat`/`head`/`tail` ではなく Read ツールを使用する
-- ファイル編集には `sed`/`awk` ではなく Edit ツールを使用する
-- ファイル作成には `echo`/`cat <<EOF` ではなく Write ツールを使用する
+- ファイル検索には Bash の `find` ではなく Glob を使用する
+- テキスト検索には Bash の `grep`/`rg` ではなく Grep を使用する
+- ファイル読み取りには `cat`/`head`/`tail` ではなく Read を使用する
+- ファイル編集には `sed`/`awk` ではなく Edit を使用する
+- ファイル作成には `echo`/`cat <<EOF` ではなく Write を使用する
+- コード調査にはPythonスクリプトを書かず、標準ツール（Glob, Grep, Read）や `Task` tool（subagent_type=Explore）を使用する
 
 ## 禁止コマンド
 - `rm -rf` は絶対に実行しない。ファイル/ディレクトリの削除が必要な場合は `git rm` や `rm`（単体ファイル指定）を使用する

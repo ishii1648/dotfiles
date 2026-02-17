@@ -140,6 +140,10 @@ if [[ -f "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter" ]]; then
     check_symlink "tmux-fzf-url-pr-filter" "$HOME/.local/bin/tmux-fzf-url-pr-filter" "$DOTFILES_DIR/configs/tmux/tmux-fzf-url-pr-filter"
 fi
 
+if [[ -f "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh" ]]; then
+    check_symlink "ghostty-tmux-init" "$HOME/.local/bin/ghostty-tmux-init" "$DOTFILES_DIR/configs/ghostty/ghostty-tmux-init.sh"
+fi
+
 echo ""
 
 # ========================================
