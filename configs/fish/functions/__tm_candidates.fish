@@ -1,7 +1,7 @@
 function __tm_candidates --description 'tm用のセッション候補一覧を生成（TAB区切り: key\t表示テキスト）'
     argparse 'sessions-only' -- $argv
 
-    set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null | string match -v 'main' | string match -v 'monitor')
+    set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null | string match -v 'main' | string match -v 'monitor' | string match -v 'prtrack')
     set -l current_session (tmux display-message -p '#{session_name}' 2>/dev/null)
     set -l all_repos (ghq list)
     set -l existing_repos
