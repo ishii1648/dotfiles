@@ -27,6 +27,14 @@
 - **PRが未作成**: commit → push → Draft PR作成
 - **PRが作成済み**: commit → push のみ（既存PRのURLを表示）
 
+## セッション引き継ぎ
+- プロジェクトルートに `HANDOVER.md` が存在する場合は、セッション開始時に必ず読み込んで前回の作業コンテキストを把握すること
+- 読み込み後、「前回の引き継ぎ内容を確認しました」と報告すること
+
+## スキル作成・検証
+- スキルを新規作成する際は `plugin-dev:skill-development` スキルを使用する
+- スキル作成・更新後の品質検証には `plugin-dev:skill-reviewer` エージェント（Task ツール経由）を使用する
+
 ## 調査結果のまとめ
 - 調査結果をまとめる際に表を使う場合はmarkdownを使うこと
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
