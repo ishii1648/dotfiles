@@ -12,6 +12,12 @@ function __tm_claude_state --description 'ウィンドウ内のClaudeペイン�
         set -l pane_num (string replace '%' '' $pane_id)
         set -l state_file "$state_dir/pane_$pane_num"
         if test -f $state_file
+            # ペインのフォアグラウンドがシェルなら Claude 終了済み → stale file を除去
+            set -l pane_cmd (tmux display-message -p -t "$pane_id" '#{pane_current_command}' 2>/dev/null)
+            if contains -- $pane_cmd fish bash zsh
+                rm -f $state_file
+                continue
+            end
             set -l state (string trim < $state_file)
             set -l priority 0
             switch $state

@@ -60,16 +60,16 @@ keybind = super+down=text:\x1b[1;9B
 keybind = super+k=text:\x1b[107;9~
 keybind = super+j=text:\x1b[106;9~
 
-# ウィンドウ切替 (super+1~9)
-keybind = super+one=text:\x001
-keybind = super+two=text:\x002
-keybind = super+three=text:\x003
-keybind = super+four=text:\x004
-keybind = super+five=text:\x005
-keybind = super+six=text:\x006
-keybind = super+seven=text:\x007
-keybind = super+eight=text:\x008
-keybind = super+nine=text:\x009
+# ウィンドウ切替 (super+1~9 → tmux user-keys経由)
+keybind = super+one=text:\x1b[49;9~
+keybind = super+two=text:\x1b[50;9~
+keybind = super+three=text:\x1b[51;9~
+keybind = super+four=text:\x1b[52;9~
+keybind = super+five=text:\x1b[53;9~
+keybind = super+six=text:\x1b[54;9~
+keybind = super+seven=text:\x1b[55;9~
+keybind = super+eight=text:\x1b[56;9~
+keybind = super+nine=text:\x1b[57;9~
 
 # ローカル設定（オプション、git管理外）
 config-file = ?local.conf
