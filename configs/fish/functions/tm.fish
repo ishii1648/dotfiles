@@ -16,7 +16,8 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         --bind "X:change-prompt(delete? [y/N] > )+rebind(y,n)" \
         --bind "y:execute-silent(fish -c '__tm_delete_session {1} $current_session')+reload(fish -c '$candidates_cmd')+change-prompt(> )+unbind(y,n)" \
         --bind "n:change-prompt(> )+unbind(y,n)" \
-        --bind 'enter:transform:[ "{q}" = ww ] && echo "become(fish -c __tm_select_worktree)" || echo accept')
+        --bind 'enter:transform:[ "{q}" = ww ] && echo "reload(fish -c __tm_worktree_candidates)+clear-query+change-prompt(wt> )+change-header(enter: switch/create | ctrl-s: back)" || echo accept' \
+        --bind "ctrl-s:reload(fish -c '$candidates_cmd')+clear-query+change-prompt(> )+change-header(enter: switch | X: delete session)")
 
     if test -z "$selected"
         return 0
@@ -36,6 +37,23 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         else
             tmux attach-session -t "$target_session"
             tmux select-window -t "$target_session:$target_window"
+        end
+    else if string match -q '/*' -- $key
+        # worktree path → session作成/切替
+        set -l session_name (basename $key)
+        if tmux has-session -t $session_name 2>/dev/null
+            if test -n "$TMUX"
+                tmux switch-client -t $session_name
+            else
+                tmux attach-session -t $session_name
+            end
+        else
+            tmux new-session -d -s $session_name -c $key
+            if test -n "$TMUX"
+                tmux switch-client -t $session_name
+            else
+                tmux attach-session -t $session_name
+            end
         end
     else if test -n "$key"
         # 既存session → 切り替え
