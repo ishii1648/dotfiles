@@ -10,7 +10,7 @@ minimum-contrast = 1.2
 cursor-opacity = 1.0
 window-save-state = always
 font-thicken
-macos-titlebar-style = hidden
+macos-titlebar-style = transparent
 macos-option-as-alt = true
 
 keybind = super+r=reload_config
