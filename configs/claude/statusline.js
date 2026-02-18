@@ -17,6 +17,7 @@ process.stdin.on('end', async () => {
 
     // Extract values
     const model = data.model?.display_name || 'Unknown';
+    const effortLevel = getEffortLevel();
     const cwd = data.workspace?.current_dir || data.cwd || '.';
 
     // リポジトリ名を取得（gitリポジトリ外の場合はディレクトリ名）
@@ -86,8 +87,11 @@ process.stdin.on('end', async () => {
       prLinkInfo = ` | ${prColor}#${prInfo.number}\x1b[0m`;
     }
 
+    // Build model display with optional effort level
+    const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
+
     // Build status line
-    const statusLine = `[${model}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
 
     console.log(statusLine);
   } catch (error) {
@@ -228,6 +232,17 @@ function getDirtyFileCount(cwd) {
     return lines.length;
   } catch (e) {
     return 0;
+  }
+}
+
+function getEffortLevel() {
+  try {
+    const settingsPath = path.join(process.env.HOME, '.claude', 'settings.json');
+    const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+    // Claude Code はデフォルト値 "high" の場合、settings.json にキーを書き込まない
+    return settings.effortLevel || 'high';
+  } catch (e) {
+    return 'high';
   }
 }
 
