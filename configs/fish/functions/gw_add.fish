@@ -31,16 +31,22 @@ function gw_add -d "Add a git worktree and cd into it"
         # tmux session 自動作成・切替
         if test -n "$TMUX"
             set -l session_name (basename $worktree_path)
-            if not tmux has-session -t $session_name 2>/dev/null
-                tmux new-session -d -s $session_name -c $worktree_path
-            end
-            if set -q _flag_claude
-                tmux send-keys -t $session_name "claude" Enter
-            end
-            # display-popup内から呼ばれた場合は親クライアントを切り替える
             if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
-                tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+                # display-popup内: TMUX をクリアしてネスト問題を回避、親クライアントを切り替える
+                if not env TMUX= tmux has-session -t $session_name 2>/dev/null
+                    env TMUX= tmux new-session -d -s $session_name -c $worktree_path
+                end
+                if set -q _flag_claude
+                    env TMUX= tmux send-keys -t $session_name "claude" Enter
+                end
+                env TMUX= tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
             else
+                if not tmux has-session -t $session_name 2>/dev/null
+                    tmux new-session -d -s $session_name -c $worktree_path
+                end
+                if set -q _flag_claude
+                    tmux send-keys -t $session_name "claude" Enter
+                end
                 tmux switch-client -t $session_name
             end
         else
@@ -78,16 +84,22 @@ function gw_add -d "Add a git worktree and cd into it"
     # tmux session 自動作成・切替
     if test -n "$TMUX"
         set -l session_name (basename $worktree_path)
-        if not tmux has-session -t $session_name 2>/dev/null
-            tmux new-session -d -s $session_name -c $worktree_path
-        end
-        if set -q _flag_claude
-            tmux send-keys -t $session_name "claude" Enter
-        end
-        # display-popup内から呼ばれた場合は親クライアントを切り替える
         if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
-            tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+            # display-popup内: TMUX をクリアしてネスト問題を回避、親クライアントを切り替える
+            if not env TMUX= tmux has-session -t $session_name 2>/dev/null
+                env TMUX= tmux new-session -d -s $session_name -c $worktree_path
+            end
+            if set -q _flag_claude
+                env TMUX= tmux send-keys -t $session_name "claude" Enter
+            end
+            env TMUX= tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
         else
+            if not tmux has-session -t $session_name 2>/dev/null
+                tmux new-session -d -s $session_name -c $worktree_path
+            end
+            if set -q _flag_claude
+                tmux send-keys -t $session_name "claude" Enter
+            end
             tmux switch-client -t $session_name
         end
     else
