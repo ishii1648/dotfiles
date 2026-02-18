@@ -28,7 +28,7 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
     set -l selected $fzf_output[2]
 
     # query が ww → worktree一覧へ
-    if test "$query" = ww
+    if test "$query" = gw
         __tm_select_worktree
         return
     end
