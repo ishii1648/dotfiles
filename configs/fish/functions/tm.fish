@@ -15,7 +15,8 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         --bind "start:unbind(y,n)" \
         --bind "X:change-prompt(delete? [y/N] > )+rebind(y,n)" \
         --bind "y:execute-silent(fish -c '__tm_delete_session {1} $current_session')+reload(fish -c '$candidates_cmd')+change-prompt(> )+unbind(y,n)" \
-        --bind "n:change-prompt(> )+unbind(y,n)")
+        --bind "n:change-prompt(> )+unbind(y,n)" \
+        --bind 'enter:transform:[ "{q}" = ww ] && echo "become(fish -c __tm_select_worktree)" || echo accept')
 
     if test -z "$selected"
         return 0
@@ -36,9 +37,6 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
             tmux attach-session -t "$target_session"
             tmux select-window -t "$target_session:$target_window"
         end
-    else if test "$key" = ww
-        # worktree一覧に切替
-        __tm_select_worktree
     else if test -n "$key"
         # 既存session → 切り替え
         if test -n "$TMUX"
