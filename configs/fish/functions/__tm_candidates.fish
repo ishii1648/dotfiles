@@ -86,5 +86,5 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
 
     # worktree一覧への切替エントリ
     set -l cyan (printf '\e[36m')
-    printf '%s\t%s\n' 'ww' "$cyan ctrl-w  worktrees$reset"
+    printf '%s\t%s\n' 'ww' "$cyan worktrees$reset"
 end

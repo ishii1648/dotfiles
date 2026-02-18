@@ -11,12 +11,11 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         --delimiter '\t' --with-nth 2 \
         --layout=reverse --cycle \
         --prompt '> ' \
-        --header 'enter: switch | X: delete session | ctrl-w: worktrees' \
+        --header 'enter: switch | X: delete session' \
         --bind "start:unbind(y,n)" \
         --bind "X:change-prompt(delete? [y/N] > )+rebind(y,n)" \
         --bind "y:execute-silent(fish -c '__tm_delete_session {1} $current_session')+reload(fish -c '$candidates_cmd')+change-prompt(> )+unbind(y,n)" \
-        --bind "n:change-prompt(> )+unbind(y,n)" \
-        --bind "ctrl-w:become(fish -c __tm_select_worktree)")
+        --bind "n:change-prompt(> )+unbind(y,n)")
 
     if test -z "$selected"
         return 0
