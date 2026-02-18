@@ -7,7 +7,8 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         set candidates_cmd '__tm_candidates --sessions-only'
     end
 
-    set -l selected (fish -c "$candidates_cmd" | fzf --ansi \
+    set -l fzf_output (fish -c "$candidates_cmd" | fzf --ansi \
+        --print-query \
         --delimiter '\t' --with-nth 2 \
         --layout=reverse --cycle \
         --prompt '> ' \
@@ -15,9 +16,22 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         --bind "start:unbind(y,n)" \
         --bind "X:change-prompt(delete? [y/N] > )+rebind(y,n)" \
         --bind "y:execute-silent(fish -c '__tm_delete_session {1} $current_session')+reload(fish -c '$candidates_cmd')+change-prompt(> )+unbind(y,n)" \
-        --bind "n:change-prompt(> )+unbind(y,n)" \
-        --bind 'enter:transform:[ "{q}" = ww ] && echo "reload(fish -c __tm_worktree_candidates)+clear-query+change-prompt(wt> )+change-header(enter: switch/create | ctrl-s: back)" || echo accept' \
-        --bind "ctrl-s:reload(fish -c '$candidates_cmd')+clear-query+change-prompt(> )+change-header(enter: switch | X: delete session)")
+        --bind "n:change-prompt(> )+unbind(y,n)")
+    set -l fzf_status $status
+
+    # escape/ctrl-c → 何もしない
+    if test $fzf_status -eq 130
+        return 0
+    end
+
+    set -l query $fzf_output[1]
+    set -l selected $fzf_output[2]
+
+    # query が ww → worktree一覧へ
+    if test "$query" = ww
+        __tm_select_worktree
+        return
+    end
 
     if test -z "$selected"
         return 0
@@ -37,23 +51,6 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         else
             tmux attach-session -t "$target_session"
             tmux select-window -t "$target_session:$target_window"
-        end
-    else if string match -q '/*' -- $key
-        # worktree path → session作成/切替
-        set -l session_name (basename $key)
-        if tmux has-session -t $session_name 2>/dev/null
-            if test -n "$TMUX"
-                tmux switch-client -t $session_name
-            else
-                tmux attach-session -t $session_name
-            end
-        else
-            tmux new-session -d -s $session_name -c $key
-            if test -n "$TMUX"
-                tmux switch-client -t $session_name
-            else
-                tmux attach-session -t $session_name
-            end
         end
     else if test -n "$key"
         # 既存session → 切り替え
