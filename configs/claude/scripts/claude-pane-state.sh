@@ -12,11 +12,12 @@ cat > /dev/null
 
 STATE_DIR="/tmp/claude-pane-state"
 PANE_FILE="$STATE_DIR/pane_${TMUX_PANE#%}"
+STARTED_FILE="$STATE_DIR/pane_${TMUX_PANE#%}_started"
 STATE="${1:-unknown}"
 SOURCE="${2:-}"
 
 if [ "$STATE" = "end" ]; then
-    rm -f "$PANE_FILE"
+    rm -f "$PANE_FILE" "$STARTED_FILE"
     exit 0
 fi
 
@@ -34,6 +35,18 @@ if [ "$STATE" = "running" ] && [ "$SOURCE" = "post" ] && [ -f "$PANE_FILE" ]; th
             exit 0
         fi
     fi
+fi
+
+# タイムスタンプ管理: running 開始時に記録、それ以外で削除
+if [ "$STATE" = "running" ]; then
+    # UserPromptSubmit (SOURCE空) → 常にリセット
+    # PostToolUse (SOURCE=post) → ファイルが無い場合のみ作成
+    if [ -z "$SOURCE" ] || [ ! -f "$STARTED_FILE" ]; then
+        mkdir -p "$STATE_DIR"
+        date +%s > "$STARTED_FILE"
+    fi
+else
+    rm -f "$STARTED_FILE"
 fi
 
 mkdir -p "$STATE_DIR"

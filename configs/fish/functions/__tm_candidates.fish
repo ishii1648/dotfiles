@@ -24,12 +24,19 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
                 set -l claude_badge ''
-                set -l cs (__tm_claude_state $name $win_idx)
-                if test -n "$cs"
+                set -l cs_raw (__tm_claude_state $name $win_idx)
+                if test -n "$cs_raw"
+                    set -l cs_parts (string split ' ' $cs_raw)
+                    set -l cs $cs_parts[1]
                     set -l purple (printf '\e[35m')
                     set -l red (printf '\e[31m')
                     switch $cs
-                        case running;    set claude_badge " $purple""[running]""$reset"
+                        case running
+                            if set -q cs_parts[2]
+                                set claude_badge " $purple""[running("$cs_parts[2]"m)]""$reset"
+                            else
+                                set claude_badge " $purple""[running]""$reset"
+                            end
                         case permission; set claude_badge " $red""[perm]""$reset"
                         case ask;        set claude_badge " $red""[ask]""$reset"
                         case idle;       set claude_badge " $dim""[idle]""$reset"
@@ -60,12 +67,19 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
                 set -l claude_badge ''
-                set -l cs (__tm_claude_state $s $win_idx)
-                if test -n "$cs"
+                set -l cs_raw (__tm_claude_state $s $win_idx)
+                if test -n "$cs_raw"
+                    set -l cs_parts (string split ' ' $cs_raw)
+                    set -l cs $cs_parts[1]
                     set -l purple (printf '\e[35m')
                     set -l red (printf '\e[31m')
                     switch $cs
-                        case running;    set claude_badge " $purple""[running]""$reset"
+                        case running
+                            if set -q cs_parts[2]
+                                set claude_badge " $purple""[running("$cs_parts[2]"m)]""$reset"
+                            else
+                                set claude_badge " $purple""[running]""$reset"
+                            end
                         case permission; set claude_badge " $red""[perm]""$reset"
                         case ask;        set claude_badge " $red""[ask]""$reset"
                         case idle;       set claude_badge " $dim""[idle]""$reset"
