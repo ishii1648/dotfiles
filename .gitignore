@@ -16,6 +16,7 @@ configs/fish/functions/a_saml2aws.fish
 configs/fish/functions/a_sso_login.fish
 configs/fish/functions/claude.fish
 configs/fish/functions/g_create_pr.fish
+configs/fish/functions/codex.fish
 
 # Local override files (machine/org-specific)
 configs/ghostty/local.conf
