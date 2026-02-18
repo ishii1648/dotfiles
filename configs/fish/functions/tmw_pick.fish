@@ -1,5 +1,5 @@
 function tmw_pick --description 'fzfでリポジトリを選択し、worktreeを作成してtmux sessionに切替'
-    set -l selected (__tmw_candidates | fzf --delimiter '\t' --with-nth 2 --cycle --prompt 'repo> ')
+    set -l selected (__tmw_candidates | fzf --exact --delimiter '\t' --with-nth 2 --cycle --prompt 'repo> ')
 
     if test -z "$selected"
         return 0

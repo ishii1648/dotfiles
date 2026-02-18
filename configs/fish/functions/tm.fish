@@ -7,7 +7,7 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         set candidates_cmd '__tm_candidates --sessions-only'
     end
 
-    set -l fzf_output (fish -c "$candidates_cmd" | fzf --ansi \
+    set -l fzf_output (fish -c "$candidates_cmd" | fzf --ansi --exact \
         --print-query \
         --delimiter '\t' --with-nth 2 \
         --layout=reverse --cycle \

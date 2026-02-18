@@ -1,5 +1,5 @@
 function __tm_select_worktree --description 'worktree一覧をfzf表示し、選択でsession作成/切替'
-    set -l fzf_output (fish -c __tm_worktree_candidates | fzf --ansi \
+    set -l fzf_output (fish -c __tm_worktree_candidates | fzf --ansi --exact \
         --expect ctrl-s \
         --delimiter '\t' --with-nth 2 \
         --layout=reverse --cycle \
