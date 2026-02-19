@@ -3,7 +3,7 @@ name: tmux-send-prompt
 description: >-
   This skill should be used when the user wants to send a prompt or instruction to another tmux pane or session,
   such as "tmuxの別セッションにプロンプトを送りたい", "対向のClaudeに指示したい", "別のpaneにコマンドを送って",
-  "tmuxペインに指示を転送して". This skill lists available panes (excluding claude/codex panes), lets the user select a target,
+  "tmuxペインに指示を転送して". This skill lists available panes (claude/codex panes only), lets the user select a target,
   verifies the target is idle using a state file and child-process check, then safely sends the prompt using send-keys.
   Accepts optional partial target (session, session:window, session:window.pane) as argument and resolves missing parts interactively.
 version: 1.1.0
@@ -18,7 +18,7 @@ argument-hint: "[session[:window[.pane]]] \"<prompt>\""
 対象 tmux pane の idle 状態を確認してからプロンプトを送信するスキル。
 `/tmp/claude-pane-state/` のstateファイルと子プロセスの有無（`pgrep -P`）を二重チェックし、処理中のセッションへの誤送信を防ぐ。
 
-**送信対象**: `claude` / `codex` コマンドが動作している pane は除外し、shell や editor など他のコマンドの pane のみを対象とする。
+**送信対象**: `claude` / `codex` コマンドが動作している pane のみを対象とする。shell や editor など他のコマンドの pane は除外する。
 
 > **Note**: `#{pane_idle}` / `#{pane_activity}` は `monitor-activity` が無効な環境では値が取得できないため、代わりに `pgrep -P <pane_pid>` で子プロセスの有無を確認する。
 
@@ -53,21 +53,21 @@ PROMPT=""           # 送信プロンプト（空の場合は後でAskUserQuesti
 プロンプトが空の場合は AskUserQuestion で入力してもらう。
 プロンプトが200文字を超える場合は警告を表示するが送信は続行する。
 
-### Step 2: 利用可能な pane 一覧を取得（claude/codex を除外）
+### Step 2: 利用可能な pane 一覧を取得（claude/codex のみ）
 
-自身の pane と `claude` / `codex` コマンドが動作している pane を除外して収集する：
+自身の pane を除外し、`claude` / `codex` コマンドが動作している pane のみを収集する：
 
 ```bash
 # 自身の pane ID を取得（自己送信防止のため除外対象として使用）
 MY_PANE=$(tmux display-message -p '#{pane_id}')
 
-# 全 pane 一覧を取得し、自身・claude・codex を除外
+# 全 pane 一覧を取得し、自身を除外してから claude/codex のみを抽出
 tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index} #{pane_pid} #{pane_current_command}' \
   | grep -v "^${MY_PANE} " \
-  | grep -v -E ' (claude|codex)$'
+  | grep -E ' (claude|codex)$'
 ```
 
-候補が0件の場合は "利用可能なpane（claude/codex以外）がありません" でabort。
+候補が0件の場合は "利用可能なpane（claude/codex）がありません" でabort。
 
 ### Step 3: ターゲットの解決
 
@@ -203,7 +203,7 @@ tmux send-keys -t <selected_target> "<prompt>" Enter
 
 | 状況 | 対応 |
 |------|------|
-| claude/codex以外の候補paneが0件 | "利用可能なpane（claude/codex以外）がありません" でabort |
+| claude/codex候補paneが0件 | "利用可能なpane（claude/codex）がありません" でabort |
 | 指定ターゲットに一致するpaneなし | "指定されたターゲットが見つかりません" でabort |
 | state が running / ask / permission | 状態を表示してabort（リトライは手動） |
 | stateファイルなし + 子プロセスあり | "子プロセスが動作中の可能性あり" でabort |
