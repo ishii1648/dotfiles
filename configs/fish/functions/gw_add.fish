@@ -33,14 +33,13 @@ function gw_add -d "Add a git worktree and cd into it"
             set -l session_name (basename $worktree_path)
             if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
                 # display-popup内: TMUX をクリアしてネスト問題を回避、親クライアントを切り替える
-                set -l sock (string replace -r ',.*' '' $TMUX)
-                if not env TMUX= tmux -S $sock has-session -t $session_name 2>/dev/null
-                    env TMUX= tmux -S $sock new-session -d -s $session_name -c $worktree_path
+                if not env TMUX= tmux has-session -t $session_name 2>/dev/null
+                    env TMUX= tmux new-session -d -s $session_name -c $worktree_path
                 end
                 if set -q _flag_claude
-                    env TMUX= tmux -S $sock send-keys -t $session_name "claude" Enter
+                    env TMUX= tmux send-keys -t $session_name "claude" Enter
                 end
-                env TMUX= tmux -S $sock switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+                env TMUX= tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
             else
                 if not tmux has-session -t $session_name 2>/dev/null
                     tmux new-session -d -s $session_name -c $worktree_path
@@ -87,14 +86,13 @@ function gw_add -d "Add a git worktree and cd into it"
         set -l session_name (basename $worktree_path)
         if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
             # display-popup内: TMUX をクリアしてネスト問題を回避、親クライアントを切り替える
-            set -l sock (string replace -r ',.*' '' $TMUX)
-            if not env TMUX= tmux -S $sock has-session -t $session_name 2>/dev/null
-                env TMUX= tmux -S $sock new-session -d -s $session_name -c $worktree_path
+            if not env TMUX= tmux has-session -t $session_name 2>/dev/null
+                env TMUX= tmux new-session -d -s $session_name -c $worktree_path
             end
             if set -q _flag_claude
-                env TMUX= tmux -S $sock send-keys -t $session_name "claude" Enter
+                env TMUX= tmux send-keys -t $session_name "claude" Enter
             end
-            env TMUX= tmux -S $sock switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+            env TMUX= tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
         else
             if not tmux has-session -t $session_name 2>/dev/null
                 tmux new-session -d -s $session_name -c $worktree_path
