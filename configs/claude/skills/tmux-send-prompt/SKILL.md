@@ -6,7 +6,7 @@ description: >-
   "tmuxペインに指示を転送して". This skill lists available panes (claude/codex panes only), lets the user select a target,
   verifies the target is idle using a state file and child-process check, then safely sends the prompt using send-keys.
   Accepts optional partial target (session, session:window, session:window.pane) as argument and resolves missing parts interactively.
-version: 1.1.0
+version: 2.0.0
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "[session[:window[.pane]]] \"<prompt>\""
 ---
@@ -15,152 +15,86 @@ argument-hint: "[session[:window[.pane]]] \"<prompt>\""
 
 ## 概要
 
-対象 tmux pane の idle 状態を確認してからプロンプトを送信するスキル。
-`/tmp/claude-pane-state/` のstateファイルと子プロセスの有無（`pgrep -P`）を二重チェックし、処理中のセッションへの誤送信を防ぐ。
-
-**送信対象**: `claude` / `codex` コマンドが動作している pane のみを対象とする。shell や editor など他のコマンドの pane は除外する。
-
-> **Note**: `#{pane_idle}` / `#{pane_activity}` は `monitor-activity` が無効な環境では値が取得できないため、代わりに `pgrep -P <pane_pid>` で子プロセスの有無を確認する。
+`~/.claude/scripts/tmux-send-prompt.sh` に全ロジックを委譲する。
+最大 Bash 2回 + AskUserQuestion 1回で完結する。
 
 ## ワークフロー
 
-### Step 1: 引数のパース
-
-引数は `[target] [prompt]` の形式で渡される。`target` は省略可能。
-
-**target のフォーマット:**
-- `session` — セッション名のみ
-- `session:window` — セッション名 + ウィンドウインデックス
-- `session:window.pane` — 完全指定（tmux 標準アドレス形式）
-
-**パース手順:**
-
-1. 引数全体を受け取る（例: `"main:1 テストを実行して"` や `"テストを実行して"`）
-2. 先頭トークンが tmux のターゲット形式（スペースなし、かつ既存セッション名またはコロン/ドットを含む）かどうか判定する
-   - 判定方法: `tmux list-sessions -F '#{session_name}'` で取得したセッション名一覧と照合する
-   - 先頭トークンがセッション名に前方一致すれば target として扱う
-3. target として認識した場合は target と残りの文字列（prompt）に分割する
-4. target として認識しない場合は引数全体を prompt として扱う
-
-**パース結果の変数:**
-```
-TARGET_SESSION=""   # 抽出されたセッション名（空の場合は未指定）
-TARGET_WINDOW=""    # 抽出されたウィンドウ番号（空の場合は未指定）
-TARGET_PANE=""      # 抽出されたペイン番号（空の場合は未指定）
-PROMPT=""           # 送信プロンプト（空の場合は後でAskUserQuestion）
-```
-
-プロンプトが空の場合は AskUserQuestion で入力してもらう。
-プロンプトが200文字を超える場合は警告を表示するが送信は続行する。
-
-### Step 2: 利用可能な pane 一覧を取得（claude/codex のみ）
-
-自身の pane を除外し、`claude` / `codex` コマンドが動作している pane のみを収集する：
+### Step 1: スクリプト実行（gather モード）
 
 ```bash
-# 自身の pane ID を取得（自己送信防止のため除外対象として使用）
-MY_PANE=$(tmux display-message -p '#{pane_id}')
-
-# 全 pane 一覧を取得し、自身を除外してから claude/codex のみを抽出
-tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index} #{pane_pid} #{pane_current_command}' \
-  | grep -v "^${MY_PANE} " \
-  | grep -E ' (claude|codex)$'
+~/.claude/scripts/tmux-send-prompt.sh gather "<引数全体>"
 ```
 
-候補が0件の場合は "利用可能なpane（claude/codex）がありません" でabort。
+引数なしで呼ばれた場合は `""` を渡す。
 
-### Step 3: ターゲットの解決
+### Step 2: STATUS に応じて分岐
 
-Step 1 のパース結果と Step 2 の候補一覧を使って送信先を決定する。
-各ケースで不足情報がある場合のみ AskUserQuestion を呼び出す。
+| STATUS | 意味 | 対応 |
+|--------|------|------|
+| `SENT` | 送信完了 | → Step 5（完了報告） |
+| `ERROR` | エラー | → MESSAGE を表示して終了 |
+| `NEED_PROMPT` | ターゲット決定済み、プロンプト未入力 | → Step 3a |
+| `NEED_TARGET` | プロンプト決定済み、ターゲット未選択 | → Step 3b |
+| `NEED_BOTH` | 両方未入力 | → Step 3c |
 
-#### ケース A: ターゲット完全指定（session:window.pane）
+### Step 3a: プロンプト入力（NEED_PROMPT）
 
-- Step 2 の候補一覧に一致する pane が存在するか確認する
-- 存在すれば Step 4 へ進む
-- 存在しなければ "指定されたターゲットが見つかりません" でabort
-
-#### ケース B: セッション + ウィンドウのみ（session:window）
-
-- 候補一覧から `session:window` に前方一致する pane を絞り込む
-- 絞り込み結果が1件 → そのまま決定してStep 4へ
-- 絞り込み結果が複数件 → AskUserQuestion でペインを選択してもらう
-- 絞り込み結果が0件 → "該当するpaneが見つかりません" でabort
-
-#### ケース C: セッション名のみ（session）
-
-- 候補一覧から `session` に前方一致する pane を絞り込む
-- 絞り込み結果が1件 → そのまま決定してStep 4へ
-- 絞り込み結果が複数件 → AskUserQuestion でウィンドウ+ペインを選択してもらう
-- 絞り込み結果が0件 → "該当するpaneが見つかりません" でabort
-
-#### ケース D: ターゲット未指定
-
-- Step 2 の全候補一覧を AskUserQuestion の選択肢として提示する
-
-**選択肢フォーマット例:**
+出力例:
 ```
-main:0.0  bash   [no children → idle]
-work:0.0  node   [has children → busy?]
+STATUS: NEED_PROMPT
+TARGET: ishii1648_dotfiles:3.1
 ```
 
-stateファイルが存在する場合は state 情報も付加する：
-
+AskUserQuestion でプロンプトを入力してもらう（"Other" で自由入力）。
+入力後:
 ```bash
-for pane_id in $PANE_IDS; do
-  PANE_NUM=$(echo $pane_id | tr -d '%')
-  STATE=$(cat /tmp/claude-pane-state/pane_${PANE_NUM} 2>/dev/null || echo "")
-  # 選択肢に state を付加
-done
+~/.claude/scripts/tmux-send-prompt.sh send "<TARGET>" "<入力されたプロンプト>"
 ```
 
-### Step 4: 選択された pane の state チェック
+### Step 3b: ターゲット選択（NEED_TARGET）
 
-#### 4a. stateファイル確認
+出力例:
+```
+STATUS: NEED_TARGET
+PROMPT: テストを実行して
+CANDIDATES:
+ishii1648_dotfiles:1.1 [state=idle]
+ishii1648_dotfiles:3.1 [state=idle]
+```
 
+CANDIDATES の各行を選択肢として AskUserQuestion を呼び出す（最大4件、idle のみ）。
+選択後:
 ```bash
-PANE_ID=$(tmux display-message -t <selected_target> -p '#{pane_id}')
-PANE_NUM=$(echo $PANE_ID | tr -d '%')
-STATE=$(cat /tmp/claude-pane-state/pane_${PANE_NUM} 2>/dev/null)
+~/.claude/scripts/tmux-send-prompt.sh send "<選択されたターゲット>" "<PROMPT>"
 ```
 
-| stateの値 | 対応 |
-|-----------|------|
-| ファイルなし or `idle` | OK → 次のチェックへ |
-| `running` | abort: "現在処理中です。完了後に再試行してください。" |
-| `ask` | abort: "入力待ち状態です（ask）。手動で操作してください。" |
-| `permission` | abort: "権限確認待ち状態です（permission）。手動で操作してください。" |
+### Step 3c: 両方入力（NEED_BOTH）
 
-#### 4b. 子プロセス確認（二重チェック）
+出力例:
+```
+STATUS: NEED_BOTH
+CANDIDATES:
+ishii1648_dotfiles:1.1 [state=idle]
+ishii1648_dotfiles:3.1 [state=idle]
+```
 
-`#{pane_idle}` / `#{pane_activity}` は `monitor-activity` が無効な環境では値が取得できないため、`pgrep -P <pane_pid>` で子プロセスの有無を確認する。
+AskUserQuestion で 2 問同時に聞く:
+- Q1: 送信先ターゲット（CANDIDATES から選択肢を生成）
+- Q2: 送信するプロンプト（"Other" で自由入力。よく使う定型文があれば選択肢に入れる）
 
+選択後:
 ```bash
-PANE_PID=$(tmux display-message -t <selected_target> -p '#{pane_pid}')
-PANE_CMD=$(tmux display-message -t <selected_target> -p '#{pane_current_command}')
-
-# stateファイルがある pane (claude 等) は stateファイルが信頼できるためスキップ
-if [ -z "$STATE" ] || [ "$STATE" = "idle" ]; then
-  # stateファイルなし（fish/bash 等）の場合のみ子プロセスチェック
-  if [ -z "$STATE" ] && pgrep -P "$PANE_PID" > /dev/null 2>&1; then
-    abort: "子プロセスが動作中の可能性があります。完了後に再試行してください。"
-  fi
-fi
+~/.claude/scripts/tmux-send-prompt.sh send "<選択されたターゲット>" "<入力されたプロンプト>"
 ```
 
-| 条件 | 対応 |
-|------|------|
-| stateファイルあり（`idle`） | スキップ → 送信へ（stateファイルが信頼できる） |
-| stateファイルなし + 子プロセスなし | OK → 送信へ |
-| stateファイルなし + 子プロセスあり | abort: "子プロセスが動作中の可能性があります。" |
+### Step 4: send モード結果の確認
 
-### Step 5: send-keys でプロンプト送信
+send モードも同じフォーマットで出力する:
+- `STATUS: SENT` → Step 5
+- `STATUS: ERROR` → MESSAGE を表示して終了
 
-```bash
-tmux send-keys -t <selected_target> "<prompt>" Enter
-```
-
-### Step 6: 完了報告
+### Step 5: 完了報告
 
 ```
 ✓ プロンプトを送信しました
@@ -168,44 +102,18 @@ tmux send-keys -t <selected_target> "<prompt>" Enter
   内容: "<prompt>"
 ```
 
-## 引数
+## 引数フォーマット
 
-| 引数 | 説明 |
-|------|------|
-| `[session[:window[.pane]]]` | 送信先のターゲット（省略可能・部分指定可） |
-| `"<prompt>"` | 送信するプロンプトテキスト（省略時はStep 1で入力） |
-
-**target フォーマット例:**
-- `main` — セッション `main` の中からpaneをインタラクティブに選択
-- `main:1` — セッション `main` のウィンドウ `1` の中からpaneをインタラクティブに選択
-- `main:1.0` — セッション `main` のウィンドウ `1` ペイン `0` に直接送信
-
-## 使用例
-
-```bash
-# プロンプトのみ指定（送信先をインタラクティブに選択）
-/tmux-send-prompt "テストを実行して結果を報告してください"
-
-# セッションのみ指定（ウィンドウ/paneをインタラクティブに選択）
-/tmux-send-prompt main "テストを実行して結果を報告してください"
-
-# セッション+ウィンドウ指定（paneをインタラクティブに選択）
-/tmux-send-prompt main:1 "テストを実行して結果を報告してください"
-
-# 完全指定（インタラクションなし）
-/tmux-send-prompt main:1.0 "テストを実行して結果を報告してください"
-
-# 引数なしで実行（送信先・プロンプト両方をインタラクティブに入力）
-/tmux-send-prompt
-```
+| フォーマット | 例 |
+|---|---|
+| プロンプトのみ | `"テストを実行して"` |
+| セッション + プロンプト | `main "テストを実行して"` |
+| セッション:ウィンドウ + プロンプト | `main:1 "テストを実行して"` |
+| 完全指定 + プロンプト | `main:1.0 "テストを実行して"` |
+| ターゲットのみ（`|` 区切りも可） | `ishii1648_dotfiles\|3` |
+| 引数なし | （Step 3c に進む） |
 
 ## エラーハンドリング
 
-| 状況 | 対応 |
-|------|------|
-| claude/codex候補paneが0件 | "利用可能なpane（claude/codex）がありません" でabort |
-| 指定ターゲットに一致するpaneなし | "指定されたターゲットが見つかりません" でabort |
-| state が running / ask / permission | 状態を表示してabort（リトライは手動） |
-| stateファイルなし + 子プロセスあり | "子プロセスが動作中の可能性あり" でabort |
-| プロンプトが200文字超 | 警告を表示して続行 |
-| send-keys 失敗 | エラーメッセージを表示 |
+スクリプトがすべてのエラーを `STATUS: ERROR\nMESSAGE: ...` 形式で返す。
+モデルは MESSAGE をそのまま表示して終了する。
