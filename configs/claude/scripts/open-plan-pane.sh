@@ -1,35 +1,39 @@
 #!/bin/bash
-# PostToolUse hook (ExitPlanMode): 最新の plan ファイルを tmux pane で開く
+# PostToolUse hook (Write): plan ファイルが書き込まれたら tmux pane で開く
+
+LOG="/tmp/open-plan-pane.log"
+echo "[$(date)] hook started" >> "$LOG"
+echo "[$(date)] TMUX=$TMUX" >> "$LOG"
 
 # tmux 内でなければスキップ
 if [[ -z "$TMUX" ]]; then
+    echo "[$(date)] EXIT: not in tmux" >> "$LOG"
     exit 0
 fi
 
-# stdin から JSON を読み取り、cwd を取得
+# stdin から JSON を読み取り
 INPUT=$(cat)
+echo "[$(date)] INPUT=$INPUT" >> "$LOG"
+
 CWD=$(echo "$INPUT" | jq -r '.cwd // empty')
+PLAN_FILE=$(echo "$INPUT" | jq -r '.tool_input.file_path // empty')
 
-if [[ -z "$CWD" ]]; then
+echo "[$(date)] CWD=$CWD" >> "$LOG"
+echo "[$(date)] PLAN_FILE=$PLAN_FILE" >> "$LOG"
+
+if [[ -z "$CWD" || -z "$PLAN_FILE" ]]; then
+    echo "[$(date)] EXIT: CWD or PLAN_FILE is empty" >> "$LOG"
     exit 0
 fi
 
-PLANS_DIR="$CWD/.outputs/claude/plan"
+# plan ディレクトリへの書き込みでなければスキップ
+PLANS_DIR=".outputs/claude/plan"
+if [[ "$PLAN_FILE" != *"$PLANS_DIR"* ]]; then
+    echo "[$(date)] EXIT: not a plan file ($PLAN_FILE)" >> "$LOG"
+    exit 0
+fi
+
 PANE_TITLE="claude-plan"
-
-# plans ディレクトリが存在しなければスキップ
-if [[ ! -d "$PLANS_DIR" ]]; then
-    exit 0
-fi
-
-# 最新の .md ファイルを取得
-PLAN_FILE=$(find "$PLANS_DIR" -maxdepth 1 -name '*.md' -type f -print0 \
-    | xargs -0 ls -t 2>/dev/null \
-    | head -1)
-
-if [[ -z "$PLAN_FILE" ]]; then
-    exit 0
-fi
 
 # 現在の pane ID を記録（フォーカスを戻すため）
 ORIGINAL_PANE=$(tmux display-message -p '#{pane_id}')
@@ -44,7 +48,9 @@ if [[ -n "$EXISTING_PANE" ]]; then
 fi
 
 # 右側に 50% 幅で split して nvim を起動（プロジェクトディレクトリから）
+echo "[$(date)] running: tmux split-window -h -l 50% -c $CWD nvim $PLAN_FILE" >> "$LOG"
 tmux split-window -h -l 50% -c "$CWD" "nvim '$PLAN_FILE'"
+echo "[$(date)] split-window exit=$?" >> "$LOG"
 
 # pane タイトルを設定（次回の特定用）
 tmux select-pane -T "$PANE_TITLE"
