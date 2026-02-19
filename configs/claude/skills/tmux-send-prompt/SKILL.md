@@ -4,7 +4,7 @@ description: >-
   This skill should be used when the user wants to send a prompt or instruction to another tmux pane or session,
   such as "tmuxの別セッションにプロンプトを送りたい", "対向のClaudeに指示したい", "別のpaneにコマンドを送って",
   "tmuxペインに指示を転送して". This skill lists available panes, lets the user select a target,
-  verifies the target is idle using a state file and pane_idle check, then safely sends the prompt using send-keys.
+  verifies the target is idle using a state file and child-process check, then safely sends the prompt using send-keys.
 version: 1.0.0
 allowed-tools: Bash, AskUserQuestion
 argument-hint: "\"<prompt>\""
@@ -15,7 +15,9 @@ argument-hint: "\"<prompt>\""
 ## 概要
 
 対象 tmux pane の idle 状態を確認してからプロンプトを送信するスキル。
-`/tmp/claude-pane-state/` のstateファイルと `pane_idle` を二重チェックし、処理中のセッションへの誤送信を防ぐ。
+`/tmp/claude-pane-state/` のstateファイルと子プロセスの有無（`pgrep -P`）を二重チェックし、処理中のセッションへの誤送信を防ぐ。
+
+> **Note**: `#{pane_idle}` / `#{pane_activity}` は `monitor-activity` が無効な環境では値が取得できないため、代わりに `pgrep -P <pane_pid>` で子プロセスの有無を確認する。
 
 ## ワークフロー
 
@@ -34,8 +36,9 @@ argument-hint: "\"<prompt>\""
 # 自身の pane ID を取得（自己送信防止のため除外対象として使用）
 MY_PANE=$(tmux display-message -p '#{pane_id}')
 
-# 全 pane 一覧を取得（pane_id・対象アドレス・コマンド・アイドル時間）
-tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index} #{pane_current_command} idle:#{pane_idle}s' \
+# 全 pane 一覧を取得（pane_id・対象アドレス・PID・コマンド）
+# ※ #{pane_idle} / #{pane_activity} は monitor-activity が無効な環境で取得不可のため使わない
+tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index} #{pane_pid} #{pane_current_command}' \
   | grep -v "^${MY_PANE} "
 ```
 
@@ -45,9 +48,9 @@ tmux list-panes -a -F '#{pane_id} #{session_name}:#{window_index}.#{pane_index} 
 
 **選択肢フォーマット例:**
 ```
-main:0.0  bash  (idle: 42s)
-main:1.0  claude  (idle: 120s)  [state: idle]
-work:0.0  node  (idle: 8s)
+main:0.0  bash   [no children → idle]
+main:1.0  claude  [state: idle]
+work:0.0  node   [has children → busy?]
 ```
 
 stateファイルが存在する場合は state 情報も付加する：
@@ -77,18 +80,28 @@ STATE=$(cat /tmp/claude-pane-state/pane_${PANE_NUM} 2>/dev/null)
 | `ask` | abort: "入力待ち状態です（ask）。手動で操作してください。" |
 | `permission` | abort: "権限確認待ち状態です（permission）。手動で操作してください。" |
 
-#### 4b. pane_idle 確認（二重チェック）
+#### 4b. 子プロセス確認（二重チェック）
+
+`#{pane_idle}` / `#{pane_activity}` は `monitor-activity` が無効な環境では値が取得できないため、`pgrep -P <pane_pid>` で子プロセスの有無を確認する。
 
 ```bash
-IDLE_SECS=$(tmux display-message -t <selected_target> -p '#{pane_idle}')
+PANE_PID=$(tmux display-message -t <selected_target> -p '#{pane_pid}')
+PANE_CMD=$(tmux display-message -t <selected_target> -p '#{pane_current_command}')
+
+# stateファイルがある pane (claude 等) は stateファイルが信頼できるためスキップ
+if [ -z "$STATE" ] || [ "$STATE" = "idle" ]; then
+  # stateファイルなし（fish/bash 等）の場合のみ子プロセスチェック
+  if [ -z "$STATE" ] && pgrep -P "$PANE_PID" > /dev/null 2>&1; then
+    abort: "子プロセスが動作中の可能性があります。完了後に再試行してください。"
+  fi
+fi
 ```
 
-| pane_idle | 対応 |
-|-----------|------|
-| 5秒以上 | OK → 送信へ |
-| 5秒未満 | abort: "paneが処理中の可能性があります（last activity: ${IDLE_SECS}s ago）。" |
-
-> **閾値の根拠**: Claude Code や shell コマンドがレスポンスを出力し終えた後、カーソルが安定するまでの遅延を考慮して5秒を設定。stateファイルが `idle` でも出力が続いている場合があるため二重チェックとして機能する。用途に応じて変更可能。
+| 条件 | 対応 |
+|------|------|
+| stateファイルあり（`idle`） | スキップ → 送信へ（stateファイルが信頼できる） |
+| stateファイルなし + 子プロセスなし | OK → 送信へ |
+| stateファイルなし + 子プロセスあり | abort: "子プロセスが動作中の可能性があります。" |
 
 ### Step 5: send-keys でプロンプト送信
 
@@ -126,6 +139,6 @@ tmux send-keys -t <selected_target> "<prompt>" Enter
 |------|------|
 | tmux セッションが存在しない | "利用可能なpaneがありません" でabort |
 | state が running / ask / permission | 状態を表示してabort（リトライは手動） |
-| pane_idle が 5秒未満 | "処理中の可能性あり" でabort |
+| stateファイルなし + 子プロセスあり | "子プロセスが動作中の可能性あり" でabort |
 | プロンプトが200文字超 | 警告を表示して続行 |
 | send-keys 失敗 | エラーメッセージを表示 |
