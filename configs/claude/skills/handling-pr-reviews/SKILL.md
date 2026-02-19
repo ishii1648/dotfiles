@@ -6,8 +6,9 @@ description: >-
   review comments, handle PR feedback, fix review comments, or process code
   review feedback on a GitHub PR.
 version: 0.2.0
+model: claude-opus-4-6
 allowed-tools: Read, Grep, Glob, Write, Edit, "Bash(git:*)", "Bash(gh pr view:*)", "Bash(gh api:repos/*/*/pulls/*/comments*)"
-argument-hint: "[--response (optional)] [PR number or URL (optional)]"
+argument-hint: "[--response | --response-only] [PR number or URL (optional)]"
 disable-model-invocation: true
 ---
 
@@ -15,22 +16,25 @@ disable-model-invocation: true
 
 ## Overview
 
-PRコードレビューコメントを取得・分析し、2つのモードで対応する:
+PRコードレビューコメントを取得・分析し、3つのモードで対応する:
 
 | モード | 引数 | やること | やらないこと |
 |--------|------|---------|-------------|
 | **実装モード**（デフォルト） | なし or PR番号のみ | コメント取得→分析→トリアージ→コード修正→コミット | コメント返信、プッシュ |
-| **返信モード** | `--response` | コメント取得→コミット情報から対応内容を把握→返信投稿 | コード修正 |
+| **フルモード** | `--response` | コメント取得→分析→トリアージ→コード修正→コミット→返信投稿 | プッシュ |
+| **返信モード** | `--response-only` | コメント取得→コミット情報から対応内容を把握→返信投稿 | コード修正 |
 
-典型的なワークフロー: まず実装モードで修正・コミット → 次に `--response` で返信投稿。
+典型的なワークフロー: `--response` で修正・コミット・返信を一括実行。または実装モードで修正・コミット後、`--response-only` で返信投稿。
 
 ## Workflow Steps
 
 ### Step 1: 引数パースとPRレビューコメントの取得（共通）
 
 1. **引数パース**:
-   - 引数に `--response` が含まれるか判定 → **返信モード** / **実装モード** を決定
-   - `--response` を除いた残りからPR番号を特定（以下の優先順で解決）
+   - 引数に `--response-only` が含まれるか判定 → **返信モード**
+   - 引数に `--response` が含まれるか判定 → **フルモード**
+   - いずれも含まれない → **実装モード**
+   - `--response` / `--response-only` を除いた残りからPR番号を特定（以下の優先順で解決）
 2. PR番号の特定:
    a. 引数が指定されている場合: 引数からPR番号を特定（URLの場合は番号を抽出）
    b. 引数が省略された場合: 現在のブランチから自動検出
@@ -62,4 +66,5 @@ PRコードレビューコメントを取得・分析し、2つのモードで�
 ### Step 2 以降: モード別分岐
 
 - **実装モード**の場合 → `workflow-implement.md` の手順に従う
+- **フルモード**の場合 → `workflow-implement.md` の手順を実行し、コミット完了後に `workflow-response.md` の Step 2 以降を続けて実行する
 - **返信モード**の場合 → `workflow-response.md` の手順に従う

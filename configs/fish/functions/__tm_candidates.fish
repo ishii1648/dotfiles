@@ -1,5 +1,5 @@
 function __tm_candidates --description 'tm用のセッション候補一覧を生成（TAB区切り: key\t表示テキスト）'
-    argparse 'sessions-only' -- $argv
+    argparse 'sessions-only' 'new-repos-only' -- $argv
 
     set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null | string match -v 'main' | string match -v 'monitor' | string match -v 'prtrack')
     set -l current_session (tmux display-message -p '#{session_name}' 2>/dev/null)
@@ -9,6 +9,31 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
     set -l yellow (printf '\e[33m')
     set -l dim (printf '\e[2m')
     set -l reset (printf '\e[0m')
+
+    if set -q _flag_new_repos_only
+        # セッションなし・window化なし・worktreeリポジトリ（@含む）のみ表示
+        set -l ghq_root (ghq root)
+        set -l all_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null)
+        set -l open_paths (tmux list-panes -a -F '#{pane_current_path}' 2>/dev/null)
+        for repo in $all_repos
+            string match -q '*@*' $repo; or continue
+            set -l repo_path "$ghq_root/$repo"
+            # gw_add は basename でセッション名を作るのでそれで判定
+            set -l session_name (basename $repo_path)
+            contains $session_name $all_sessions; and continue
+            # ウィンドウのカレントパスとも比較
+            set -l windowed false
+            for p in $open_paths
+                if string match -q "$repo_path*" $p
+                    set windowed true
+                    break
+                end
+            end
+            test $windowed = true; and continue
+            printf '%s\t%s\n' '' "  $repo"
+        end
+        return
+    end
 
     for repo in $all_repos
         set -l name (__tm_session_name $repo)
