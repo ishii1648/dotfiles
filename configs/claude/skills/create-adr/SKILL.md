@@ -2,7 +2,7 @@
 name: create-adr
 description: >-
   「ADRを作成して」「ADR書いて」「create-adr」のようにADRの作成を依頼された場合に使用する。
-  チームのConfluenceテンプレートに基づきMarkdownファイルを生成し、コードベースとの事実照合と
+  ADR (Architecture Decision Record) の Markdown ファイルを生成し、コードベースとの事実照合と
   review-adrスキルによるレビューループ（Critical/Major解消まで最大5回）を経て .outputs/claude/ に出力する。
 context: fork
 agent: general-purpose
@@ -14,7 +14,7 @@ argument-hint: "<ADRタイトル> [JiraチケットURL または 調査コンテ
 
 ## 概要
 
-チームの Confluence ADR テンプレートに基づき、ADR (Architecture Decision Record) の Markdown ファイルを生成して `.outputs/claude/` 配下に出力する。
+ADR (Architecture Decision Record) の Markdown ファイルを生成して `.outputs/claude/` 配下に出力する。
 
 ## 引数
 
@@ -23,10 +23,6 @@ argument-hint: "<ADRタイトル> [JiraチケットURL または 調査コンテ
   - Jira チケット URL（例: `https://jira-freee.atlassian.net/browse/SREPO-XXXX`）
   - 既存の調査ファイルパス（`.outputs/claude/` 配下の Markdown ファイル）
   - フリーテキストの問題・背景説明
-
-## 絵文字マッピング
-
-このテンプレートには変換済みの Unicode 絵文字が直接含まれているため、`confluence-emoji-mapping` スキルを別途参照する必要はない。マッピングの元データは `confluence-emoji-mapping` スキルに定義されている。
 
 ## ワークフロー
 
@@ -113,19 +109,19 @@ Step 1.7 の調査結果を参照しながら、以下のテンプレートに�
 | **Notified** | _@ 関係者_ |
 | **Score** | 影響範囲: / 不可逆性: / 総合点: |
 
-## 📘 Context
+## Context
 
 _背景・文脈・問題を記述_
 
-## ✅ Decision
+## Decision
 
 _決定とその根拠を記述_
 
-## 🌟 Consequences
+## Consequences
 
 _決定による影響（例: xxx の工数が 50% 削減される）を記述_
 
-## 🌈 Options Considered
+## Options Considered
 
 _比較したオプションの pros/cons やその詳細を記述_
 
@@ -136,15 +132,15 @@ _比較したオプションの pros/cons やその詳細を記述_
   - (pros)
   - (cons)
 
-## 🤖 Compliance
+## Compliance
 
 _意思決定が順守されていることを確認する方法（例: テストの方法、テストの箇所、テストの実行方法）を記述_
 
-## (note) Note
+## Note
 
 _その他備考があれば記述_
 
-## 📖 References
+## References
 
 _関連資料があれば記述_
 ```
@@ -160,24 +156,7 @@ _関連資料があれば記述_
    - 例: `adr-api-gatewayの選定.md`
 3. `.outputs/claude/<ファイル名>` に書き込む
 
-### Step 4: 絵文字の検証
-
-出力ファイル生成後、以下を確認する:
-
-1. 見出しの絵文字が Unicode 文字として正しく含まれていること（`<custom>` タグが残っていないこと）
-2. テンプレート内の各セクション見出しに対応する絵文字:
-   - Context → 📘
-   - Decision → ✅
-   - Consequences → 🌟
-   - Options Considered → 🌈
-   - Compliance → 🤖
-   - Note → (note)
-   - References → 📖
-3. Options の pros/cons 表記が `(pros)` / `(cons)` であること（`:plus:` / `:minus:` が残っていないこと）
-
-いずれかの検証に失敗した場合、出力ファイルを修正してから次のステップへ進む。
-
-### Step 4.5: 事実確認（コードベース照合）
+### Step 4: 事実確認（コードベース照合）
 
 ADR 内で具体的に言及している事実（設定値、コンポーネント名、ファイルパス等）を Glob/Grep/Read でコードベースと照合する。
 
