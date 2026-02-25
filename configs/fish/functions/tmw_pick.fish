@@ -26,11 +26,7 @@ function tmw_pick --description 'fzfでリポジトリを選択し、worktreeを
             tmux new-session -d -s $session_name -c $repo_path
         end
         if test -n "$TMUX"
-            if test -n "$TMUX_IN_POPUP"
-                tmux set-option -g @tmux_switch_target $session_name
-            else
-                tmux switch-client -t $session_name
-            end
+            tmux switch-client -t $session_name
         else
             tmux attach-session -t $session_name
         end
