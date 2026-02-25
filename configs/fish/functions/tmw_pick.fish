@@ -27,7 +27,7 @@ function tmw_pick --description 'fzfでリポジトリを選択し、worktreeを
         end
         if test -n "$TMUX"
             if test -n "$TMUX_IN_POPUP"
-                tmux set-environment -g TMUX_SWITCH_TARGET $session_name
+                tmux set-option -g @tmux_switch_target $session_name
             else
                 tmux switch-client -t $session_name
             end
