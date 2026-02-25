@@ -4,11 +4,12 @@
 
 set -euo pipefail
 
-FEEDBACK_MESSAGE="terraform workflowが完了していません。以下を順番に実行してください：
+FEEDBACK_MESSAGE="terraform workflowが完了していません。以下を実行してください：
 
-1. mkdir -p .outputs/terraform && terraform plan 2>&1 | tee .outputs/terraform/plan-result.txt
-2. tflint 2>&1 | tee .outputs/terraform/tflint-result.txt
-3. エラーがなければ git commit を実行してください"
+terraform-validate スキルを使って validate / plan / tflint を実行してください：
+  「/terraform-validate <ディレクトリ>」
+
+エラーがなければ git commit を実行してください"
 
 # フィードバックを返して終了する関数
 feedback() {
@@ -29,24 +30,45 @@ if ! git status --porcelain 2>/dev/null | grep -q '\.tf$'; then
   exit 0
 fi
 
-# 2. plan-result.txt が存在するか確認
-if [ ! -f ".outputs/terraform/plan-result.txt" ]; then
-  feedback "$FEEDBACK_MESSAGE"
-fi
-
-# 3. plan 結果にエラーがないか確認
-if grep -q "^Error:" ".outputs/terraform/plan-result.txt" 2>/dev/null; then
-  feedback "terraform plan の結果にエラーがあります。エラーを修正してから再実行してください。
+# 2. validate-result.txt が存在するか確認（必須）
+# terraform validate は AWS 認証不要でコードエラーを検出できるため必須
+if [ ! -f ".outputs/terraform/validate-result.txt" ]; then
+  feedback "terraform validate が実行されていません（必須）。
 
 ${FEEDBACK_MESSAGE}"
 fi
 
-# 4. tflint-result.txt が存在するか確認
+# 3. validate 結果にエラーがないか確認（必須・例外なし）
+# validate エラーはコードの問題のため、認証エラーと異なり例外は設けない
+if grep -q "^Error" ".outputs/terraform/validate-result.txt" 2>/dev/null; then
+  feedback "terraform validate の結果にエラーがあります。エラーを修正してから再実行してください。
+
+${FEEDBACK_MESSAGE}"
+fi
+
+# 4. plan-result.txt が存在するか確認
+if [ ! -f ".outputs/terraform/plan-result.txt" ]; then
+  feedback "$FEEDBACK_MESSAGE"
+fi
+
+# 5. plan 結果のエラーチェック
+# 注意: terraform は MCP 経由で実行するため、認証エラー(ExpiredToken等)はブロック対象外
+# ただし validate が通過していることが前提（上記 Step 3 で確認済み）
+if grep -q "^Error:" ".outputs/terraform/plan-result.txt" 2>/dev/null; then
+  # 認証・初期化系エラーは環境問題のためスキップ（validate で代替検証済み）
+  if ! grep -qE "^Error: (Failed to initialize Terraform|configuring Terraform|No valid credential)" ".outputs/terraform/plan-result.txt" 2>/dev/null; then
+    feedback "terraform plan の結果にコードエラーがあります。エラーを修正してから再実行してください。
+
+${FEEDBACK_MESSAGE}"
+  fi
+fi
+
+# 6. tflint-result.txt が存在するか確認
 if [ ! -f ".outputs/terraform/tflint-result.txt" ]; then
   feedback "$FEEDBACK_MESSAGE"
 fi
 
-# 5. tflint 結果にエラーがないか確認
+# 7. tflint 結果にエラーがないか確認
 if grep -qE "^(Error|ERROR)" ".outputs/terraform/tflint-result.txt" 2>/dev/null; then
   feedback "tflint の結果にエラーがあります。エラーを修正してから再実行してください。
 
