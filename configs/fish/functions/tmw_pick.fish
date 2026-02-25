@@ -26,7 +26,11 @@ function tmw_pick --description 'fzfでリポジトリを選択し、worktreeを
             tmux new-session -d -s $session_name -c $repo_path
         end
         if test -n "$TMUX"
-            tmux switch-client -t $session_name
+            if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
+                tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+            else
+                tmux switch-client -t $session_name
+            end
         else
             tmux attach-session -t $session_name
         end
