@@ -37,8 +37,8 @@ function gw_add -d "Add a git worktree and cd into it"
             if set -q _flag_claude
                 tmux send-keys -t $session_name "claude" Enter
             end
-            if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
-                tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+            if test -n "$TMUX_IN_POPUP"
+                tmux set-environment -g TMUX_SWITCH_TARGET $session_name
             else
                 tmux switch-client -t $session_name
             end
@@ -83,8 +83,8 @@ function gw_add -d "Add a git worktree and cd into it"
         if set -q _flag_claude
             tmux send-keys -t $session_name "claude" Enter
         end
-        if set -q TMUX_PARENT_CLIENT; and test -n "$TMUX_PARENT_CLIENT"
-            tmux switch-client -c $TMUX_PARENT_CLIENT -t $session_name
+        if test -n "$TMUX_IN_POPUP"
+            tmux set-environment -g TMUX_SWITCH_TARGET $session_name
         else
             tmux switch-client -t $session_name
         end
