@@ -1,55 +1,56 @@
 # Claude Code 設定
 
-## ディレクトリ構成
+## このリポジトリで管理しているコンポーネント
 
-`~/.claude/` 内の以下のディレクトリは、このリポジトリへのシンボリックリンクです：
+| コンポーネント | パス | 概要 |
+|---|---|---|
+| Fish 設定 | `configs/fish/` | シェル設定・カスタム関数・エイリアス |
+| Ghostty 設定 | `configs/ghostty/` | ターミナルエミュレータ設定 |
+| Neovim 設定 | `configs/nvim/` | エディタ設定（lazy.nvim） |
+| tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
+| Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
+| Claude Code スクリプト | `configs/claude/scripts/` | フック・通知・シンボリックリンク検証などの補助スクリプト |
+| aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
-| シンボリックリンク | 実態 |
-|-------------------|------|
-| `~/.claude/commands` | `configs/claude/commands` |
-| `~/.claude/agents` | `configs/claude/agents` |
+### 管理対象外（別リポジトリ）
 
-編集する際は `configs/claude/` 配下のファイルを編集してください。
+| コンポーネント | リポジトリ |
+|---|---|
+| Claude Code skills | `github.com/C-FO/sandbox-sho` |
 
-> `~/.claude/skills` は `github.com/C-FO/sandbox-sho` で管理しています。
+## 仕様駆動開発の進め方
 
-## Worktree作業時のルール
+実装タスクは以下のサイクルで進める。仕様を完成させてから実装するのではなく、**仕様と実装を行き来しながら育てる**。
 
-このリポジトリはgit worktreeを使用しています。worktreeで作業中にメインリポジトリのファイルを誤って操作しないよう、以下のルールに従ってください。
+### サイクル
+
+1. **受け入れ条件を書く** — 「〜できる」形式で箇条書き（完璧でなくてよい）
+2. **実装する**
+3. **仕様と実装を同期する** — 実装で判明した変更・追記を受け入れ条件に反映
+4. **意思決定があれば ADR を作成する** — `create-adr` スキルを使用
+
+### ドキュメントの役割分担
+
+| 種類 | 置き場所 | 内容 |
+|---|---|---|
+| 課題・受け入れ条件 | `docs/*/issues.md` | 何を解決するか・完了条件 |
+| 意思決定 | `docs/adr/` | なぜこう決めたか・却下した選択肢 |
+| 実装 | `configs/` | どう実現するか |
+
+### ルール
+
+- 受け入れ条件は実装ファイルのそばではなく `docs/*/issues.md` にまとめる
+- 仕様は実装後に更新してよい（後追いOK）
+- 「なぜこうしたか」だけ書く。実装手順は仕様に書かない
 
 ### 全操作共通ルール
 
-- **全ての操作（Read/Glob/Grep/Edit/Write）は常に`$PWD`配下のパスを使用**
-- メインリポジトリの絶対パス（`$HOME/ghq/github.com/<user>/<repo>/`）は使用禁止
 - ファイル検索結果から選択する際は、現在のworktreeパス内のファイルを選択する
 - `~/.claude/`配下は参照専用。編集が必要な場合は`$PWD/configs/claude/`を編集
-
-### 読み取り・探索操作の注意
-
-- **Read**: `file_path`は必ず`$PWD`配下を指定
-- **Glob/Grep**: `path`を省略するとCWD（worktree）が対象になる。明示的に指定する場合は`$PWD`配下を使用
-
-### パス確認
-
-- メインリポジトリ: `$HOME/ghq/github.com/<user>/<repo>`
-- worktree配置先: `$HOME/ghq/github.com/<user>/<repo>@<branch-name>`
-- 編集対象は常に`$PWD`配下であることを確認してから編集する
 
 ## 実装完了時の自動PR作成
 
 コード実装タスクが完了した際は、以下の条件を**すべて**満たす場合に `git-ship` skill を自動実行してDraft PRを作成する：
-
-### 実行条件
-1. 未コミットの変更がある（git status で変更が検出される）
-2. feature/fix/docs/chore ブランチ上にいる（main/master ではない）
-3. 実装タスクである（調査、質問回答、コードレビューのみの場合は対象外）
-
-### 対象外のケース
-- 質問への回答のみ
-- コードベースの調査・探索のみ
-- 既存コードの説明のみ
-- PRレビューやコメント対応のみ
-- 操作対象は常に`$PWD`配下であることを確認してから実行する
 
 ### Git Push・PR作成について
 - このリポジトリはリモートが設定されていないため、`git push` および PR 作成は不要
