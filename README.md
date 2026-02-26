@@ -47,11 +47,21 @@ bash configs/claude/scripts/check-symlinks.sh
 | ツール | ローカルファイル | テンプレート |
 |--------|-----------------|-------------|
 | Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
-| Fish | `configs/fish/conf.d/local.fish` | — |
 | Fish (tmw) | `configs/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
 | Ghostty | `configs/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
+
+## PC固有設定（sandbox-sho）
+
+PC固有の Fish 設定・functions は [sandbox-sho](https://github.com/C-FO/sandbox-sho) で管理する。
+
+| 種別 | 場所 |
+|------|------|
+| PC固有 conf.d | `sandbox-sho/configs/fish/conf.d/local.fish` |
+| PC固有 functions | `sandbox-sho/configs/fish/functions/` |
+
+`configs/fish/conf.d/z_sandbox.fish`（git管理）が sandbox-sho の `local.fish` を自動的に source する。sandbox-sho が clone されていない環境ではスキップされる。
 
 ## Claude Code Hooks 設定
 

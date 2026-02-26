@@ -1,8 +1,0 @@
-# Local machine-specific configuration
-# Copy this file to local.fish and customize for your environment
-# local.fish is gitignored
-
-# Example: AWS configuration
-# set -gx AWS_PROFILE saml
-# set -gx AWS_CONFIG_FILE $HOME/.aws/aws-sso-config
-
