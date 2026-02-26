@@ -14,9 +14,9 @@
 
 ### 管理対象外（別リポジトリ）
 
-| コンポーネント | リポジトリ |
+| コンポーネント | 管理場所 |
 |---|---|
-| Claude Code skills | `github.com/C-FO/sandbox-sho` |
+| Claude Code skills | 別リポジトリ |
 
 ## 仕様駆動開発の進め方
 
