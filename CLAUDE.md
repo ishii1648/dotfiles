@@ -7,10 +7,11 @@
 | シンボリックリンク | 実態 |
 |-------------------|------|
 | `~/.claude/commands` | `configs/claude/commands` |
-| `~/.claude/skills` | `configs/claude/skills` |
 | `~/.claude/agents` | `configs/claude/agents` |
 
 編集する際は `configs/claude/` 配下のファイルを編集してください。
+
+> `~/.claude/skills` は `github.com/C-FO/sandbox-sho` で管理しています。
 
 ## Worktree作業時のルール
 
