@@ -30,5 +30,10 @@ if git -C "$CWD" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     fi
 fi
 
+PR_URLS="[]"
+if [ -n "$PR_URL" ]; then
+    PR_URLS="[\"$PR_URL\"]"
+fi
+
 INDEX_FILE="$HOME/.claude/session-index.jsonl"
-echo "{\"timestamp\": \"$TIMESTAMP\", \"session_id\": \"$SESSION_ID\", \"cwd\": \"$CWD\", \"repo\": \"$REPO\", \"branch\": \"$BRANCH\", \"pr_url\": \"$PR_URL\", \"transcript\": \"$TRANSCRIPT\"}" >> "$INDEX_FILE"
+echo "{\"timestamp\": \"$TIMESTAMP\", \"session_id\": \"$SESSION_ID\", \"cwd\": \"$CWD\", \"repo\": \"$REPO\", \"branch\": \"$BRANCH\", \"pr_urls\": $PR_URLS, \"transcript\": \"$TRANSCRIPT\"}" >> "$INDEX_FILE"
