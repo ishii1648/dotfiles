@@ -12,7 +12,9 @@
 2. **Ghostty の通知クリックでフォーカスが壊れている** — [Issue #9145](https://github.com/ghostty-org/ghostty/issues/9145)、v1.3.0（2026年3月予定）で修正予定
 3. **Ghostty は tmux セッション内部を認識できない** — session-A と session-B は Ghostty から見ると同一プロセス
 
-## 決定
+## 設計案
+
+### 採用案: terminal-notifier + Hooks
 
 `terminal-notifier` で macOS デスクトップ通知を発行する（通知のみ、クリック操作なし）。
 `-execute` は tmux 環境で正常に動作しないため使用しない。
@@ -75,9 +77,15 @@ Claude Code Hooks 設定 (`~/.claude/settings.json`):
 }
 ```
 
-## 結果
+## 決定
 
-terminal-notifier + Hooks で Ghostty のバグ修正を待たずに解決可能。ただしスクリプト構築が必要。
+`terminal-notifier` + Claude Code Hooks でデスクトップ通知を発行する。通知にセッション名を含めることで移動先を把握できる。Ghostty のバグ修正（v1.3.0）を待たずに解決可能。
+
+## 受け入れ条件
+
+（issues.md 導入前の ADR。以下は実装後の結果）
+
+- terminal-notifier + Hooks で Ghostty のバグ修正を待たずに解決可能
 
 ## 参考
 

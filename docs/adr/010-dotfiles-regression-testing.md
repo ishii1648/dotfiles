@@ -22,16 +22,18 @@ coding agent による実装・フィードバックループを活用するた�
 - **fzf のテスト可能性**: `fzf --filter` オプションで TTY 不要の純粋 stdin/stdout フィルタとして動作可能。また `tmux send-keys` + `capture-pane` は fzf 公式テストスイートが採用する手法であり、選択 UI を含めた E2E テストも自動化可能
 - **Ghostty のテスト可能性**: 外部からのプログラマティック制御 API は未実装。ただし `tmux send-keys` で CSI シーケンスを直接注入することで、Ghostty を介さずに tmux 側の受け取り処理を検証できる
 
-## 決定
+## 設計案
 
-（未定）
-
-テスト設計の検討結果（`.outputs/claude/regression-test-design.md`）は以下の 3 層構成を提案している：
+テスト設計の検討結果（`.outputs/claude/regression-test-design.md`）では以下の 3 層構成を提案している：
 
 - **Layer 1: Static Analysis** — `fish -n`, `bash -n`, `shellcheck`, キーバインドチェーン整合性, 参照整合性
 - **Layer 2: Integration Tests** — `bats-core` + テスト用 tmux ソケット + テスト用 git リポジトリで全関数を検証。fzf は `--filter` と `tmux send-keys` で対応
 - **Layer 3: Smoke Tests** — fish/tmux 起動確認、全関数ロード確認、symlink 検証
 
-## 結果
+## 決定
 
 （未定）
+
+## 受け入れ条件
+
+→ [issues.md](../issues.md)（ADR-010 セクション）

@@ -14,9 +14,7 @@ Claude Code で複数リポジトリ・複数ブランチを並行して作業�
 - 作業ディレクトリ・リポジトリ・ブランチ
 - セッション中に作成・参照した PR の URL
 
-## 決定
-
-Claude Code の hooks を活用して、セッションメタデータと PR URL を `~/.claude/session-index.jsonl` に自動記録する。
+## 設計案
 
 ### 構成
 
@@ -75,7 +73,13 @@ session-index-update.py
 - **エラー無視**: hook の失敗がセッション全体に影響しないよう、各スクリプトは例外・ファイル不在を黙認して終了
 - **PR URL パターン**: `https://github.com/<owner>/<repo>/pull/<number>` を正規表現でマッチ。GitHub Actions URL などの誤検知を防ぐため `pull/` を必須とする
 
-## 結果
+## 決定
+
+Claude Code の hooks を活用して、セッションメタデータと PR URL を `~/.claude/session-index.jsonl` に自動記録する。PostToolUse と Stop の2段階で収集することで途中作成の PR も記録漏れなく収集できる。
+
+## 受け入れ条件
+
+（issues.md 導入前の ADR。以下は実装後の結果）
 
 - セッション終了後に `~/.claude/session-index.jsonl` を参照することで、いつ・どのリポジトリで・どの PR を作業したかを把握できる
 - PR URL はセッション中に随時（PostToolUse）と終了時（Stop）の2回収集されるため、収集漏れが少ない

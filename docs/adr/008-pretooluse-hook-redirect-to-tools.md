@@ -12,9 +12,7 @@ CLAUDE.md に「`find` の代わりに Glob ツールを使う」「`grep`/`rg` 
 
 既存の `enforce-bash-permissions.py`（ADR-006）は deny/allow の権限制御を担当しており、関心事が異なるため新しい hook スクリプトとして分離する。
 
-## 決定
-
-`PreToolUse` hook として `redirect-to-tools.py` を作成し、`enforce-bash-permissions.py` の**前**に配置する。
+## 設計案
 
 ### 構成
 
@@ -73,7 +71,13 @@ redirect hook でブロックされるコマンドの allow ルールは不要�
 
 `Bash(echo:*)` はリダイレクトなしの `echo` が許可される必要があるため保持（ただし元々 allow リストに未登録）。
 
-## 結果
+## 決定
+
+`PreToolUse` hook として `redirect-to-tools.py` を作成し、`enforce-bash-permissions.py`（ADR-006）の**前**に配置する。LLM が CLAUDE.md のルールを無視した場合でも hook レベルで強制的にブロックし、適切なネイティブツールの使用を促す。
+
+## 受け入れ条件
+
+（issues.md 導入前の ADR。以下は実装後の結果）
 
 - LLM が CLAUDE.md のツール使用ルールを無視した場合でも、hook レベルで強制的にブロックし適切なツールの使用を促す
 - `enforce-bash-permissions.py` とは独立して動作し、各 hook が単一責任を持つ

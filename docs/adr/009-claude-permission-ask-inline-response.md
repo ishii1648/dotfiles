@@ -19,9 +19,9 @@ permission ask で実際に必要な操作は「内容の閲覧」と「allow/de
 - ADR-003/007 の通知・状態バッジで発生セッションを検知し移動する（移動コストは残る）
 - `--dangerously-skip-permissions` で全許可（セキュリティリスクあり）
 
-### 検討した代替案
+## 設計案
 
-**① tmux popup で既存セッションに attach**
+### 却下: tmux popup で既存セッションに attach
 
 ```bash
 tmux display-popup -E 'tmux attach -t <session>:<window>.<pane>'
@@ -29,19 +29,15 @@ tmux display-popup -E 'tmux attach -t <session>:<window>.<pane>'
 
 同一セッションに2クライアントが接続される形で動作はするが、セッション全体が popup に表示されるため permission ask のペインだけを切り出せない。UX が荒い。
 
-**② `--permission-prompt-tool` オプション（MCP ツール経由）**
+### 却下: `--permission-prompt-tool` オプション（MCP ツール経由）
 
 Claude Code の `--permission-prompt-tool` フラグで permission ask を MCP ツールに委譲できるが、**print mode（`-p`）専用**であり、通常のインタラクティブモードには適用できない。
 
-**③ `PermissionRequest` hook + named pipe（採用）**
+### 採用: `PermissionRequest` hook + named pipe
 
 `PermissionRequest` hook はインタラクティブモードでも発火する。hook スクリプトを named pipe でブロック待機させ、ユーザーが任意のタイミングでキーを押して popup を呼び出す設計にすることで、「予期しないタイミングでの自動 popup」を避けられる。
 
-## 決定
-
-`PermissionRequest` hook と named pipe を組み合わせた、ユーザー起点の popup 表示方式を採用する。
-
-### アーキテクチャ
+#### アーキテクチャ
 
 ```
 [hook 発火]
@@ -59,7 +55,7 @@ Claude Code の `--permission-prompt-tool` フラグで permission ask を MCP �
     └─ 選択結果を named pipe に書き込む → hook が返る
 ```
 
-### ① hook スクリプト（`~/.claude/hooks/permission-request.sh`）
+#### ① hook スクリプト（`~/.claude/hooks/permission-request.sh`）
 
 Claude Code が permission ask 発生時に自動呼び出す。
 
@@ -81,7 +77,7 @@ tmux set-option -g @permission-pending ""
 echo "$RESPONSE"
 ```
 
-### ② popup スクリプト（ユーザーがキー入力で呼び出す）
+#### ② popup スクリプト（ユーザーがキー入力で呼び出す）
 
 ```bash
 #!/bin/bash
@@ -106,7 +102,7 @@ fi
 echo "$RESP" > /tmp/claude-permission-response
 ```
 
-### ③ settings.json の hook 設定
+#### ③ settings.json の hook 設定
 
 ```json
 {
@@ -126,7 +122,7 @@ echo "$RESP" > /tmp/claude-permission-response
 }
 ```
 
-### ④ キーバインドの割り当て
+#### ④ キーバインドの割り当て
 
 ADR-005 の制約（Ghostty は条件分岐付きキーバインド非対応）を踏まえ、以下のいずれかで popup スクリプトを呼び出す：
 
@@ -135,10 +131,10 @@ ADR-005 の制約（Ghostty は条件分岐付きキーバインド非対応）�
 
 具体的なキー割り当ては実装時に確定する。
 
-## 結果
+## 決定
 
-- tmux セッション移動なしで permission ask に応答できる
-- 自動 popup は発生しない（ユーザーが任意のタイミングで呼び出す）
-- tmux status bar のバッジで pending 状態を把握できる
-- hook スクリプトは named pipe でブロックするため、Claude の tool 実行はユーザー応答まで待機する
-- キーバインドの実現方法は Ghostty の対応機能に依存する（要検証）
+（未定）
+
+## 受け入れ条件
+
+→ [issues.md](../issues.md)（ADR-009 セクション）
