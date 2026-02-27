@@ -2,7 +2,7 @@
 
 開発環境の改善課題を管理する。コンポーネントをまたぐ機能も含めて一元管理する。
 
-## 課題
+## サマリ
 
 | 対応済み | 対応可能 | コンポーネント | サマリ | ADR |
 |:---:|:---:|:---|:---|:---|
@@ -17,3 +17,42 @@
 | - | ○ | fish / claude | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
+
+## 課題詳細
+
+各課題の受け入れ条件（「〜できる」形式）を記載する。ADR の `## 結果` セクションはここを参照して達成状況をチェックする。
+
+---
+
+### ADR-009: Claude permission ask のインライン応答
+
+**コンポーネント**: tmux / claude | **ADR**: [ADR-009](adr/009-claude-permission-ask-inline-response.md)
+
+**受け入れ条件**:
+
+- [ ] Claude permission ask の内容を tmux セッションに移動せずに確認できる
+- [ ] allow / deny の選択を tmux セッションに移動せずに実行できる
+
+---
+
+### ADR-010: dotfiles リグレッションテスト
+
+**コンポーネント**: tmux / fish / ghostty | **ADR**: [ADR-010](adr/010-dotfiles-regression-testing.md)
+
+**受け入れ条件**:
+
+- [ ] 設定変更後に主要なキーバインド・関数・symlink が壊れていないことを自動で確認できる
+- [ ] リグレッションチェックを CI またはローカルコマンド一発で実行できる
+
+---
+
+### ADR-012: 端末固有の fish 設定を dotfiles から分離
+
+**コンポーネント**: fish / claude | **ADR**: [ADR-012](adr/012-fish-function-symlink-per-repo.md)
+
+**受け入れ条件**:
+
+- [ ] 端末固有の fish functions が dotfiles の `git status` に現れなくなる
+- [ ] dotfiles を別端末にクローンしても、端末固有の関数が混入しない
+- [ ] 既存の共通関数（`tm`, `gw_add` 等）が引き続き動作する
+- [ ] sandbox-ishii1648 の setup script で端末固有 functions を配置できる
