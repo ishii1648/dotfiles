@@ -55,4 +55,4 @@
 - [ ] 端末固有の fish functions が dotfiles の `git status` に現れなくなる
 - [ ] dotfiles を別端末にクローンしても、端末固有の関数が混入しない
 - [ ] 既存の共通関数（`tm`, `gw_add` 等）が引き続き動作する
-- [ ] sandbox-ishii1648 の setup script で端末固有 functions を配置できる
+- [ ] 端末固有リポジトリの setup script で端末固有 functions を配置できる
