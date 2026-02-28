@@ -21,3 +21,4 @@ packages:
 - name: helmfile/helmfile@v0.164.0
 - name: derailed/k9s@v0.32.4
 - name: mikefarah/yq@v4.52.4
+- name: ajeetdsouza/zoxide@v0.9.9
