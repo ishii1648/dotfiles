@@ -18,6 +18,7 @@
 | - | ○ | claude | permission ask で Claude の自律的な作業が中断される — 代替可能な Bash コマンドを生成するたびに承認ダイアログが発生し、観測・対応サイクルが手動になっている | [ADR-013](adr/013-claude-permission-ask-auto-block.md) [ADR-014](adr/014-claude-redirect-rules-auto-expansion.md) |
 | ✔ | ○ | claude | Claude Code の settings.json が端末間で再現できない — hooks・permissions 等の共通設定が git 管理されておらず、新端末セットアップ時に手動コピーが必要 | [ADR-015](adr/015-claude-settings-json-base-local-merge.md) |
 | ✔ | ○ | tmux / fish | SSH先で dotfiles をセットアップできない — リモート環境では tmux ネスト対応や Ghostty 不要設定など環境別の差異があり、既存の local override パターンで吸収する | [ADR-016](adr/016-dotfiles-remote-profile-support.md) |
+| - | ○ | claude | git commit の heredoc パターンで permission ask が発生する — `$()` command substitution が一律で検出され `permissions.allow` では回避不可 | [ADR-017](adr/017-pretooluse-hook-approve-safe-commands.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -104,3 +105,15 @@
 - [x] `tms <host>` で SSH 先の tmux セッションにアタッチ（なければ新規作成）できる
 - [x] `setup-symlinks.sh --profile remote` で tmux の symlink も作成される
 - [x] リモート用テンプレート (`tmux.remote.conf.example`) を `~/.tmux.local.conf` にコピーすることでリモート固有設定が適用される
+
+---
+
+### ADR-017: PreToolUse hook による安全なコマンドの自動承認
+
+**コンポーネント**: claude | **ADR**: [ADR-017](adr/017-pretooluse-hook-approve-safe-commands.md)
+
+**受け入れ条件**:
+
+- [ ] `git commit -m "$(cat <<'EOF'...EOF)"` パターンで permission ask が発生しない
+- [ ] approve 専用 hook が `redirect-to-tools.py`（block 専用）と別ファイルで管理されている
+- [ ] `$(cat <<'EOF'...EOF)` 以外の `$()` は引き続き permission ask が発生する

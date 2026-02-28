@@ -187,8 +187,11 @@ def main():
             if result:
                 tool, message = result
                 output = {
-                    "decision": "block",
-                    "reason": f"{message} (代わりに {tool} ツールを使ってください)",
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": f"{message} (代わりに {tool} ツールを使ってください)",
+                    }
                 }
                 print(json.dumps(output, ensure_ascii=False))
                 sys.exit(0)
