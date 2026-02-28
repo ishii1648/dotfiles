@@ -1,6 +1,6 @@
 # Claude Code 設定
 
-> 詳細は [docs/development.md](docs/development.md) を参照。
+> 開発プロセスは [docs/development.md](docs/development.md)、コンポーネント・ツール一覧は [docs/reference.md](docs/reference.md) を参照。
 
 ## ルール
 
