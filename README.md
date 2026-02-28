@@ -28,6 +28,35 @@ bash <端末固有リポジトリ>/setup.sh
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
 
+## SSH 先（リモート環境）でのセットアップ
+
+SSH 先のマシンに dotfiles をデプロイする場合は `remote` プロファイルを使用する。
+
+```bash
+# 1. dotfiles を clone
+git clone <repo> ~/dotfiles && cd ~/dotfiles
+
+# 2. fish 共通設定
+bash configs/fish/setup.sh
+
+# 3. remote プロファイルで symlink 設定（fish, nvim, tmux, claude, aqua）
+bash scripts/setup-symlinks.sh --profile remote
+
+# 4. リモート用 tmux テンプレートを配置
+cp configs/tmux/tmux.remote.conf.example ~/.tmux.local.conf
+```
+
+### tmux ネスト対応
+
+ローカル PC からリモートの tmux にネスト接続する際、`tms` 関数を使うとパススルーモードが自動で切り替わる。
+
+```fish
+tms lab           # SSH先の tmux セッション "work" に接続（パススルー自動ON）
+tms lab dev       # セッション名を指定
+```
+
+F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/tmux.local.conf.example` の F12 設定をコピーしておく）。
+
 ## 端末固有設定
 
 端末固有の設定（社内ツール・AWS 認証・端末固有 keybind 等）は端末固有リポジトリで管理する。dotfiles には含めない。端末固有リポジトリの `setup.sh` を実行すると必要な symlink が作成される。
