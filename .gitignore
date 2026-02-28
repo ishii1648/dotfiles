@@ -13,7 +13,6 @@ configs/fish/fish_variables
 # Local override files (machine/org-specific)
 configs/ghostty/local.conf
 configs/nvim/lua/local.lua
-configs/fish/conf.d/tmw_direct_repos.conf
 
 # Git worktree
 .worktree/
