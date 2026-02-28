@@ -16,7 +16,7 @@
 | ✔ | ○ | claude | Claude セッションを PR ベースで追跡できない — セッション開始・終了・ツール出力から PR URL を自動収集して JSONL に蓄積したい | [ADR-011](adr/011-claude-session-index.md) |
 | ✔ | ○ | fish / tmux / ghostty | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
 | - | ○ | claude | permission ask で Claude の自律的な作業が中断される — 代替可能な Bash コマンドを生成するたびに承認ダイアログが発生し、観測・対応サイクルが手動になっている | [ADR-013](adr/013-claude-permission-ask-auto-block.md) [ADR-014](adr/014-claude-redirect-rules-auto-expansion.md) |
-| - | ○ | claude | Claude Code の settings.json が端末間で再現できない — hooks・permissions 等の共通設定が git 管理されておらず、新端末セットアップ時に手動コピーが必要 | [ADR-015](adr/015-claude-settings-json-base-local-merge.md) |
+| ✔ | ○ | claude | Claude Code の settings.json が端末間で再現できない — hooks・permissions 等の共通設定が git 管理されておらず、新端末セットアップ時に手動コピーが必要 | [ADR-015](adr/015-claude-settings-json-base-local-merge.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -67,12 +67,12 @@
 
 **受け入れ条件**:
 
-- [ ] dotfiles clone 後に `configs/claude/setup.sh` を実行するだけで hooks・permissions が再現される
-- [ ] `~/.claude/settings.json` に端末固有設定（ANTHROPIC_BASE_URL 等）が含まれた状態で正しく動作する
-- [ ] dotfiles の `configs/claude/settings.json` に端末固有設定（secrets・プラグイン）が含まれない
-- [ ] 端末固有リポジトリの `setup.sh` 実行で settings.local.json がマージされる
-- [ ] `~/.claude/settings.json` が behind（マージ結果の方が新しい）場合、setup.sh が自動上書きする
-- [ ] `~/.claude/settings.json` にローカル編集（マージ結果にないキー・値）がある場合、setup.sh が差分を出力して `exit 1` で停止する
+- [x] dotfiles clone 後に `configs/claude/setup.sh` を実行するだけで hooks・permissions が再現される
+- [x] `~/.claude/settings.json` に端末固有設定（ANTHROPIC_BASE_URL 等）が含まれた状態で正しく動作する
+- [x] dotfiles の `configs/claude/settings.json` に端末固有設定（secrets・プラグイン）が含まれない
+- [x] 端末固有リポジトリの `setup.sh` 実行で settings.local.json がマージされる
+- [x] `~/.claude/settings.json` が behind（マージ結果の方が新しい）場合、setup.sh が自動上書きする
+- [x] `~/.claude/settings.json` にローカル編集（マージ結果にないキー・値）がある場合、setup.sh が差分を出力して `exit 1` で停止する
 
 ---
 
