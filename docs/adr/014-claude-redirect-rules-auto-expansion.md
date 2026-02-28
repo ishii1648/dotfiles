@@ -2,11 +2,13 @@
 
 ## ステータス
 
-Draft
+Accepted
 
 ## コンテキスト
 
-ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプローチ）を採用した。これにより既知パターンの permission ask はなくなったが、**新しい未知パターンに遭遇した場合は依然として手動対応が必要**という課題が残った。
+ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプローチ）を採用した。その後、2層目として使用していた `enforce-bash-permissions.py`（PermissionRequest フックで allow/deny を判定するスクリプト）は削除済み。現在は `redirect-to-tools.py`（PreToolUse フックで Bash コマンドを専用ツールにリダイレクト）のみが稼働している。
+
+これにより既知パターンの permission ask はなくなったが、**新しい未知パターンに遭遇した場合は依然として手動対応が必要**という課題が残った。
 
 現在の対応フロー：
 
@@ -40,34 +42,54 @@ ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプ�
 
 ## 設計案
 
-### 案1: PermissionRequest フックで deny + ログ記録
+### 案1: PermissionRequest フックでログ記録のみ
 
-未知コマンドを `PermissionRequest` フックで自動的に deny し、`~/.claude/permission-asks.log` に記録する。permission UI は出なくなり、ログを後から分析してルール追加を検討できる。
+未知コマンドを `PermissionRequest` フックで `~/.claude/permission-asks.log` に記録する。permission UI は通常通り表示され、ログを後から分析してルール追加を検討できる。
 
-**メリット**: permission UI を完全に抑止できる
-**デメリット**: 正当な新コマンドも弾く。allow リストへの追加が必要になる
+**メリット**: 正当な新コマンドを誤って弾かない
+**デメリット**: ログ蓄積まで permission UI は引き続き出る
 
-### 案2: enforce-bash-permissions.py のフォールバックを deny に変更
-
-`enforce-bash-permissions.py` が allow/deny どちらにもマッチしない場合、現在は permission UI に回している（`sys.exit(0)`）。ここで deny + ログ記録に変えることで同様の効果が得られる。
-
-**メリット**: 既存スクリプトの小さな変更で実現できる
-**デメリット**: 案1と同じく正当な新コマンドを弾く
-
-### 案3: fix-permission-ask スキルによるバッチ処理
+### 案2: fix-permission-ask スキルによるバッチ処理
 
 `permission-asks.log` が蓄積されたタイミングでスキルを実行し、ログを分析して `redirect-to-tools.py` へのルール追加を提案する。ユーザーが承認したものだけ反映する。
 
 **メリット**: 正当なコマンドを誤って弾かない
 **デメリット**: ログ蓄積まで手動運用が続く
 
-### 案4: 案1 or 2 + 案3の組み合わせ
+### 案3: 案1 + 案2の組み合わせ
 
-deny + ログ記録で permission UI を抑止しつつ、スキルでバッチ処理してルールを整理する。deny したコマンドのうち正当なものは allow リストへ、redirect-to-tools でブロックすべきものはルール追加。
+ログ記録で permission ask を捕捉しつつ、スキルでバッチ処理してルールを追加する。permission ask は初回のみ発生し、ルール追加後は以降の同パターンで発生しなくなる。
 
 ## 決定
 
-（未定）
+**案3（案1 + 案2 の組み合わせ）を採用する。**
+
+### PermissionRequest フック: deny + ログ記録
+
+`configs/claude/hooks/log-permission-ask.py` を新規作成し、`PermissionRequest` イベントで次の処理を行う：
+
+1. `tool_input.command` を `~/.claude/permission-asks.log` に追記（タイムスタンプ付き）
+2. フックからは何も返さず permission UI を通常通り表示させる（初回は許容）
+
+### fix-permission-ask スキル: バッチ処理
+
+`configs/claude/plugins/dotfiles/skills/fix-permission-ask.md` を新規作成し、次のフローを実行する：
+
+1. `~/.claude/permission-asks.log` を読み込んで記録されたコマンドを列挙
+2. 各コマンドを以下に分類して提案：
+   - `redirect-to-tools.py` にルール追加すべき（専用ツールへのリダイレクト対象）
+   - `allow` リストに追加すべき（正当な新コマンド）
+   - 要確認（判断が難しいもの）
+3. `AskUserQuestion` で各提案をユーザーが承認
+4. 承認分のみ `redirect-to-tools.py` を編集してルールを追加
+5. 処理済みエントリをログからクリア
+
+### ログフォーマット
+
+```
+2026-02-28T10:00:00 command="find . -name '*.py'"
+2026-02-28T10:05:00 command="ls -la /tmp"
+```
 
 ## 受け入れ条件
 
