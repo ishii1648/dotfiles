@@ -39,5 +39,5 @@ fi
 echo "[WARN] ~/.claude/settings.json has local changes not in dotfiles/sandbox:"
 diff <(echo "$generated") <(echo "$current") || true
 echo ""
-echo "Reflect the above changes in dotfiles or sandbox configs/claude/settings.local.json, then re-run setup.sh."
+echo "Reflect the above changes in dotfiles or overlay (e.g. settings.overlay.json), then re-run setup.sh."
 exit 1
