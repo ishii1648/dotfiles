@@ -129,23 +129,42 @@ worktree 配置先: `<リポジトリ>@<worktree名>`（例: `dotfiles@feat-tmux
 
 ### Git ワークフロー
 
-Claude Code の `git-ship` skill で commit → push → Draft PR 作成を自動化。
+Claude Code で `git commit` まで自動実行（このリポジトリはリモート未設定のため push・PR 作成は不要）。
 
-### Symlink 管理
+### セットアップ
 
-`scripts/setup-symlinks.sh` で dotfiles のシンボリックリンクを設定・検証。
-`--dry-run` でチェックのみ実行可能。
-チェック対象: `~/.config/{fish,nvim}`, `~/.config/ghostty/config`, `~/.tmux.conf`, `~/.claude/` 配下。
+`scripts/setup.sh` + `scripts/setup-manifest.yml` で dotfiles のセットアップを宣言的に管理（ADR-018）。
 
-### tmux 課題対応
+```bash
+scripts/setup.sh                    # full プロファイルで実行
+scripts/setup.sh --profile remote   # remote プロファイルで実行
+scripts/setup.sh --dry-run          # チェックのみ
+```
 
-tmux 移行に伴う課題は [docs/adr/](adr/) に ADR として記録:
+マニフェストにコンポーネントごとの symlink 定義・セットアップスクリプト委譲を記述。
+
+### ADR 一覧
+
+意思決定は [docs/adr/](adr/) に ADR として記録:
 
 - [001-tmux-cmd-key.md](adr/001-tmux-cmd-key.md)
 - [002-tmux-link-click.md](adr/002-tmux-link-click.md)
 - [003-tmux-notification-click.md](adr/003-tmux-notification-click.md)
 - [004-tmux-text-copy.md](adr/004-tmux-text-copy.md)
 - [005-tmux-pane-keybind-sharing.md](adr/005-tmux-pane-keybind-sharing.md)
+- [006-pretooluse-hook-bash-permissions.md](adr/006-pretooluse-hook-bash-permissions.md)
+- [007-tmux-claude-pane-state.md](adr/007-tmux-claude-pane-state.md)
+- [008-pretooluse-hook-redirect-to-tools.md](adr/008-pretooluse-hook-redirect-to-tools.md)
+- [009-claude-permission-ask-inline-response.md](adr/009-claude-permission-ask-inline-response.md)
+- [010-dotfiles-regression-testing.md](adr/010-dotfiles-regression-testing.md)
+- [011-claude-session-index.md](adr/011-claude-session-index.md)
+- [012-fish-function-symlink-per-repo.md](adr/012-fish-function-symlink-per-repo.md)
+- [013-claude-permission-ask-auto-block.md](adr/013-claude-permission-ask-auto-block.md)
+- [014-claude-redirect-rules-auto-expansion.md](adr/014-claude-redirect-rules-auto-expansion.md)
+- [015-claude-settings-json-base-local-merge.md](adr/015-claude-settings-json-base-local-merge.md)
+- [016-dotfiles-remote-profile-support.md](adr/016-dotfiles-remote-profile-support.md)
+- [017-pretooluse-hook-approve-safe-commands.md](adr/017-pretooluse-hook-approve-safe-commands.md)
+- [018-unified-setup-command.md](adr/018-unified-setup-command.md)
 
 ## Neovim プラグイン一覧
 
@@ -186,26 +205,25 @@ tmux 移行に伴う課題は [docs/adr/](adr/) に ADR として記録:
 | `grep` | `ggrep` |
 | `sed` | `gsed` |
 | `date` | `gdate` |
+| `rgrep` | `grep -r` |
 
 ### 主要カスタム関数
 
 | 関数 | 概要 |
 |-----|------|
 | `tm` | tmux セッション管理 (ghq + fzf) |
+| `tms` | SSH 先の tmux セッションに接続（パススルーモード対応） |
+| `tmw` | git worktree を fzf で選択して tmux session 作成/アタッチ |
 | `tmw_pick` | fzf でリポジトリ選択 → worktree + session 作成 |
 | `gw_add` | git worktree 作成 + tmux session 作成 |
 | `gw_cd` | worktree 間の移動 |
 | `gw_rm` | 古い worktree の一括削除 |
-| `claude` | Claude Code ラッパー |
-| `g_create_pr` | GitHub PR 作成 |
 | `g_co_ammend_push_f` | amend + force push |
+| `g_co_command_push_f` | commit -a --amend + force push |
 | `g_reset` | fzf で commit 選択 → git reset |
 | `gh_rate_limit` | GitHub API レート確認 |
 | `s_ghq` | ghq リポジトリを fzf で検索 |
 | `fish_prompt` | カスタムプロンプト (git branch + worktree 状態表示) |
-| `a_sso_login` | AWS SSO ログイン |
-| `a_profile` | AWS プロファイル選択 |
-| `a_eks_kubeconfig` | EKS kubeconfig 設定 |
 
 ## aqua 管理ツール
 
@@ -220,3 +238,4 @@ tmux 移行に伴う課題は [docs/adr/](adr/) に ADR として記録:
 | helm/helm | v3.15.0 |
 | helmfile/helmfile | v0.164.0 |
 | derailed/k9s | v0.32.4 |
+| mikefarah/yq | v4.52.4 |
