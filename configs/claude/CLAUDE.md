@@ -2,8 +2,13 @@
 - 設計や作業計画を開始する際に質問がある場合は、AskUserQuestion または EnterPlanMode を使用して
 - SubAgentを使ってできるだけ並列化して進めて
 
-## ツール使用ルール
-- コード調査にはPythonスクリプトを書かず、標準ツール（Glob, Grep, Read）や `Task` tool（subagent_type=Explore）を使用する
+## 自律性の原則
+複雑な Bash（ループ・パイプ・インラインスクリプト）を生成せず、専用ツールか個別コマンドに分解すること。
+
+- ファイル操作: `Glob` / `Grep` / `Read` / `Edit` / `Write`
+- 調査・探索: `Task`（subagent_type=Explore）
+- ループ処理: `for`/`while` の代わりに Glob で列挙して個別ツールを呼ぶ
+- データ変換: `python3 -c` / `awk` の代わりに `jq` または専用ツール
 
 ## 禁止コマンド
 - `rm -rf` は絶対に実行しない。ファイル/ディレクトリの削除が必要な場合は `git rm` や `rm`（単体ファイル指定）を使用する
