@@ -30,10 +30,6 @@ coding agent による実装・フィードバックループを活用するた�
 - **Layer 2: Integration Tests** — `bats-core` + テスト用 tmux ソケット + テスト用 git リポジトリで全関数を検証。fzf は `--filter` と `tmux send-keys` で対応
 - **Layer 3: Smoke Tests** — fish/tmux 起動確認、全関数ロード確認、symlink 検証
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-010 セクション）

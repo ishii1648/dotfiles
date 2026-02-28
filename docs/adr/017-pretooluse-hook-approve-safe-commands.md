@@ -81,10 +81,6 @@ hook は permission システムの **前段** に位置するため、`allow` �
 | `configs/claude/scripts/approve-safe-commands.py` | dotfiles | 新規作成（approve 専用 hook） |
 | `configs/claude/settings.json` | dotfiles | PreToolUse に approve-safe-commands.py を追加 |
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-017 セクション）

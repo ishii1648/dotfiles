@@ -64,10 +64,6 @@ Draft
 > | `configs/tmux/tmux.conf` L124 | dotfiles | 削除（prtrack keybind） |
 > | `configs/tmux/tmux.local.conf` | sandbox  | 追加（移動先として新規作成） |
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-NNN セクション）

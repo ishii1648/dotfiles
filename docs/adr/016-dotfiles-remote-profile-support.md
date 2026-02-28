@@ -34,10 +34,6 @@ dotfiles を lab（Mac mini）などの SSH 先にもデプロイして使いた
 | `configs/fish/functions/tms.fish` | dotfiles | 新規作成（SSH先 tmux 接続関数） |
 | `scripts/setup-symlinks.sh` | dotfiles | remote profile に tmux symlink 追加 |
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-016 セクション）

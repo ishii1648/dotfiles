@@ -128,7 +128,7 @@
 **受け入れ条件**:
 
 - [ ] `bash scripts/setup.sh` の一発実行で全コンポーネントのセットアップが完了する
-- [ ] `bash scripts/setup.sh --profile remote` でリモート環境用のセットアップが完了する
-- [ ] `bash scripts/setup.sh --dry-run` で全コンポーネントの状態を一括検証できる（symlink・fish 個別 symlink・Claude settings.json を含む）
+- [ ] `bash scripts/setup.sh --profile remote` でリモート環境用のセットアップが完了する（`.example` テンプレートのコピーを含む）
+- [ ] `bash scripts/setup.sh --dry-run` で全コンポーネントの状態を一括検証できる（symlink・fish 個別 symlink・Claude settings.json・マニフェスト target 実在チェックを含む）
 - [ ] `scripts/setup-manifest.yml` にコンポーネントを追加するだけで新コンポーネントのセットアップが組み込まれる
-- [ ] 既存の `configs/fish/setup.sh` と `configs/claude/setup.sh` がマニフェスト経由で呼び出される
+- [ ] 既存の `configs/fish/setup.sh` と `configs/claude/setup.sh` がマニフェスト経由で呼び出される（`--dry-run` 伝播を含む）

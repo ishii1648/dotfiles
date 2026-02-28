@@ -151,10 +151,6 @@ setup 後に `check-symlinks.sh` で各 symlink の向き先を検証できる�
 - `~/.config/fish/completions/` ディレクトリの扱い（現状 dotfiles 管理のファイルのみ、個別 symlink か dir symlink か）
 - dotfiles と端末固有リポジトリの setup script の実行順序（初回セットアップ時）
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-012 セクション）

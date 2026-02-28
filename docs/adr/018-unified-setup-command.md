@@ -124,10 +124,62 @@ bash scripts/setup.sh --dry-run        # 検証のみ（全コンポーネント
 3. 各コンポーネントの `symlinks` を検証・作成
 4. `--dry-run` 時は全コンポーネントの状態を一括レポート
 
+### マニフェストの責務境界
+
+マニフェストはすべてを一元管理するのではなく、**コンポーネントごとに責務を委譲**する設計とする。
+
+| 責務レベル | 管理者 | 例 |
+|-----------|--------|-----|
+| プロファイル定義（どのコンポーネントを含むか） | マニフェスト | `profiles.full: [fish, nvim, ...]` |
+| 静的 symlink（パスが固定） | マニフェスト | nvim, ghostty, wezterm, tmux, aqua の全 symlink |
+| 動的 symlink（ファイル追加で自動拡張） | 各 `setup.sh` に委譲 | fish の `conf.d/*.fish`, `functions/*.fish` |
+| 設定ファイルのマージ生成 | 各 `setup.sh` に委譲 | claude の `settings.json` |
+| `.example` テンプレートのコピー | マニフェスト（`copies` アクション） | `tmux.remote.conf.example` → `~/.tmux.local.conf` |
+
+委譲先の `setup.sh` は `--dry-run` 引数を受け取り、検証のみモードに対応する。これにより `scripts/setup.sh --dry-run` が委譲先も含めて一括検証できる。
+
+#### copies アクション
+
+symlink ではなくファイルコピーが必要なケース（`.example` テンプレート等）をマニフェストで表現する：
+
+```yaml
+  tmux:
+    symlinks:
+      - link: ~/.tmux.conf
+        target: configs/tmux/tmux.conf
+    copies:
+      - src: configs/tmux/tmux.remote.conf.example
+        dest: ~/.tmux.local.conf
+        profile: remote        # このプロファイル時のみ実行
+        if_missing: true       # dest が存在しない場合のみコピー（既存設定を上書きしない）
+```
+
+### マニフェスト更新のワークフロー
+
+マニフェストの更新が必要になるタイミングと手順：
+
+| シナリオ | 更新先 | 手順 |
+|----------|--------|------|
+| 静的 symlink の追加・変更（claude に新ディレクトリ等） | マニフェストの `symlinks` | エントリを追加し `--dry-run` で検証 |
+| 動的 symlink 対象ファイルの追加（fish function 等） | 更新不要 | `configs/fish/functions/` にファイルを置くだけで `setup.sh` が自動検出 |
+| 新コンポーネントの追加 | マニフェストの `profiles` + `components` | コンポーネント定義を追加し、必要なら `setup.sh` も作成 |
+| 既存 symlink のパス変更 | マニフェストの `symlinks` | `target` を修正し `--dry-run` で検証 |
+| `.example` テンプレートの追加 | マニフェストの `copies` | エントリを追加 |
+
+### マニフェストの整合性検証
+
+`scripts/setup.sh --dry-run` はマニフェスト自体の整合性も検証する：
+
+1. **target 実在チェック** — マニフェストの各 `target` パスがリポジトリ内に存在することを確認。存在しなければ `ERROR: target not found` を報告
+2. **委譲先の検証** — `setup` を持つコンポーネントは委譲先の `setup.sh --dry-run` を実行し、その結果を統合レポートに含める
+3. **copies の検証** — `copies` エントリの `src` がリポジトリ内に存在することを確認
+
+> **スコープ外**: 「リポジトリ内の config ファイルがマニフェストに漏れなく記載されているか」の網羅性チェックは本 ADR のスコープ外とする。これは ADR-010（リグレッションテスト）で将来的に対応する可能性がある。
+
 ### 既存スクリプトとの関係
 
-- `configs/fish/setup.sh` — そのまま残す。マニフェストの `fish.setup` から呼び出される
-- `configs/claude/setup.sh` — そのまま残す。マニフェストの `claude.setup` から呼び出される
+- `configs/fish/setup.sh` — そのまま残す。マニフェストの `fish.setup` から呼び出される。`--dry-run` 引数対応を追加
+- `configs/claude/setup.sh` — そのまま残す。マニフェストの `claude.setup` から呼び出される。既に dry-run 相当の検証ロジックあり
 - `scripts/setup-symlinks.sh` — マニフェストベースの新スクリプトに機能を統合。移行完了後に廃止
 
 ### 変更が必要なファイル
@@ -135,13 +187,10 @@ bash scripts/setup.sh --dry-run        # 検証のみ（全コンポーネント
 | ファイル | リポジトリ | 変更内容 |
 |---------|----------|---------|
 | `scripts/setup-manifest.yml` | dotfiles | 新規作成（理想状態の宣言的定義） |
-| `scripts/setup.sh` | dotfiles | 新規作成（統合エントリポイント、マニフェスト読み込み） |
+| `scripts/setup.sh` | dotfiles | 新規作成（統合エントリポイント、マニフェスト読み込み・整合性検証） |
+| `configs/fish/setup.sh` | dotfiles | `--dry-run` 引数対応を追加 |
 | `scripts/setup-symlinks.sh` | dotfiles | 削除（setup.sh に機能統合後） |
 | `README.md` | dotfiles | セットアップ手順を `scripts/setup.sh` に簡略化 |
-
-## 決定
-
-（未定）
 
 ## 受け入れ条件
 

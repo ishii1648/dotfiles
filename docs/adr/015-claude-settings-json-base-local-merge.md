@@ -79,10 +79,6 @@ Reflect the above changes in dotfiles or sandbox, then re-run setup.sh.
 - settings.json の変更は必ず dotfiles か端末固有リポジトリを編集し、setup.sh を再実行する
 - `~/.claude/settings.json` を直接編集した場合は、その内容を dotfiles/sandbox に反映してから setup.sh を実行する
 
-## 決定
-
-（未定）
-
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-015 セクション）
