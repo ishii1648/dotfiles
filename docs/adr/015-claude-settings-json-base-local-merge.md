@@ -54,18 +54,25 @@ dotfiles/configs/claude/settings.json        (共通)
 
 ### setup.sh の動作
 
-既存の `~/.claude/settings.json` とマージ結果に差分がある場合、**上書きせず差分を警告して `exit 1` で停止する**。
+差分の方向に応じて挙動を変える。
+
+| 状態 | 動作 |
+|------|------|
+| 差分なし | no-op |
+| generated が current を包含（current が behind） | 自動上書き。dotfiles/sandbox 側が進んでいるだけのため安全 |
+| current に generated にないキー・値がある（ローカル編集） | 差分を警告して `exit 1` で停止。上書きしない |
+
+停止時の出力例：
 
 ```
-[WARN] ~/.claude/settings.json has local changes not reflected in dotfiles/sandbox:
+[WARN] ~/.claude/settings.json has local changes not in dotfiles/sandbox:
 --- generated
 +++ current
 @@ ... @@
++  "someLocalKey": "value",
  ...
-Run with --force to overwrite, or update dotfiles/sandbox to include the changes.
+Reflect the above changes in dotfiles or sandbox, then re-run setup.sh.
 ```
-
-差分がない場合（または初回生成時）のみ `~/.claude/settings.json` を書き込む。
 
 ### 運用ルール
 
