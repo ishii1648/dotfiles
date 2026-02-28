@@ -10,9 +10,6 @@
 # Fish shell
 configs/fish/fish_variables
 
-# Local override files (machine/org-specific)
-configs/ghostty/local.conf
-configs/nvim/lua/local.lua
 
 # Git worktree
 .worktree/
