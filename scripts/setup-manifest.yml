@@ -64,6 +64,7 @@ components:
         target: configs/claude/statusline.js
 
   aqua:
+    setup: configs/aqua/setup.sh
     symlinks:
       - link: ~/.config/aquaproj-aqua/aqua.yaml
         target: aqua.yaml

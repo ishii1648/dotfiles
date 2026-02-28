@@ -4,6 +4,13 @@
 
 ## セットアップ
 
+### 前提条件
+
+- **macOS**: [Homebrew](https://brew.sh) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua を自動インストールする。
+- **Linux**: 事前にパッケージのインストールが必要。Docker テスト用の `tests/Dockerfile` を参照。
+
+### 実行
+
 ```bash
 bash scripts/setup.sh
 ```
