@@ -5,13 +5,21 @@
 ## セットアップ
 
 ```bash
-# 1. fish 共通設定（ファイル単位 symlink を作成）
-bash configs/fish/setup.sh
+bash scripts/setup.sh
+```
 
-# 2. symlink の設定（存在しない場合は作成）
-bash scripts/setup-symlinks.sh
+マニフェスト（`scripts/setup-manifest.yml`）に定義された全コンポーネントのセットアップが一発で完了する。
 
-# 3. 端末固有設定（端末固有リポジトリの setup script を実行）
+### オプション
+
+```bash
+# 状態チェックのみ（変更しない）
+bash scripts/setup.sh --dry-run
+
+# リモート環境用セットアップ
+bash scripts/setup.sh --profile remote
+
+# 端末固有設定（端末固有リポジトリの setup script を実行）
 bash <端末固有リポジトリ>/setup.sh
 ```
 
@@ -36,14 +44,8 @@ SSH 先のマシンに dotfiles をデプロイする場合は `remote` プロ�
 # 1. dotfiles を clone
 git clone <repo> ~/dotfiles && cd ~/dotfiles
 
-# 2. fish 共通設定
-bash configs/fish/setup.sh
-
-# 3. remote プロファイルで symlink 設定（fish, nvim, tmux, claude, aqua）
-bash scripts/setup-symlinks.sh --profile remote
-
-# 4. リモート用 tmux テンプレートを配置
-cp configs/tmux/tmux.remote.conf.example ~/.tmux.local.conf
+# 2. remote プロファイルでセットアップ（fish, nvim, tmux, claude, aqua + tmux テンプレートコピー）
+bash scripts/setup.sh --profile remote
 ```
 
 ### tmux ネスト対応

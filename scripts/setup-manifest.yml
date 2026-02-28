@@ -1,0 +1,63 @@
+# scripts/setup-manifest.yml
+# dotfiles の理想状態を宣言的に定義する
+# scripts/setup.sh がこのファイルを読んで検証・適用する
+
+profiles:
+  full:
+    - fish
+    - nvim
+    - ghostty
+    - tmux
+    - claude
+    - aqua
+  remote:
+    - fish
+    - nvim
+    - tmux
+    - claude
+    - aqua
+
+components:
+  fish:
+    setup: configs/fish/setup.sh
+
+  nvim:
+    symlinks:
+      - link: ~/.config/nvim
+        target: configs/nvim
+
+  ghostty:
+    symlinks:
+      - link: ~/.config/ghostty/config
+        target: configs/ghostty/config
+
+  tmux:
+    symlinks:
+      - link: ~/.tmux.conf
+        target: configs/tmux/tmux.conf
+      - link: ~/.local/bin/tmux-fzf-url-pr-filter
+        target: configs/tmux/tmux-fzf-url-pr-filter
+    copies:
+      - src: configs/tmux/tmux.remote.conf.example
+        dest: ~/.tmux.local.conf
+        profile: remote
+        if_missing: true
+
+  claude:
+    setup: configs/claude/setup.sh
+    symlinks:
+      - link: ~/.claude/agents
+        target: configs/claude/agents
+      - link: ~/.claude/CLAUDE.md
+        target: configs/claude/CLAUDE.md
+      - link: ~/.claude/commands
+        target: configs/claude/commands
+      - link: ~/.claude/scripts
+        target: configs/claude/scripts
+      - link: ~/.claude/statusline.js
+        target: configs/claude/statusline.js
+
+  aqua:
+    symlinks:
+      - link: ~/.config/aquaproj-aqua/aqua.yaml
+        target: aqua.yaml
