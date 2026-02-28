@@ -108,6 +108,16 @@
             "timeout": 5000
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/approve-safe-commands.py",
+            "timeout": 5000
+          }
+        ]
       }
     ],
     "PostToolUse": [
