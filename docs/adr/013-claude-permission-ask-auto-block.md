@@ -10,31 +10,59 @@ Claude Code はデフォルトで allow/deny リストにマッチしない Bash
 
 セッションログの分析から、以下のパターンが permission ask の主な原因と判明した：
 
-- `cat` / `find` / `grep` などのファイル操作コマンド → Read/Glob/Grep ツールで代替可能
-- `for` / `while` ループ → Glob + 個別ツール呼び出しで代替可能
-- `python3 -c` / `python -c` インラインスクリプト → Read/Grep/Edit/jq で代替可能
+| コマンド | 代替手段 | 頻度 |
+|---------|---------|------|
+| `cat` | Read | 高 |
+| `find` | Glob | 高 |
+| `grep \| head` | Grep | 高 |
+| `ls \|\| cat` | Glob + Read | 中 |
+| `for` / `while` ループ | Glob + 個別ツール | 中 |
+| `python3 -c` インラインスクリプト | Read/Grep/Edit/jq | 中 |
+| `tmux` + shell expansion | — | 低（代替困難） |
 
-これらは専用ツール（Glob/Read/Grep/Edit）で完全に代替可能にもかかわらず、Claude が慣習的に Bash で記述しようとするために発生していた。
+これらの大半は専用ツール（Glob/Read/Grep/Edit）で完全に代替可能にもかかわらず、Claude が慣習的に Bash で記述しようとするために発生していた。
 
-permission ask が発生するとユーザーが承認または否認するまで作業が止まり、Claude の自律性が損なわれる。
+### 問題の構造
+
+permission ask には 2 種類のメカニズムがある。
+
+| 種別 | トリガー | ユーザー介入 |
+|------|---------|------------|
+| Hook ブロック（`redirect-to-tools.py`） | `decision: block` を返す | 不要（自動） |
+| Claude Code 組み込み permission ask | allow/deny リスト不一致または shell expansion | **必要**（作業停止） |
+
+問題は後者。`for` ループや `$HOME` 展開を含むコマンドは allow リストにマッチせず、permission UI が発生する。
+
+## 設計案
+
+### 案1: CLAUDE.md ソフトガイダンスのみ
+
+Claude に「Bash ループを書くな」と指示する。効果はあるが、長いセッションや圧縮後に薄れる可能性がある。
+
+### 案2: redirect-to-tools.py ハードブロックのみ
+
+代替可能コマンドを PreToolUse フックで自動ブロック。permission UI が出る前に止められるため、ユーザー介入なしに Claude が自律的にリトライできる。ただし未知パターンは捕捉できない。
+
+### 案3: 2層アプローチ（採用）
+
+CLAUDE.md による原則提示（ソフト）と `redirect-to-tools.py` による強制執行（ハード）を組み合わせる。新しいパターンを観測したら `redirect-to-tools.py` を拡張していく継続的改善サイクルを回す。
+
+### 将来: PermissionRequest フックによる自動ログ記録
+
+`Notification` フックのペイロードには `tool_input` が含まれないため、コマンドの自動捕捉には `PermissionRequest` フックが正しい介入点。これを使って未知パターンを `~/.claude/permission-asks.log` に記録し、`fix-permission-ask` スキルでルール追加を半自動化する。
 
 ## 決定
 
-**2層のアプローチ**で permission ask を削減する。
+**案3（2層アプローチ）** を採用する。
 
-### 層1: CLAUDE.md ソフトガイダンス
+### 層1: CLAUDE.md 自律性の原則
 
-`~/.claude/CLAUDE.md` に「自律性の原則」として明示する：
+```
+複雑な Bash（ループ・パイプ・インラインスクリプト）を生成せず、
+専用ツールか個別コマンドに分解すること。
+```
 
-> 複雑な Bash（ループ・パイプ・インラインスクリプト）を生成せず、専用ツールか個別コマンドに分解すること。
-
-これにより Claude が Bash ではなく専用ツールを選択する頻度を高める。
-
-### 層2: `redirect-to-tools.py` ハードブロック
-
-PreToolUse フックで代替可能なコマンドを自動ブロックし、専用ツールへ誘導するメッセージを返す。Claude Code の permission UI が表示される前に処理を止めるため、ユーザー介入なしに Claude が自律的にリトライできる。
-
-**ブロック対象コマンド:**
+### 層2: redirect-to-tools.py ブロック対象
 
 | コマンド | 代替手段 |
 |---------|---------|
@@ -47,10 +75,6 @@ PreToolUse フックで代替可能なコマンドを自動ブロックし、専
 | `for` / `while` | Glob + 個別ツール |
 | `python3 -c` / `python -c` | Read/Grep/Edit/jq |
 
-### 継続的改善サイクル
+## 受け入れ条件
 
-新しいパターンを観測したら `redirect-to-tools.py` を拡張する。将来的には `PermissionRequest` フックで未知パターンを自動ログに記録し、半自動でルール追加するワークフローを整備する。
-
-## 結果
-
-（未定 → docs/issues.md の受け入れ条件を参照）
+→ [issues.md](../issues.md)（ADR-013 セクション）
