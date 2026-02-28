@@ -83,6 +83,6 @@ Reflect the above changes in dotfiles or sandbox, then re-run setup.sh.
 
 （未定）
 
-## 結果
+## 受け入れ条件
 
-（未定）
+→ [issues.md](../issues.md)（ADR-015 セクション）

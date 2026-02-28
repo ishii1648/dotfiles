@@ -68,9 +68,9 @@ Draft
 
 （未定）
 
-## 結果
+## 受け入れ条件
 
-（未定）
+→ [issues.md](../issues.md)（ADR-NNN セクション）
 ```
 
 ### Step 4: issues.md に追記
