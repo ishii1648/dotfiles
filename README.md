@@ -1,14 +1,30 @@
 # dotfiles
 
-開発環境の設定ファイルを管理するリポジトリ。
+開発環境の設定ファイルを管理するリポジトリ。端末固有の設定は含まない。
 
 ## セットアップ
 
-リポジトリからホームディレクトリへシンボリックリンクを作成する。
+### 1. fish（共通設定）
+
+ディレクトリ symlink ではなくファイル単位で symlink を作成する。
 
 ```bash
-# シンボリックリンクの状態チェック
+bash configs/fish/setup.sh
+```
+
+### 2. その他の symlink
+
+```bash
+# symlink の状態チェック
 bash configs/claude/scripts/check-symlinks.sh
+```
+
+### 3. 端末固有設定
+
+端末固有リポジトリの setup script を実行する（[sandbox-ishii1648](https://github.com/C-FO/sandbox-ishii1648) 参照）。
+
+```bash
+bash <sandbox>/setup.sh
 ```
 
 ## シンボリックリンク構成
@@ -20,11 +36,25 @@ bash configs/claude/scripts/check-symlinks.sh
 | `~/.gitconfig` | `.gitconfig` |
 | `~/.tmux.conf` | `configs/tmux/tmux.conf` |
 
-### ~/.config/ 配下
+### ~/.config/fish/ 配下（ファイル単位）
+
+`~/.config/fish/` は実ディレクトリ。`configs/fish/setup.sh` で個別 symlink を作成する。
 
 | シンボリックリンク | ターゲット |
 |-------------------|-----------|
-| `~/.config/fish` | `configs/fish/` |
+| `~/.config/fish/config.fish` | `configs/fish/config.fish` |
+| `~/.config/fish/conf.d/aliases.fish` | `configs/fish/conf.d/aliases.fish` |
+| `~/.config/fish/conf.d/completions.fish` | `configs/fish/conf.d/completions.fish` |
+| `~/.config/fish/conf.d/env.fish` | `configs/fish/conf.d/env.fish` |
+| `~/.config/fish/conf.d/fzf*.fish` | `configs/fish/conf.d/fzf*.fish` |
+| `~/.config/fish/conf.d/path.fish` | `configs/fish/conf.d/path.fish` |
+| `~/.config/fish/completions/` | `configs/fish/completions/`（dir symlink） |
+| `~/.config/fish/functions/*.fish` | `configs/fish/functions/*.fish`（tracked のみ） |
+
+### ~/.config/ 配下（その他）
+
+| シンボリックリンク | ターゲット |
+|-------------------|-----------|
 | `~/.config/nvim` | `configs/nvim/` |
 | `~/.config/ghostty/config` | `configs/ghostty/config` |
 
@@ -47,21 +77,23 @@ bash configs/claude/scripts/check-symlinks.sh
 | ツール | ローカルファイル | テンプレート |
 |--------|-----------------|-------------|
 | Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
-| Fish (tmw) | `configs/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
-| Ghostty | `configs/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
+| Fish (tmw) | `~/.config/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
+| Ghostty | `~/.config/ghostty/local.conf` | — |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
 
-## PC固有設定（sandbox-sho）
+## 端末固有設定（sandbox-ishii1648）
 
-PC固有の Fish 設定・functions は [sandbox-sho](https://github.com/C-FO/sandbox-sho) で管理する。
+端末固有の設定は [sandbox-ishii1648](https://github.com/C-FO/sandbox-ishii1648) で管理する。dotfiles には含めない。
 
 | 種別 | 場所 |
 |------|------|
-| PC固有 conf.d | `sandbox-sho/configs/fish/conf.d/local.fish` |
-| PC固有 functions | `sandbox-sho/configs/fish/functions/` |
+| 端末固有 fish functions | `sandbox-ishii1648/configs/fish/functions/` |
+| 端末固有 fish conf.d | `sandbox-ishii1648/configs/fish/conf.d/local.fish` |
+| tmux 端末固有 keybind | `sandbox-ishii1648/configs/tmux/tmux.local.conf` → `~/.tmux.local.conf` |
+| Ghostty 端末固有 keybind | `sandbox-ishii1648/configs/ghostty/local.conf` → `~/.config/ghostty/local.conf` |
 
-`configs/fish/conf.d/z_sandbox.fish`（git管理）が sandbox-sho の `local.fish` を自動的に source する。sandbox-sho が clone されていない環境ではスキップされる。
+`sandbox-ishii1648/setup.sh` を実行すると上記すべての symlink が作成される。
 
 ## Claude Code Hooks 設定
 
