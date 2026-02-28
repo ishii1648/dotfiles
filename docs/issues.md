@@ -23,7 +23,7 @@
 | ✔ | ○ | fish / tmux / claude / nvim | setup.sh の e2e テストをクリーン環境で実行できない — macOS 前提のため Docker が使えず、セットアップの完走を自動検証する手段がない | [ADR-019](adr/019-dotfiles-linux-support-and-e2e-testing.md) |
 | ✔ | ○ | 複合 | ローカルオーバーライドと端末固有設定の管理が二重化している — 同じ「端末ごとに異なる設定」が gitignore と端末固有リポジトリに分散し手順が煩雑 | [ADR-020](adr/020-unify-local-override-into-terminal-repo.md) |
 | ✔ | ○ | fish / tmux | SSH 先・tmux ネスト状態の判別が付きづらい — プロンプトに SSH インジケーターがなく、パススルーモードも背景色の微妙な変化のみで状態が分かりづらい | [ADR-021](adr/021-ssh-visual-indicator.md) |
-| - | ○ | fish / tmux | SSH 実行時にリモート先の tmux セッションへ自動で入りたい — `ssh` 実行後に毎回手動で tmux attach する手間を省きたい | [ADR-022](adr/022-ssh-auto-tmux-attach.md) |
+| ✔ | ○ | fish / tmux | SSH 実行時にリモート先の tmux セッションへ自動で入りたい — `ssh` 実行後に毎回手動で tmux attach する手間を省きたい | [ADR-022](adr/022-ssh-auto-tmux-attach.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -183,7 +183,7 @@
 
 **受け入れ条件**:
 
-- [ ] `ssh <host>` 実行時にリモート先の tmux セッションに自動でアタッチされる
-- [ ] リモートに既存の tmux セッションがない場合は新規作成される
-- [ ] 自動アタッチを無効にしたい場合のオプトアウト手段がある（例: `ssh --no-tmux` や環境変数）
-- [ ] `tms` コマンドとの機能的な重複・棲み分けが整理されている
+- [x] `ssh <host>` 実行時にリモート先の tmux セッションに自動でアタッチされる
+- [x] リモートに既存の tmux セッションがない場合は新規作成される
+- [x] 自動アタッチを無効にしたい場合のオプトアウト手段がある（例: `ssh --no-tmux` や環境変数）
+- [x] `tms` コマンドとの機能的な重複・棲み分けが整理されている
