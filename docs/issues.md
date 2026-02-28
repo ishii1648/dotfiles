@@ -21,6 +21,7 @@
 | ✔ | ○ | claude | git commit の heredoc パターンで permission ask が発生する — `$()` command substitution が一律で検出され `permissions.allow` では回避不可 | [ADR-017](adr/017-pretooluse-hook-approve-safe-commands.md) |
 | ✔ | ○ | fish / tmux / claude / nvim | setup が複数ステップに分散し理想状態の定義がない — 実行順序の依存や検証範囲の不統一があり、コマンド一発でセットアップ・検証できない | [ADR-018](adr/018-unified-setup-command.md) |
 | ✔ | ○ | fish / tmux / claude / nvim | setup.sh の e2e テストをクリーン環境で実行できない — macOS 前提のため Docker が使えず、セットアップの完走を自動検証する手段がない | [ADR-019](adr/019-dotfiles-linux-support-and-e2e-testing.md) |
+| ✔ | ○ | 複合 | ローカルオーバーライドと端末固有設定の管理が二重化している — 同じ「端末ごとに異なる設定」が gitignore と端末固有リポジトリに分散し手順が煩雑 | [ADR-020](adr/020-unify-local-override-into-terminal-repo.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -145,3 +146,16 @@
 - [x] `scripts/setup.sh --profile linux` がクリーンな Linux 環境（Docker コンテナ）で完走する
 - [x] `scripts/setup.sh --dry-run --profile linux` がセットアップ後の環境で全項目 OK を返す
 - [x] GitHub Actions の Linux runner で e2e テストが自動実行される
+
+---
+
+### ADR-020: ローカルオーバーライドを端末固有リポジトリに統合
+
+**コンポーネント**: 複合 | **ADR**: [ADR-020](adr/020-unify-local-override-into-terminal-repo.md)
+
+**受け入れ条件**:
+
+- [x] README の「ローカルオーバーライド」セクションが廃止され、「端末固有設定」セクションに全ファイルが一覧化される
+- [ ] 端末固有リポジトリの `setup.sh` で `.gitconfig.local` が配置される
+- [ ] 端末固有リポジトリの `setup.sh` で `configs/nvim/lua/local.lua` が配置される
+- [x] 端末固有リポジトリを持たない環境でも `.example` テンプレートから手動作成できる

@@ -43,15 +43,6 @@ docker build -t dotfiles-e2e -f tests/Dockerfile .
 
 GitHub Actions でも push / PR 時に自動実行される。
 
-## ローカルオーバーライド
-
-dotfiles の設定を端末ごとに上書きする git 管理外のファイル。`.example` テンプレートを参考に作成する。
-
-| ツール | ローカルファイル | テンプレート |
-|--------|-----------------|-------------|
-| Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
-| Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
-
 ## SSH 先（リモート環境）でのセットアップ
 
 SSH 先のマシンに dotfiles をデプロイする場合は `remote` プロファイルを使用する。
@@ -77,15 +68,17 @@ F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/t
 
 ## 端末固有設定
 
-端末固有の設定（社内ツール・AWS 認証・端末固有 keybind 等）は端末固有リポジトリで管理する。dotfiles には含めない。
+端末固有の設定（社内ツール・AWS 認証・端末固有 keybind・Git ユーザー情報等）は端末固有リポジトリで管理する。dotfiles には含めない。
 
-どの端末固有リポジトリを使うかは `terminal-repo.local` に定義する（`terminal-repo.local.example` を参照）。端末固有リポジトリの `setup.sh` を実行すると以下の symlink が作成される。
+どの端末固有リポジトリを使うかは `terminal-repo.local` に定義する（`terminal-repo.local.example` を参照）。端末固有リポジトリの `setup.sh` を実行すると以下が配置される。端末固有リポジトリを持たない環境では `.example` テンプレートから手動作成する。
 
 | ツール | 配置先 | テンプレート（dotfiles 側） |
 |--------|--------|---------------------------|
+| Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
 | Fish (tmw) | `~/.config/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
-| Ghostty | `~/.config/ghostty/local.conf` | — |
+| Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
+| Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
 
 ## Claude Code Hooks 設定
 
