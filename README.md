@@ -16,12 +16,25 @@ bash scripts/setup.sh
 # 状態チェックのみ（変更しない）
 bash scripts/setup.sh --dry-run
 
-# リモート環境用セットアップ
+# リモート環境用セットアップ（ghostty を除外）
 bash scripts/setup.sh --profile remote
+
+# Linux 環境用セットアップ（ghostty を除外、Docker e2e テストで使用）
+bash scripts/setup.sh --profile linux
 
 # 端末固有設定（端末固有リポジトリの setup script を実行）
 bash <端末固有リポジトリ>/setup.sh
 ```
+
+### e2e テスト
+
+Docker でクリーンな Linux 環境でのセットアップ完走を検証できる。
+
+```bash
+docker build -t dotfiles-e2e -f tests/Dockerfile .
+```
+
+GitHub Actions でも push / PR 時に自動実行される。
 
 ## ローカルオーバーライド
 
