@@ -1,15 +1,15 @@
 ---
-name: adr-loop
+name: adr-ship
 description: This skill should be used when the user wants to "implement an ADR",
-  "ADRを実装して", "ADR-012 を実装して", "ADRのループを回して",
-  "受け入れ条件を満たすまで実装して", "ADR-012 を完了させて",
-  "受け入れ条件を検証して修正して", or provides an ADR number/name to implement.
+  "ADRを実装して", "ADR-012 を実装して", "ADR-012 を完了させて",
+  "受け入れ条件を満たすまで実装して", "受け入れ条件を検証して修正して",
+  "adr-ship", or provides an ADR number/name to implement.
   Runs the implement→verify→fix loop for a specific ADR until all acceptance
   criteria in docs/issues.md pass.
 version: 0.1.0
 ---
 
-# adr-loop
+# adr-ship
 
 指定された ADR を読み込み、受け入れ条件をすべて満たすまで「実装 → 検証 → 修正」のループを回す。
 
