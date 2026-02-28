@@ -9,6 +9,7 @@ set -gx EDITOR vim
 set -gx KUBE_EDITOR vim
 
 # Package managers
+set -gx AQUA_GLOBAL_CONFIG $HOME/.config/aquaproj-aqua/aqua.yaml
 set -gx AQUA_PROGRESS_BAR true
 if command -q aqua
     set -gx AQUA_ROOT_DIR (aqua root-dir)
