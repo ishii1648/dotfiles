@@ -4,16 +4,54 @@
 Auto-approves Bash commands that contain only safe $() patterns,
 such as `git commit -m "$(cat <<'EOF'...EOF)"`.
 
+Also auto-approves commands where the only quoted flag-like strings
+are dash-only separators (e.g. echo "---"), which trigger a false
+positive in the built-in "quoted characters in flag names" check.
+
 Fail-open design: any exception results in sys.exit(0) to fall back
 to the normal permission prompt.
 
 Approve rules:
-  git commit with $(cat <<'EOF'...EOF) or $(cat <<EOF...EOF)
+  1. git commit with $(cat <<'EOF'...EOF) or $(cat <<EOF...EOF)
+  2. Commands where all quoted dash-prefixed strings are dash-only
+     separators (e.g. "---", '--')
 """
 
 import json
 import re
 import sys
+
+
+def has_only_dash_separators_in_quotes(command: str) -> bool:
+    """Check if all quoted flag-like strings are dash-only separators.
+
+    The built-in heuristic flags commands containing quoted strings that
+    start with dashes (e.g. "---") as potential flag obfuscation.
+    This function returns True when every such quoted string consists
+    entirely of dashes, meaning it's a harmless separator like "---".
+
+    Examples that return True:
+        echo "---"
+        ls -la /path 2>&1; echo "---"; ls -la /other 2>&1
+        echo '----'
+
+    Examples that return False:
+        cmd "--dangerous-flag"
+        cmd '-rf'
+    """
+    # Match both single- and double-quoted strings
+    quoted_strings = re.findall(r"""(?:"([^"]*)")|(?:'([^']*)')""", command)
+    dash_prefixed = []
+    for dq, sq in quoted_strings:
+        value = dq if dq else sq
+        if value.startswith("-"):
+            dash_prefixed.append(value)
+
+    if not dash_prefixed:
+        return False
+
+    # Safe only if ALL dash-prefixed quoted strings are purely dashes
+    return all(re.fullmatch(r"-+", s) for s in dash_prefixed)
 
 
 def is_safe_command_substitution(command: str) -> bool:
@@ -74,7 +112,7 @@ def main():
         if not command:
             sys.exit(0)
 
-        if is_safe_command_substitution(command):
+        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command):
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
