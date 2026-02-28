@@ -6,6 +6,7 @@
 
 .claude/settings.local.json
 .gitconfig.local
+terminal-repo.local
 
 # Fish shell
 configs/fish/fish_variables

@@ -55,6 +55,7 @@ GitHub Actions でも push / PR 時に自動実行される。
 | Ghostty | `~/.config/ghostty/local.conf` | — |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
+| 端末固有リポジトリ | `terminal-repo.local` | `terminal-repo.local.example` |
 
 ## SSH 先（リモート環境）でのセットアップ
 
@@ -82,6 +83,8 @@ F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/t
 ## 端末固有設定
 
 端末固有の設定（社内ツール・AWS 認証・端末固有 keybind 等）は端末固有リポジトリで管理する。dotfiles には含めない。端末固有リポジトリの `setup.sh` を実行すると必要な symlink が作成される。
+
+端末固有リポジトリのパスは `terminal-repo.local` に定義する（`terminal-repo.local.example` を参照）。
 
 ## Claude Code Hooks 設定
 
