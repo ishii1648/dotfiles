@@ -68,10 +68,10 @@ CLAUDE.md による原則提示（ソフト）と `redirect-to-tools.py` によ�
 Bash ツール呼び出し
   → PreToolUse: redirect-to-tools.py  ← ここ
       → block → Claude がエラーを受け取り、代替ツールでリトライ
-      → pass  → PreToolUse: enforce-bash-permissions.py へ
+      → pass  → Claude Code ネイティブの allow/deny 評価へ
 ```
 
-`enforce-bash-permissions.py`（allow/deny リスト検証）より先に実行することで、allow リストの有無に関わらず代替可能コマンドを確実に止める。
+allow/deny リストの評価は Claude Code ネイティブに委ね、スクリプトは代替可能コマンドの誘導のみに専念する。
 
 #### スクリプトの概要
 
@@ -103,8 +103,6 @@ Bash ツール呼び出し
 - **fail-open**: スクリプト内で例外が発生した場合は `sys.exit(0)`（pass-through）とし、誤検知によるブロックよりも動作継続を優先する
 - **パイプ前半のみ検査**: `git log | grep fix` のようにパイプ後段に対象コマンドが来るケースはブロックしない。先頭コマンドが `git` であれば pass-through
 - **チェーン全体を検査**: `cmd1 && cat file` のように `&&`/`||`/`;` で連結された場合は各セグメントを個別に検査し、1つでもマッチすればコマンド全体をブロックする
-
-> `enforce-bash-permissions.py`（allow/deny リスト検証）は reason を英語で返す（`"Denied by permission rule: Bash(cmd:*)"`）。日本語メッセージは `redirect-to-tools.py` のみ。
 
 ## 受け入れ条件
 
