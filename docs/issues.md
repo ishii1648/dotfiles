@@ -46,13 +46,14 @@
 
 ---
 
-### ADR-012: 端末固有の fish 設定を dotfiles から分離
+### ADR-012: 端末固有の設定を dotfiles から分離
 
-**コンポーネント**: fish / claude | **ADR**: [ADR-012](adr/012-fish-function-symlink-per-repo.md)
+**コンポーネント**: fish / tmux / ghostty | **ADR**: [ADR-012](adr/012-fish-function-symlink-per-repo.md)
 
 **受け入れ条件**:
 
-- [ ] 端末固有の fish functions が dotfiles の `git status` に現れなくなる
-- [ ] dotfiles を別端末にクローンしても、端末固有の関数が混入しない
-- [ ] 既存の共通関数（`tm`, `gw_add` 等）が引き続き動作する
-- [ ] 端末固有リポジトリの setup script で端末固有 functions を配置できる
+- [ ] 端末固有の fish functions・conf.d ファイルが dotfiles の `git status` に現れなくなる
+- [ ] tmux.conf・ghostty/config から社内ツール（prtrack）への参照が除去される
+- [ ] dotfiles を別端末にクローンしても、端末固有の設定が混入しない
+- [ ] 既存の共通設定（`tm`, `gw_add`、tmux キーバインド等）が引き続き動作する
+- [ ] 端末固有リポジトリの setup script で端末固有ファイルを配置できる
