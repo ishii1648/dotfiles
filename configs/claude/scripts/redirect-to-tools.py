@@ -15,6 +15,9 @@ Redirect rules:
   head / tail → Read
   sed / awk   → Edit
   echo (with >) → Write
+  for / while → Glob + 個別ツール（ループの代わりに個別ツール呼び出し）
+  python3 -c  → Read/Grep/Edit/jq（インラインスクリプトの代わりに専用ツール）
+  python -c   → Read/Grep/Edit/jq
 """
 
 import json
@@ -122,6 +125,30 @@ REDIRECT_RULES = [
         has_stdout_redirect,
         "Write",
         "Bash の echo > ではなく Write ツールを使用してください",
+    ),
+    (
+        "for",
+        lambda _cmd: True,
+        "Glob/個別ツール",
+        "Bash の for ループではなく Glob + 個別ツール（Read/Edit/Bash）を使用してください",
+    ),
+    (
+        "while",
+        lambda _cmd: True,
+        "Glob/個別ツール",
+        "Bash の while ループではなく Glob + 個別ツール（Read/Edit/Bash）を使用してください",
+    ),
+    (
+        "python3",
+        lambda cmd: any(a == "-c" for a in cmd.split()[1:]),
+        "Read/Grep/Edit",
+        "Bash の python3 -c インラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
+    ),
+    (
+        "python",
+        lambda cmd: any(a == "-c" for a in cmd.split()[1:]),
+        "Read/Grep/Edit",
+        "Bash の python -c インラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
     ),
 ]
 
