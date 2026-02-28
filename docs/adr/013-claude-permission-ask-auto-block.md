@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+採用済み
 
 ## コンテキスト
 
@@ -46,10 +46,6 @@ Claude に「Bash ループを書くな」と指示する。効果はあるが�
 ### 案3: 2層アプローチ（採用）
 
 CLAUDE.md による原則提示（ソフト）と `redirect-to-tools.py` による強制執行（ハード）を組み合わせる。新しいパターンを観測したら `redirect-to-tools.py` を拡張していく継続的改善サイクルを回す。
-
-### 将来: PermissionRequest フックによる自動ログ記録
-
-`Notification` フックのペイロードには `tool_input` が含まれないため、コマンドの自動捕捉には `PermissionRequest` フックが正しい介入点。これを使って未知パターンを `~/.claude/permission-asks.log` に記録し、`fix-permission-ask` スキルでルール追加を半自動化する。
 
 ## 決定
 
