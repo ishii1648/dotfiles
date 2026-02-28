@@ -88,7 +88,26 @@ echo -e "${CYAN}~/.config/ directories:${NC}"
 
 # fish
 if [[ -d "$DOTFILES_DIR/configs/fish" ]]; then
-    check_symlink "fish" "$HOME/.config/fish" "$DOTFILES_DIR/configs/fish"
+    FISH_SRC="$DOTFILES_DIR/configs/fish"
+    # conf.d（共通ファイル個別チェック）
+    for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish path.fish \
+              tmw_direct_repos.conf.example; do
+        [[ -f "$FISH_SRC/conf.d/$f" ]] && \
+            check_symlink "conf.d/$f" "$HOME/.config/fish/conf.d/$f" "$FISH_SRC/conf.d/$f"
+    done
+    # completions ディレクトリ
+    check_symlink "completions" "$HOME/.config/fish/completions" "$FISH_SRC/completions"
+    # functions（tracked ファイル個別チェック）
+    while IFS= read -r f; do
+        name=$(basename "$f")
+        check_symlink "functions/$name" "$HOME/.config/fish/functions/$name" "$f"
+    done < <(git -C "$DOTFILES_DIR" ls-files configs/fish/functions/ | \
+             sed "s|configs/fish/functions/|$FISH_SRC/functions/|" | sort)
+    # ルートファイル
+    for f in config.fish fish_plugins fish_variables; do
+        [[ -f "$FISH_SRC/$f" ]] && \
+            check_symlink "$f" "$HOME/.config/fish/$f" "$FISH_SRC/$f"
+    done
 fi
 
 # nvim
