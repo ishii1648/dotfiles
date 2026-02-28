@@ -51,7 +51,7 @@ function ssh --description "SSH接続（インタラクティブ時はリモー�
     # インタラクティブ SSH: パススルーモード + tmux 自動アタッチ
     # リモートに tmux がなければ通常の ssh にフォールバック
     __tmux_passthrough_on
-    command ssh $ssh_args -t "command -v tmux >/dev/null 2>&1 && tmux new-session -A -s main || exec \$SHELL -l"
+    command ssh $ssh_args -t "/bin/sh -lc 'tmux new-session -A -s main 2>/dev/null || exec \$SHELL -l'"
     set -l ssh_status $status
     __tmux_passthrough_off
     return $ssh_status
