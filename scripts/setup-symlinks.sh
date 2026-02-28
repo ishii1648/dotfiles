@@ -251,6 +251,8 @@ run_profile_remote() {
     setup_fish
     setup_nvim
     echo ""
+    setup_tmux
+    echo ""
     setup_claude
     echo ""
     setup_aqua
