@@ -104,6 +104,8 @@ Bash ツール呼び出し
 - **パイプ前半のみ検査**: `git log | grep fix` のようにパイプ後段に対象コマンドが来るケースはブロックしない。先頭コマンドが `git` であれば pass-through
 - **チェーン全体を検査**: `cmd1 && cat file` のように `&&`/`||`/`;` で連結された場合は各セグメントを個別に検査し、1つでもマッチすればコマンド全体をブロックする
 
+> `enforce-bash-permissions.py`（allow/deny リスト検証）は reason を英語で返す（`"Denied by permission rule: Bash(cmd:*)"`）。日本語メッセージは `redirect-to-tools.py` のみ。
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-013 セクション）
