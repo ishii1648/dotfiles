@@ -1,0 +1,8 @@
+name: e2e
+on: [push, pull_request]
+jobs:
+  e2e-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t dotfiles-e2e -f tests/Dockerfile .

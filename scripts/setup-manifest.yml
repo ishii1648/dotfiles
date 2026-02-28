@@ -16,6 +16,12 @@ profiles:
     - tmux
     - claude
     - aqua
+  linux:
+    - fish
+    - nvim
+    - tmux
+    - claude
+    - aqua
 
 components:
   fish:

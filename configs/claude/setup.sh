@@ -12,6 +12,9 @@ else
     generated=$(jq -S . "$BASE")
 fi
 
+# 親ディレクトリを保証
+mkdir -p "$(dirname "$DEST")"
+
 # 初回
 if [[ ! -f "$DEST" ]]; then
     echo "$generated" > "$DEST"
