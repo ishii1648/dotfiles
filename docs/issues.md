@@ -14,7 +14,7 @@
 | - | △ | tmux / claude | Claude permission ask 発生時にセッション移動が必要 — 内容閲覧と allow/deny 選択だけならセッション移動なしで対応したい | [ADR-009](adr/009-claude-permission-ask-inline-response.md) |
 | - | ○ | tmux / fish / ghostty | 設定変更時に既存機能が壊れる — キーバインドチェーン・関数依存・symlink など変更の影響範囲が広くリグレッションを手動確認している | [ADR-010](adr/010-dotfiles-regression-testing.md) |
 | ✔ | ○ | claude | Claude セッションを PR ベースで追跡できない — セッション開始・終了・ツール出力から PR URL を自動収集して JSONL に蓄積したい | [ADR-011](adr/011-claude-session-index.md) |
-| - | ○ | fish / claude | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
+| ✔ | ○ | fish / tmux / ghostty | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -52,8 +52,8 @@
 
 **受け入れ条件**:
 
-- [ ] 端末固有の fish functions・conf.d ファイルが dotfiles の `git status` に現れなくなる
-- [ ] tmux.conf・ghostty/config から社内ツール（prtrack）への参照が除去される
-- [ ] dotfiles を別端末にクローンしても、端末固有の設定が混入しない
-- [ ] 既存の共通設定（`tm`, `gw_add`、tmux キーバインド等）が引き続き動作する
-- [ ] 端末固有リポジトリの setup script で端末固有ファイルを配置できる
+- [x] 端末固有の fish functions・conf.d ファイルが dotfiles の `git status` に現れなくなる
+- [x] tmux.conf・ghostty/config から社内ツール（prtrack）への参照が除去される
+- [x] dotfiles を別端末にクローンしても、端末固有の設定が混入しない
+- [x] 既存の共通設定（`tm`, `gw_add`、tmux キーバインド等）が引き続き動作する
+- [x] 端末固有リポジトリの setup script で端末固有ファイルを配置できる
