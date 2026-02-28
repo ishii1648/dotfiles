@@ -1,0 +1,139 @@
+{
+  "env": {
+    "DISABLE_TELEMETRY": "1",
+    "ENABLE_TOOL_SEARCH": "1",
+    "CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1",
+    "CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS": "1"
+  },
+  "includeCoAuthoredBy": false,
+  "model": "sonnet",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh idle"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/session-index.sh"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh running"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh permission"
+          }
+        ]
+      },
+      {
+        "matcher": "elicitation_dialog",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-notify.sh"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh ask"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh idle"
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/session-index-stop.sh",
+            "timeout": 10000
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh end"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "prompt": "コンテキスト圧縮が実行されます。圧縮前に handover skill を実行して、現在の作業内容を HANDOVER.md に記録してください。"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/redirect-to-tools.py",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/claude-pane-state.sh running post"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/session-index-post-tool.sh",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.js"
+  },
+  "language": "日本語",
+  "alwaysThinkingEnabled": true,
+  "plansDirectory": ".outputs/claude/plan",
+  "effortLevel": "medium"
+}
