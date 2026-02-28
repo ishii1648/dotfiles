@@ -116,6 +116,33 @@ for f in config.fish fish_plugins fish_variables; do
     check_or_link "$HOME/.config/fish/$f" "$SCRIPT_DIR/$f" "$f"
 done
 
+# デフォルトシェルを fish に設定
+FISH_PATH=$(command -v fish 2>/dev/null || true)
+if [[ -n "$FISH_PATH" ]]; then
+    CURRENT_SHELL=$(dscl . -read /Users/"$(whoami)" UserShell 2>/dev/null | awk '{print $2}' || echo "$SHELL")
+    if [[ "$CURRENT_SHELL" != "$FISH_PATH" ]]; then
+        if $DRY_RUN; then
+            echo -e "  ${YELLOW}default shell${NC}\t✗ NOT fish (current: $CURRENT_SHELL)"
+            echo "    Fix: chsh -s $FISH_PATH"
+            fail_count=$((fail_count + 1))
+        else
+            # /etc/shells に fish が登録されていなければ追加
+            if ! grep -qx "$FISH_PATH" /etc/shells; then
+                echo "$FISH_PATH" | sudo tee -a /etc/shells >/dev/null
+                echo "  Added $FISH_PATH to /etc/shells"
+            fi
+            chsh -s "$FISH_PATH"
+            echo -e "  ${GREEN}default shell${NC}\t✓ changed to fish"
+            fix_count=$((fix_count + 1))
+        fi
+    else
+        if $DRY_RUN; then
+            echo -e "  ${GREEN}default shell${NC}\t✓ OK"
+        fi
+        ok_count=$((ok_count + 1))
+    fi
+fi
+
 if $DRY_RUN; then
     total=$((ok_count + fail_count))
     if [[ $fail_count -eq 0 ]]; then
