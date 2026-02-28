@@ -34,37 +34,19 @@ bash <端末固有リポジトリ>/setup.sh
 
 ## Claude Code Hooks 設定
 
-`~/.claude/settings.json` に以下の hooks 設定を追加:
+`~/.claude/settings.json` に手動で設定する。
 
-```json
-{
-  "hooks": {
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/sync-settings-local.sh"
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "ExitPlanMode",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/open-plan-pane.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-| Hook | 説明 |
-|------|------|
-| `Stop` | Claudeの応答完了時にworktreeの`.claude/settings.local.json`を親リポジトリに同期する |
-| `PostToolUse` (ExitPlanMode) | plan mode 完了時に tmux の右側 pane を開いて最新の plan ファイルを nvim で表示する |
+| Hook | スクリプト | 説明 |
+|------|-----------|------|
+| `SessionStart` | `claude-pane-state.sh idle` | ペイン状態を idle に設定 |
+| `SessionStart` | `session-index.sh` | セッションインデックスを記録 |
+| `UserPromptSubmit` | `claude-pane-state.sh running` | ペイン状態を running に設定 |
+| `Notification` (permission_prompt) | `claude-notify.sh` + `claude-pane-state.sh permission` | 権限要求を通知 |
+| `Notification` (elicitation_dialog) | `claude-notify.sh` + `claude-pane-state.sh ask` | 質問ダイアログを通知 |
+| `Stop` | `claude-pane-state.sh idle` | ペイン状態を idle に戻す |
+| `Stop` | `session-index-stop.sh` | セッション終了を記録 |
+| `SessionEnd` | `claude-pane-state.sh end` | ペイン状態を end に設定 |
+| `PreCompact` | prompt | コンテキスト圧縮前に handover skill を実行するよう指示 |
+| `PreToolUse` (Bash) | `redirect-to-tools.py` | 専用ツールへのリダイレクトを促す |
+| `PostToolUse` | `claude-pane-state.sh running post` | ツール使用後に running 状態を維持 |
+| `PostToolUse` (Bash) | `session-index-post-tool.sh` | ツール出力を記録 |
