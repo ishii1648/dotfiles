@@ -52,10 +52,25 @@ dotfiles/configs/claude/settings.json        (共通)
 | `configs/claude/settings.local.json` | 端末固有リポジトリ | 新規作成（端末固有設定） |
 | `setup.sh` | 端末固有リポジトリ | 更新（claude setup を追加） |
 
+### setup.sh の動作
+
+既存の `~/.claude/settings.json` とマージ結果に差分がある場合、**上書きせず差分を警告して `exit 1` で停止する**。
+
+```
+[WARN] ~/.claude/settings.json has local changes not reflected in dotfiles/sandbox:
+--- generated
++++ current
+@@ ... @@
+ ...
+Run with --force to overwrite, or update dotfiles/sandbox to include the changes.
+```
+
+差分がない場合（または初回生成時）のみ `~/.claude/settings.json` を書き込む。
+
 ### 運用ルール
 
 - settings.json の変更は必ず dotfiles か端末固有リポジトリを編集し、setup.sh を再実行する
-- GUI や直接編集した内容は次回 setup.sh 実行時に上書きされる
+- `~/.claude/settings.json` を直接編集した場合は、その内容を dotfiles/sandbox に反映してから setup.sh を実行する
 
 ## 決定
 

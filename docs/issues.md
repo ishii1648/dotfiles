@@ -71,6 +71,7 @@
 - [ ] `~/.claude/settings.json` に端末固有設定（ANTHROPIC_BASE_URL 等）が含まれた状態で正しく動作する
 - [ ] dotfiles の `configs/claude/settings.json` に端末固有設定（secrets・プラグイン）が含まれない
 - [ ] 端末固有リポジトリの `setup.sh` 実行で settings.local.json がマージされる
+- [ ] `~/.claude/settings.json` とマージ結果に差分がある場合、setup.sh が差分を出力して `exit 1` で停止する（上書きしない）
 
 ---
 
