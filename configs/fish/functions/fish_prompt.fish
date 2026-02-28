@@ -4,6 +4,14 @@ function fish_prompt
     # OSC 133;A - プロンプト開始
     printf '\e]133;A\a'
 
+    # SSH indicator
+    if set -q SSH_CONNECTION
+        set_color -b ff5555 white
+        echo -n " "(hostname -s)" "
+        set_color -b 535d7f ff5555
+        printf '\ue0b0'
+    end
+
     # pwd
     set_color -b 535d7f white
     echo -n (string replace $HOME '~' $PWD)" "
