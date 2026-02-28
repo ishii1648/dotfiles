@@ -52,12 +52,8 @@ components:
   claude:
     setup: configs/claude/setup.sh
     symlinks:
-      - link: ~/.claude/agents
-        target: configs/claude/agents
       - link: ~/.claude/CLAUDE.md
         target: configs/claude/CLAUDE.md
-      - link: ~/.claude/commands
-        target: configs/claude/commands
       - link: ~/.claude/scripts
         target: configs/claude/scripts
       - link: ~/.claude/statusline.js
