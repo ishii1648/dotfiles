@@ -45,7 +45,7 @@ if [ "$STATE" = "running" ]; then
         mkdir -p "$STATE_DIR"
         date +%s > "$STARTED_FILE"
     fi
-else
+elif [ "$STATE" = "idle" ] || [ "$STATE" = "end" ]; then
     rm -f "$STARTED_FILE"
 fi
 
