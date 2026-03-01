@@ -10,7 +10,7 @@
 # 使い方:
 #   bash setup-github-ssh.sh [--dry-run]
 
-set -euo pipefail
+set -uo pipefail
 
 DRY_RUN=false
 if [[ "${1:-}" == "--dry-run" ]]; then
@@ -22,6 +22,8 @@ RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
+
+ERRORS=0
 
 # ~ を $HOME に展開
 SETUP_AUTH_KEY="${SETUP_AUTH_KEY:-}"
@@ -40,36 +42,43 @@ if [[ -z "${SETUP_SIGN_KEY:-}" ]]; then
     exit 0
 fi
 
-# Step 0: Git ユーザー情報を設定
+# Step 1: Git ユーザー情報を設定
 if [[ -n "${SETUP_USER_NAME:-}" && -n "${SETUP_USER_EMAIL:-}" ]]; then
-    echo -e "  ${GREEN}Step 0${NC}: user.name / user.email"
+    echo -e "  Step 1: user.name / user.email"
     if $DRY_RUN; then
-        echo -e "  Would run: git config --global user.name \"$SETUP_USER_NAME\""
-        echo -e "  Would run: git config --global user.email \"$SETUP_USER_EMAIL\""
+        echo -e "    Would run: git config --global user.name \"$SETUP_USER_NAME\""
+        echo -e "    Would run: git config --global user.email \"$SETUP_USER_EMAIL\""
     else
-        git config --global user.name "$SETUP_USER_NAME"
-        git config --global user.email "$SETUP_USER_EMAIL"
-        echo -e "  ${GREEN}✓${NC} Set user.name=$SETUP_USER_NAME, user.email=$SETUP_USER_EMAIL"
+        if git config --global user.name "$SETUP_USER_NAME" && \
+           git config --global user.email "$SETUP_USER_EMAIL"; then
+            echo -e "    ${GREEN}✓${NC} user.name=$SETUP_USER_NAME, user.email=$SETUP_USER_EMAIL"
+        else
+            echo -e "    ${RED}FAIL${NC} git config --global user.name/user.email failed"
+            ((ERRORS++))
+        fi
     fi
+else
+    echo -e "  Step 1: user.name / user.email"
+    echo -e "    ${YELLOW}SKIP${NC} SETUP_USER_NAME or SETUP_USER_EMAIL is not set"
 fi
 
-# Step 1: ~/.ssh/config に GitHub Host 設定を追加
-echo -e "  ${GREEN}Step 1${NC}: ~/.ssh/config"
+# Step 2: ~/.ssh/config に GitHub Host 設定を追加
+echo -e "  Step 2: ~/.ssh/config"
 SSH_CONFIG="$HOME/.ssh/config"
 if grep -q "^Host github.com" "$SSH_CONFIG" 2>/dev/null; then
-    echo -e "  ${GREEN}✓${NC} Host github.com already configured"
+    echo -e "    ${GREEN}✓${NC} Host github.com already configured"
 else
     if $DRY_RUN; then
-        echo -e "  Would add to $SSH_CONFIG:"
-        echo "    Host github.com"
-        echo "      HostName github.com"
-        echo "      IdentityFile $SETUP_AUTH_KEY"
-        echo "      User git"
-        echo "      AddKeysToAgent yes"
-        echo "      UseKeychain yes"
+        echo -e "    Would add to $SSH_CONFIG:"
+        echo "      Host github.com"
+        echo "        HostName github.com"
+        echo "        IdentityFile $SETUP_AUTH_KEY"
+        echo "        User git"
+        echo "        AddKeysToAgent yes"
+        echo "        UseKeychain yes"
     else
         mkdir -p "$HOME/.ssh"
-        cat >> "$SSH_CONFIG" <<EOF
+        if cat >> "$SSH_CONFIG" <<EOF
 
 Host github.com
   HostName github.com
@@ -78,48 +87,75 @@ Host github.com
   AddKeysToAgent yes
   UseKeychain yes
 EOF
-        chmod 600 "$SSH_CONFIG"
-        echo -e "  ${GREEN}✓${NC} Added Host github.com to $SSH_CONFIG"
+        then
+            chmod 600 "$SSH_CONFIG"
+            echo -e "    ${GREEN}✓${NC} Added Host github.com to $SSH_CONFIG"
+        else
+            echo -e "    ${RED}FAIL${NC} Could not write to $SSH_CONFIG"
+            ((ERRORS++))
+        fi
     fi
 fi
 
-# Step 2: ~/.gitconfig に user.signingkey を設定
-echo -e "  ${GREEN}Step 2${NC}: user.signingkey"
+# Step 3: ~/.gitconfig に user.signingkey を設定
+echo -e "  Step 3: user.signingkey"
 if $DRY_RUN; then
-    echo -e "  Would run: git config --global user.signingkey ${SETUP_SIGN_KEY}.pub"
+    echo -e "    Would run: git config --global user.signingkey ${SETUP_SIGN_KEY}.pub"
 else
-    git config --global user.signingkey "${SETUP_SIGN_KEY}.pub"
-    echo -e "  ${GREEN}✓${NC} Set user.signingkey to ${SETUP_SIGN_KEY}.pub"
+    if git config --global user.signingkey "${SETUP_SIGN_KEY}.pub"; then
+        echo -e "    ${GREEN}✓${NC} user.signingkey=${SETUP_SIGN_KEY}.pub"
+    else
+        echo -e "    ${RED}FAIL${NC} git config --global user.signingkey failed"
+        ((ERRORS++))
+    fi
 fi
 
-# Step 3: ssh-agent + Keychain に鍵を登録
-echo -e "  ${GREEN}Step 3${NC}: ssh-add"
+# Step 4: ssh-agent + Keychain に鍵を登録
+echo -e "  Step 4: ssh-add (keychain)"
 if $DRY_RUN; then
-    echo -e "  Would run: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
-    echo -e "  Would run: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
+    echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
+    echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
 else
     if [[ -f "$SETUP_AUTH_KEY" ]]; then
-        ssh-add --apple-use-keychain "$SETUP_AUTH_KEY"
-        echo -e "  ${GREEN}✓${NC} Added $SETUP_AUTH_KEY to keychain"
+        if ssh-add --apple-use-keychain "$SETUP_AUTH_KEY"; then
+            echo -e "    ${GREEN}✓${NC} $SETUP_AUTH_KEY → keychain"
+        else
+            echo -e "    ${RED}FAIL${NC} ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
+            echo -e "    ${YELLOW}TIP${NC}:  手動で実行してください: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
+            ((ERRORS++))
+        fi
     else
-        echo -e "  ${YELLOW}WARN${NC}: $SETUP_AUTH_KEY not found, skipping ssh-add"
+        echo -e "    ${RED}FAIL${NC} $SETUP_AUTH_KEY not found"
+        ((ERRORS++))
     fi
     if [[ -f "$SETUP_SIGN_KEY" ]]; then
-        ssh-add --apple-use-keychain "$SETUP_SIGN_KEY"
-        echo -e "  ${GREEN}✓${NC} Added $SETUP_SIGN_KEY to keychain"
+        if ssh-add --apple-use-keychain "$SETUP_SIGN_KEY"; then
+            echo -e "    ${GREEN}✓${NC} $SETUP_SIGN_KEY → keychain"
+        else
+            echo -e "    ${RED}FAIL${NC} ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
+            echo -e "    ${YELLOW}TIP${NC}:  手動で実行してください: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
+            ((ERRORS++))
+        fi
     else
-        echo -e "  ${YELLOW}WARN${NC}: $SETUP_SIGN_KEY not found, skipping ssh-add"
+        echo -e "    ${RED}FAIL${NC} $SETUP_SIGN_KEY not found"
+        ((ERRORS++))
     fi
 fi
 
-# Step 4: 接続テスト
-echo -e "  ${GREEN}Step 4${NC}: connection test"
+# Step 5: 接続テスト
+echo -e "  Step 5: connection test"
 if $DRY_RUN; then
-    echo -e "  Would run: ssh -T git@github.com"
+    echo -e "    Would run: ssh -T git@github.com"
 else
     if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
-        echo -e "  ${GREEN}✓${NC} SSH connection to GitHub OK"
+        echo -e "    ${GREEN}✓${NC} SSH connection to GitHub OK"
     else
-        echo -e "  ${YELLOW}WARN${NC}: SSH connection test returned non-zero (this is normal if key is not yet registered on GitHub)"
+        echo -e "    ${YELLOW}WARN${NC} SSH connection test failed (key may not be registered on GitHub yet)"
     fi
+fi
+
+# 結果サマリ
+if [[ $ERRORS -gt 0 ]]; then
+    echo -e "  ${RED}$ERRORS error(s)${NC} in git setup"
+    exit 1
 fi
