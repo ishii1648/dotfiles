@@ -53,9 +53,11 @@ copies:
 
 ```yaml
 setup_args:
-  auth_key: ~/.ssh/private_ed25519_github    # → SETUP_AUTH_KEY
-  sign_key: ~/.ssh/private_ed25519_github_sign  # → SETUP_SIGN_KEY
+  auth_key:   # ユーザーが設定 → SETUP_AUTH_KEY
+  sign_key:   # ユーザーが設定 → SETUP_SIGN_KEY
 ```
+
+`setup_args` の値はデフォルト空。ユーザーがマニフェストに鍵パスを設定した場合のみ環境変数として渡される。`null` または空値のキーは skip される。
 
 `setup.sh` の Phase 2 で `jq` を使って setup_args を解析し、`env` コマンドで環境変数として渡す。
 
