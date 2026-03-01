@@ -40,7 +40,7 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | `~/.claude` | `/home/claude/.claude` | R/W | Claude Code 設定・セッション |
 | `~/.ssh` | `/home/claude/.ssh-host` | **Read-Only** | SSH 鍵（entrypoint で writable コピー） |
 | `~/.gitconfig` | `/home/claude/.gitconfig` | R/W | Git 設定（存在時のみ） |
-| `~/.config/gh` or `claude-code-gh` (named volume) | `/home/claude/.config/gh` | R/W | gh CLI 認証 |
+| `~/.config/gh` | `/home/claude/.config/gh` | R/W | gh CLI 認証（存在時のみ） |
 
 ホストの `~/.zshrc`, `~/.local/bin`, LaunchAgent 等はマウントされない。
 
@@ -51,9 +51,9 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | 用途 | プロトコル | 認証ソース |
 |------|-----------|-----------|
 | `git push/pull` | SSH | `~/.ssh` (RO マウント → コンテナ内コピー) |
-| `gh pr create` 等 | HTTPS | `~/.config/gh` (ホストにあればバインドマウント、なければ named volume で永続化) |
+| `gh pr create` 等 | HTTPS | `~/.config/gh` (存在時のみバインドマウント) |
 
-ホストに `~/.config/gh` がない場合、初回のコンテナ起動時に `gh auth login` が必要。認証情報は `claude-code-gh` named volume に保存され、以降のコンテナ起動で引き継がれる。
+ホストに `~/.config/gh` がない場合はコンテナ起動前にホスト側で `gh auth login` を実行しておくこと（[初回セットアップ](#初回セットアップ-gh-cli-認証)参照）。
 
 ### SSH config の OS 分岐
 
@@ -83,14 +83,16 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 
 ## 初回セットアップ: gh CLI 認証
 
-ホストに `~/.config/gh` がない場合、初回のコンテナ起動時に gh CLI の認証が必要。GitHub の [Personal Access Token](https://github.com/settings/tokens) を発行し、トークン認証で設定する:
+ホストに `~/.config/gh` がない場合、コンテナ起動前にホスト側で gh CLI を認証しておく:
 
 ```bash
-# コンテナ内で実行
+# ホスト側で実行
 gh auth login --with-token <<< "ghp_xxxxx"
 ```
 
-認証情報は `claude-code-gh` named volume に保存されるため、以降のコンテナ起動では自動的に認証済み状態になる。
+GitHub の [Personal Access Token](https://github.com/settings/tokens) を発行して使用する。SSH 先などブラウザが開けない環境ではトークン認証が必要。
+
+認証後 `~/.config/gh` が作成され、`run.sh` がコンテナにバインドマウントする。
 
 ## トラブルシューティング
 
