@@ -3,5 +3,5 @@
 components:
   git:
     setup_args:
-      auth_key: ~/.ssh/private_ed25519_github
-      sign_key: ~/.ssh/private_ed25519_github_sign
+      auth_key: ~/.ssh/id_ed25519_github
+      sign_key: ~/.ssh/id_ed25519_github_sign

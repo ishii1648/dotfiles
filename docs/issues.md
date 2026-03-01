@@ -29,6 +29,7 @@
 | ✔ | ○ | tmux / fish | パススルーモードの UI が直感的でない — 表示が実装寄り（`[PASSTHROUGH]`）で操作対象が分かりづらく、ネスト時にステータスバーが重複する | [ADR-026](adr/026-tmux-passthrough-ui-improvement.md) |
 | ✔ | ○ | git / claude | 設定ファイル管理が複雑で端末固有リポへの依存が重い — .gitconfig は未配布、settings.json は jq マージ方式でメンテ性が悪い | [ADR-027](adr/027-config-copy-validate-pattern.md) |
 | ✔ | ○ | git | SSH 鍵・gitconfig が手動管理で散在している — pub 鍵がリポ管理外、gitconfig が OS 非依存の単一ファイル、SSH セットアップが手動 | [ADR-028](adr/028-git-ssh-key-gitconfig-profile-separation.md) |
+| ✔ | ○ | git | SSH 鍵の pub 鍵をリポ管理しているが秘密鍵を配布できない — 端末ごとに鍵ペアを生成すべきで pub 鍵のリポ管理が無意味 | [ADR-029](adr/029-per-terminal-ssh-key-generation.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -249,7 +250,7 @@
 
 **受け入れ条件**:
 
-- [x] pub 鍵（`private_ed25519_github.pub` / `private_ed25519_github_sign.pub`）が `configs/git/` でリポジトリ管理されている
+- ~~pub 鍵（`private_ed25519_github.pub` / `private_ed25519_github_sign.pub`）が `configs/git/` でリポジトリ管理されている~~ （ADR-029 で廃止）
 - [x] `configs/git/gitconfig`（linux 用）に `[credential]` セクションが含まれない
 - [x] `configs/git/gitconfig.macos`（full/remote 用）に `[credential] helper = osxkeychain` が含まれる
 - [x] `setup.sh --dry-run` で full プロファイル時に `gitconfig.macos` が参照される
@@ -276,4 +277,17 @@
 - [x] `setup.sh` が validate 機能を持ち、json 型（`jq`）で共通キーの存在をチェックできる
 - [x] validate 失敗時に WARN を出力して続行する（exit 1 しない）
 - [x] `setup.sh --dry-run` で validate チェックが実行される
+
+---
+
+### ADR-029: 端末ごとの SSH 鍵生成方式への移行
+
+**コンポーネント**: git | **ADR**: [ADR-029](adr/029-per-terminal-ssh-key-generation.md)
+
+**受け入れ条件**:
+
+- [x] `configs/git/` から pub 鍵ファイル（`private_ed25519_github.pub` / `private_ed25519_github_sign.pub`）が削除されている
+- [x] README に鍵生成 → GitHub 登録 → overlay manifest 設定 → setup.sh 実行のフローが記載されている
+- [x] ADR-028 のステータスが `部分廃止（ADR-029 で一部変更）` に更新されている
+- [x] ADR-028 の受け入れ条件から pub 鍵リポ管理の項目が除外されている
 

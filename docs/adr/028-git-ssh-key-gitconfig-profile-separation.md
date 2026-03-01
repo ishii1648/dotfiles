@@ -2,7 +2,10 @@
 
 ## ステータス
 
-採用済み
+部分廃止（ADR-029 で一部変更）
+
+- 変更: pub 鍵のリポジトリ管理（ADR-029 で端末ごとの鍵生成方式に変更）
+- 有効: gitconfig プロファイル分離、overlay manifest、setup-github-ssh.sh
 
 ## 関連 ADR
 

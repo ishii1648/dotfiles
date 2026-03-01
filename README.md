@@ -9,13 +9,34 @@
 - **macOS**: [Homebrew](https://brew.sh) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua を自動インストールする。
 - **Linux**: 事前にパッケージのインストールが必要。Docker テスト用の `tests/Dockerfile` を参照。
 
+### 事前設定（初回のみ）
+
+```bash
+# 1. Git ユーザー情報を設定
+git config --global user.name "Your Name"
+git config --global user.email "your_email@example.com"
+
+# 2. SSH 鍵ペアを生成（認証用・署名用）
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github -C "your_email@example.com"
+ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github_sign -C "your_email@example.com"
+
+# 3. GitHub に pub 鍵を登録
+#    - Authentication key: ~/.ssh/id_ed25519_github.pub
+#    - Signing key:        ~/.ssh/id_ed25519_github_sign.pub
+#    https://github.com/settings/keys
+
+# 4. overlay manifest に鍵パスを設定
+cp scripts/setup-manifest.local.yml.example scripts/setup-manifest.local.yml
+# エディタで鍵パスを自分の環境に合わせて編集
+```
+
 ### 実行
 
 ```bash
 bash scripts/setup.sh
 ```
 
-マニフェスト（`scripts/setup-manifest.yml`）に定義された全コンポーネントのセットアップが一発で完了する。
+マニフェスト（`scripts/setup-manifest.yml`）に定義された全コンポーネントのセットアップが一発で完了する。SSH 鍵の設定（`~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録）も含まれる。
 
 ### オプション
 
@@ -65,17 +86,6 @@ tms lab dev       # セッション名を指定
 ```
 
 F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/tmux.local.conf.example` の F12 設定をコピーしておく）。
-
-## GitHub SSH 鍵セットアップ
-
-`setup.sh` は GitHub への SSH 認証・コミット署名の設定を半自動化できる。`scripts/setup-manifest.local.yml` に鍵パスを設定すると、セットアップ時に `~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録が実行される。
-
-```bash
-cp scripts/setup-manifest.local.yml.example scripts/setup-manifest.local.yml
-# エディタで鍵パスを自分の環境に合わせて編集
-```
-
-未設定の場合は SSH セットアップを skip する。`--dry-run` で実行予定のコマンドを事前確認できる。
 
 ## 端末固有設定
 
