@@ -435,10 +435,28 @@ for component in $COMPONENT_LIST; do
     if [[ -n "$setup_script" ]]; then
         setup_abs="$DOTFILES_DIR/$setup_script"
         echo -e "  Delegating to $setup_script..."
-        if $DRY_RUN; then
-            bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+
+        # setup_args を環境変数として渡す
+        setup_args_json=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].setup_args // empty')
+        if [[ -n "$setup_args_json" && "$setup_args_json" != "null" ]]; then
+            env_vars=()
+            for key in $(echo "$setup_args_json" | jq -r 'keys[]'); do
+                value=$(echo "$setup_args_json" | jq -r --arg k "$key" '.[$k]')
+                value=$(expand_path "$value")
+                env_name="SETUP_$(echo "$key" | tr '[:lower:]' '[:upper:]')"
+                env_vars+=("$env_name=$value")
+            done
+            if $DRY_RUN; then
+                env "${env_vars[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+            else
+                env "${env_vars[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
+            fi
         else
-            bash "$setup_abs" || fail_count=$((fail_count + 1))
+            if $DRY_RUN; then
+                bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+            else
+                bash "$setup_abs" || fail_count=$((fail_count + 1))
+            fi
         fi
     fi
 

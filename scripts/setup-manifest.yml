@@ -78,10 +78,23 @@ components:
         target: aqua.yaml
 
   git:
+    setup: configs/git/setup-github-ssh.sh
+    setup_args:
+      auth_key: ~/.ssh/private_ed25519_github
+      sign_key: ~/.ssh/private_ed25519_github_sign
     copies:
       - src: configs/git/gitconfig
         dest: ~/.gitconfig
         if_missing: true
+        profile: linux
+      - src: configs/git/gitconfig.macos
+        dest: ~/.gitconfig
+        if_missing: true
+        profile: full
+      - src: configs/git/gitconfig.macos
+        dest: ~/.gitconfig
+        if_missing: true
+        profile: remote
     validate:
       - type: gitconfig
         src: configs/git/gitconfig
