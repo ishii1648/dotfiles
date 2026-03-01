@@ -30,6 +30,7 @@
 | ✔ | ○ | git / claude | 設定ファイル管理が複雑で端末固有リポへの依存が重い — .gitconfig は未配布、settings.json は jq マージ方式でメンテ性が悪い | [ADR-027](adr/027-config-copy-validate-pattern.md) |
 | ✔ | ○ | git | SSH 鍵・gitconfig が手動管理で散在している — pub 鍵がリポ管理外、gitconfig が OS 非依存の単一ファイル、SSH セットアップが手動 | [ADR-028](adr/028-git-ssh-key-gitconfig-profile-separation.md) |
 | ✔ | ○ | git | SSH 鍵の pub 鍵をリポ管理しているが秘密鍵を配布できない — 端末ごとに鍵ペアを生成すべきで pub 鍵のリポ管理が無意味 | [ADR-029](adr/029-per-terminal-ssh-key-generation.md) |
+| ✔ | ○ | claude | lab 環境で Claude Code を安全に自律実行できない — Built-in Sandbox はツールバイパス問題があり、Docker コンテナ隔離 + Cloudflare Gateway が必要 | [ADR-030](adr/030-claude-code-docker-sandbox.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -290,4 +291,18 @@
 - [x] README に鍵生成 → GitHub 登録 → overlay manifest 設定 → setup.sh 実行のフローが記載されている
 - [x] ADR-028 のステータスが `部分廃止（ADR-029 で一部変更）` に更新されている
 - [x] ADR-028 の受け入れ条件から pub 鍵リポ管理の項目が除外されている
+
+---
+
+### ADR-030: lab 環境の Claude Code を Docker コンテナで隔離実行する
+
+**コンポーネント**: claude | **ADR**: [ADR-030](adr/030-claude-code-docker-sandbox.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/docker/Dockerfile` が存在し、debian:bookworm-slim ベースで Node.js・git・gh CLI・非 root ユーザー `claude` が定義されている
+- [x] `configs/claude/docker/entrypoint.sh` が存在し、SSH 鍵の RO → writable コピー、パーミッション修正、claude ユーザーへの権限ドロップ、Claude Code インストールが実装されている
+- [x] `configs/claude/docker/run.sh` が存在し、deny-by-default マウント構成（プロジェクトディレクトリ R/W、~/.ssh RO、~/.gitconfig・~/.config/gh は存在時のみ）で `claude --dangerously-skip-permissions` を起動する
+- [x] `run.sh` が API トークンを環境変数（`ANTHROPIC_API_KEY`）経由で注入し、コンテナ内のファイルに永続保存しない
+- [x] `docker build` + `run.sh <project-dir>` でコンテナが起動し、Claude Code のヘルプが表示される
 
