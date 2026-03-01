@@ -442,14 +442,25 @@ for component in $COMPONENT_LIST; do
             env_vars=()
             for key in $(echo "$setup_args_json" | jq -r 'keys[]'); do
                 value=$(echo "$setup_args_json" | jq -r --arg k "$key" '.[$k]')
+                if [[ "$value" == "null" || -z "$value" ]]; then
+                    continue
+                fi
                 value=$(expand_path "$value")
                 env_name="SETUP_$(echo "$key" | tr '[:lower:]' '[:upper:]')"
                 env_vars+=("$env_name=$value")
             done
-            if $DRY_RUN; then
-                env "${env_vars[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+            if [[ ${#env_vars[@]} -gt 0 ]]; then
+                if $DRY_RUN; then
+                    env "${env_vars[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+                else
+                    env "${env_vars[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
+                fi
             else
-                env "${env_vars[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
+                if $DRY_RUN; then
+                    bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
+                else
+                    bash "$setup_abs" || fail_count=$((fail_count + 1))
+                fi
             fi
         else
             if $DRY_RUN; then

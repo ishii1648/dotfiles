@@ -80,8 +80,8 @@ components:
   git:
     setup: configs/git/setup-github-ssh.sh
     setup_args:
-      auth_key: ~/.ssh/private_ed25519_github
-      sign_key: ~/.ssh/private_ed25519_github_sign
+      auth_key:
+      sign_key:
     copies:
       - src: configs/git/gitconfig
         dest: ~/.gitconfig
