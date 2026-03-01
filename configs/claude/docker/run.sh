@@ -22,12 +22,16 @@ MOUNTS=(
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
 )
 
+# gh CLI auth: host dir if available, otherwise named volume for persistence
+if [ -d "$HOME/.config/gh" ]; then
+    MOUNTS+=(-v "$HOME/.config/gh:/home/claude/.config/gh")
+else
+    MOUNTS+=(-v "claude-code-gh:/home/claude/.config/gh")
+fi
+
 # Optional mounts (only if exist on host)
 if [ -f "$HOME/.gitconfig" ]; then
     MOUNTS+=(-v "$HOME/.gitconfig:/home/claude/.gitconfig")
-fi
-if [ -d "$HOME/.config/gh" ]; then
-    MOUNTS+=(-v "$HOME/.config/gh:/home/claude/.config/gh")
 fi
 
 # Run container

@@ -40,7 +40,7 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | `~/.claude` | `/home/claude/.claude` | R/W | Claude Code 設定・セッション |
 | `~/.ssh` | `/home/claude/.ssh-host` | **Read-Only** | SSH 鍵（entrypoint で writable コピー） |
 | `~/.gitconfig` | `/home/claude/.gitconfig` | R/W | Git 設定（存在時のみ） |
-| `~/.config/gh` | `/home/claude/.config/gh` | R/W | gh CLI 認証（存在時のみ） |
+| `~/.config/gh` or `claude-code-gh` (named volume) | `/home/claude/.config/gh` | R/W | gh CLI 認証 |
 
 ホストの `~/.zshrc`, `~/.local/bin`, LaunchAgent 等はマウントされない。
 
@@ -51,7 +51,9 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | 用途 | プロトコル | 認証ソース |
 |------|-----------|-----------|
 | `git push/pull` | SSH | `~/.ssh` (RO マウント → コンテナ内コピー) |
-| `gh pr create` 等 | HTTPS | `~/.config/gh` (R/W マウント、存在時のみ) |
+| `gh pr create` 等 | HTTPS | `~/.config/gh` (ホストにあればバインドマウント、なければ named volume で永続化) |
+
+ホストに `~/.config/gh` がない場合、初回のコンテナ起動時に `gh auth login` が必要。認証情報は `claude-code-gh` named volume に保存され、以降のコンテナ起動で引き継がれる。
 
 ### SSH config の OS 分岐
 
