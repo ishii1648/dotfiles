@@ -68,17 +68,14 @@ F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/t
 
 ## GitHub SSH 鍵セットアップ
 
-`setup.sh` は GitHub への SSH 認証・コミット署名の設定を半自動化できる。`scripts/setup-manifest.yml` の `setup_args` に鍵パスを設定すると、セットアップ時に `~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録が実行される。
+`setup.sh` は GitHub への SSH 認証・コミット署名の設定を半自動化できる。`scripts/setup-manifest.local.yml` に鍵パスを設定すると、セットアップ時に `~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録が実行される。
 
-```yaml
-# scripts/setup-manifest.yml
-  git:
-    setup_args:
-      auth_key: ~/.ssh/your_ed25519_github        # SSH 認証鍵
-      sign_key: ~/.ssh/your_ed25519_github_sign    # コミット署名鍵
+```bash
+cp scripts/setup-manifest.local.yml.example scripts/setup-manifest.local.yml
+# エディタで鍵パスを自分の環境に合わせて編集
 ```
 
-未設定（空）の場合は SSH セットアップを skip する。`--dry-run` で実行予定のコマンドを事前確認できる。
+未設定の場合は SSH セットアップを skip する。`--dry-run` で実行予定のコマンドを事前確認できる。
 
 ## 端末固有設定
 

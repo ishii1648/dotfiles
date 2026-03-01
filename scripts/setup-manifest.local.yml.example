@@ -1,0 +1,7 @@
+# scripts/setup-manifest.local.yml
+# 環境依存の設定をここに記述する（gitignore 済み）
+components:
+  git:
+    setup_args:
+      auth_key: ~/.ssh/private_ed25519_github
+      sign_key: ~/.ssh/private_ed25519_github_sign

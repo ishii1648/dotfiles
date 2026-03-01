@@ -134,7 +134,24 @@ fi
 # ========================================
 # マニフェスト読み込み（YAML → JSON）
 # ========================================
-MANIFEST_JSON=$(python3 -c "import yaml,json,sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$MANIFEST")
+MANIFEST_LOCAL="$SCRIPT_DIR/setup-manifest.local.yml"
+if [[ -f "$MANIFEST_LOCAL" ]]; then
+    MANIFEST_JSON=$(python3 -c "
+import yaml, json, sys
+def deep_merge(base, overlay):
+    for k, v in overlay.items():
+        if k in base and isinstance(base[k], dict) and isinstance(v, dict):
+            deep_merge(base[k], v)
+        else:
+            base[k] = v
+    return base
+base = yaml.safe_load(open(sys.argv[1]))
+overlay = yaml.safe_load(open(sys.argv[2]))
+print(json.dumps(deep_merge(base, overlay)))
+" "$MANIFEST" "$MANIFEST_LOCAL")
+else
+    MANIFEST_JSON=$(python3 -c "import yaml,json,sys; print(json.dumps(yaml.safe_load(open(sys.argv[1]))))" "$MANIFEST")
+fi
 
 # プロファイル検証
 COMPONENT_LIST=$(echo "$MANIFEST_JSON" | jq -r --arg p "$PROFILE" '.profiles[$p] // empty | .[]')
@@ -436,31 +453,23 @@ for component in $COMPONENT_LIST; do
         setup_abs="$DOTFILES_DIR/$setup_script"
         echo -e "  Delegating to $setup_script..."
 
-        # setup_args を環境変数として渡す
+        # setup_args → SETUP_ prefix 環境変数に変換
+        setup_env=()
         setup_args_json=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].setup_args // empty')
         if [[ -n "$setup_args_json" && "$setup_args_json" != "null" ]]; then
-            env_vars=()
-            for key in $(echo "$setup_args_json" | jq -r 'keys[]'); do
-                value=$(echo "$setup_args_json" | jq -r --arg k "$key" '.[$k]')
-                if [[ "$value" == "null" || -z "$value" ]]; then
-                    continue
+            while IFS='=' read -r key value; do
+                if [[ -n "$key" && -n "$value" && "$value" != "null" ]]; then
+                    env_name="SETUP_$(echo "$key" | tr '[:lower:]' '[:upper:]')"
+                    setup_env+=("$env_name=$value")
                 fi
-                value=$(expand_path "$value")
-                env_name="SETUP_$(echo "$key" | tr '[:lower:]' '[:upper:]')"
-                env_vars+=("$env_name=$value")
-            done
-            if [[ ${#env_vars[@]} -gt 0 ]]; then
-                if $DRY_RUN; then
-                    env "${env_vars[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
-                else
-                    env "${env_vars[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
-                fi
+            done < <(echo "$setup_args_json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
+        fi
+
+        if [[ ${#setup_env[@]} -gt 0 ]]; then
+            if $DRY_RUN; then
+                env "${setup_env[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
             else
-                if $DRY_RUN; then
-                    bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
-                else
-                    bash "$setup_abs" || fail_count=$((fail_count + 1))
-                fi
+                env "${setup_env[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
             fi
         else
             if $DRY_RUN; then

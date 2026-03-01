@@ -111,6 +111,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [025-adr-reference-skill.md](adr/025-adr-reference-skill.md)
 - [026-tmux-passthrough-ui-improvement.md](adr/026-tmux-passthrough-ui-improvement.md)
 - [027-config-copy-validate-pattern.md](adr/027-config-copy-validate-pattern.md)
+- [028-git-ssh-key-gitconfig-profile-separation.md](adr/028-git-ssh-key-gitconfig-profile-separation.md)
 
 ## Neovim プラグイン一覧
 

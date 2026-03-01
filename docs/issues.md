@@ -28,7 +28,7 @@
 | ✔ | ○ | claude | ADR 運用ルールが未整備で一貫性を保てない — 採用案の表記ぶれ・ADR 間矛盾チェックの欠如・Supersede フロー未定義 | [ADR-025](adr/025-adr-reference-skill.md) |
 | ✔ | ○ | tmux / fish | パススルーモードの UI が直感的でない — 表示が実装寄り（`[PASSTHROUGH]`）で操作対象が分かりづらく、ネスト時にステータスバーが重複する | [ADR-026](adr/026-tmux-passthrough-ui-improvement.md) |
 | ✔ | ○ | git / claude | 設定ファイル管理が複雑で端末固有リポへの依存が重い — .gitconfig は未配布、settings.json は jq マージ方式でメンテ性が悪い | [ADR-027](adr/027-config-copy-validate-pattern.md) |
-| - | ○ | git | SSH 鍵・gitconfig が手動管理で散在している — pub 鍵がリポ管理外、gitconfig が OS 非依存の単一ファイル、SSH セットアップが手動 | [ADR-028](adr/028-git-ssh-key-gitconfig-profile-separation.md) |
+| ✔ | ○ | git | SSH 鍵・gitconfig が手動管理で散在している — pub 鍵がリポ管理外、gitconfig が OS 非依存の単一ファイル、SSH セットアップが手動 | [ADR-028](adr/028-git-ssh-key-gitconfig-profile-separation.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -249,14 +249,16 @@
 
 **受け入れ条件**:
 
-- [ ] pub 鍵（`private_ed25519_github.pub` / `private_ed25519_github_sign.pub`）が `configs/git/` でリポジトリ管理されている
-- [ ] `configs/git/gitconfig`（linux 用）に `[credential]` セクションが含まれない
-- [ ] `configs/git/gitconfig.macos`（full/remote 用）に `[credential] helper = osxkeychain` が含まれる
-- [ ] `setup.sh --dry-run` で full プロファイル時に `gitconfig.macos` が参照される
-- [ ] `setup.sh --dry-run --profile linux` で `gitconfig`（linux 版）が参照される
-- [ ] `setup_args` の各キーが `SETUP_` prefix + 大文字化で環境変数としてスクリプトに渡される
-- [ ] `setup-github-ssh.sh` の dry-run で ~/.ssh/config 追加・user.signingkey 設定・ssh-add コマンドが表示される
-- [ ] `setup-github-ssh.sh` が環境変数未設定時に WARN を出して skip する
+- [x] pub 鍵（`private_ed25519_github.pub` / `private_ed25519_github_sign.pub`）が `configs/git/` でリポジトリ管理されている
+- [x] `configs/git/gitconfig`（linux 用）に `[credential]` セクションが含まれない
+- [x] `configs/git/gitconfig.macos`（full/remote 用）に `[credential] helper = osxkeychain` が含まれる
+- [x] `setup.sh --dry-run` で full プロファイル時に `gitconfig.macos` が参照される
+- [x] `setup.sh --dry-run --profile linux` で `gitconfig`（linux 版）が参照される
+- [x] `scripts/setup-manifest.local.yml.example` が記入例として存在する
+- [x] `scripts/setup-manifest.local.yml` が存在する場合、ベースマニフェストと deep merge される
+- [x] overlay の `setup_args` の各キーが `SETUP_` prefix + 大文字化で環境変数としてスクリプトに渡される
+- [x] `setup-github-ssh.sh` の dry-run で ~/.ssh/config 追加・user.signingkey 設定・ssh-add コマンドが表示される
+- [x] `setup-github-ssh.sh` が環境変数未設定時に WARN を出して skip する
 
 ---
 
