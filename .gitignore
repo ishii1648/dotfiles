@@ -13,5 +13,8 @@ scripts/setup-manifest.local.yml
 configs/fish/fish_variables
 
 
+# Claude output
+.outputs/claude/
+
 # Git worktree
 .worktree/
