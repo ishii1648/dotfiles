@@ -33,3 +33,4 @@ packages:
 - name: kubernetes-sigs/kwok/kwokctl@v0.6.1
 - name: a8m/envsubst@v1.4.3
 - name: cli/cli@v2.69.0
+- name: toshimaru/nyan@v1.2.5
