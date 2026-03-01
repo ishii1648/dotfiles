@@ -447,7 +447,40 @@ echo ""
 for component in $COMPONENT_LIST; do
     echo -e "${CYAN}[$component]${NC}"
 
-    # setup スクリプトがあれば委譲
+    # symlinks 処理
+    symlink_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].symlinks // [] | length')
+    if [[ $symlink_count -gt 0 ]]; then
+        for i in $(seq 0 $((symlink_count - 1))); do
+            link_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].link')
+            target_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].target')
+            link_path=$(expand_path "$link_rel")
+            target_abs="$DOTFILES_DIR/$target_rel"
+            display_name=$(basename "$link_rel")
+            ensure_symlink "$display_name" "$link_path" "$target_abs"
+        done
+    fi
+
+    # copies 処理（setup スクリプトより先に実行し、if_missing で配布するファイルを確保する）
+    copies_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].copies // [] | length')
+    if [[ $copies_count -gt 0 ]]; then
+        for i in $(seq 0 $((copies_count - 1))); do
+            src_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].src')
+            dest_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].dest')
+            copy_profile=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].profile // empty')
+            if_missing=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].if_missing // false')
+
+            # プロファイルフィルタ
+            if [[ -n "$copy_profile" && "$copy_profile" != "$PROFILE" ]]; then
+                continue
+            fi
+
+            src_abs="$DOTFILES_DIR/$src_rel"
+            dest_path=$(expand_path "$dest_rel")
+            process_copy "$src_abs" "$dest_path" "$if_missing"
+        done
+    fi
+
+    # setup スクリプトがあれば委譲（copies の後に実行）
     setup_script=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].setup // empty')
     if [[ -n "$setup_script" ]]; then
         setup_abs="$DOTFILES_DIR/$setup_script"
@@ -478,39 +511,6 @@ for component in $COMPONENT_LIST; do
                 bash "$setup_abs" || fail_count=$((fail_count + 1))
             fi
         fi
-    fi
-
-    # symlinks 処理
-    symlink_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].symlinks // [] | length')
-    if [[ $symlink_count -gt 0 ]]; then
-        for i in $(seq 0 $((symlink_count - 1))); do
-            link_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].link')
-            target_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].target')
-            link_path=$(expand_path "$link_rel")
-            target_abs="$DOTFILES_DIR/$target_rel"
-            display_name=$(basename "$link_rel")
-            ensure_symlink "$display_name" "$link_path" "$target_abs"
-        done
-    fi
-
-    # copies 処理
-    copies_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].copies // [] | length')
-    if [[ $copies_count -gt 0 ]]; then
-        for i in $(seq 0 $((copies_count - 1))); do
-            src_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].src')
-            dest_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].dest')
-            copy_profile=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].profile // empty')
-            if_missing=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].copies[$i].if_missing // false')
-
-            # プロファイルフィルタ
-            if [[ -n "$copy_profile" && "$copy_profile" != "$PROFILE" ]]; then
-                continue
-            fi
-
-            src_abs="$DOTFILES_DIR/$src_rel"
-            dest_path=$(expand_path "$dest_rel")
-            process_copy "$src_abs" "$dest_path" "$if_missing"
-        done
     fi
 
     # validate 処理
