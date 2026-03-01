@@ -116,6 +116,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [030-claude-code-docker-sandbox.md](adr/030-claude-code-docker-sandbox.md)
 - [031-setup-interactive-mode.md](adr/031-setup-interactive-mode.md)
 - [032-setup-sh-modularization.md](adr/032-setup-sh-modularization.md)
+- [033-tmux-popup-regression-testing.md](adr/033-tmux-popup-regression-testing.md)
 
 ## Neovim プラグイン一覧
 
