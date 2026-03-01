@@ -129,41 +129,20 @@ else
     fi
 fi
 
-# Step 5: ssh-agent + Keychain に鍵を登録
-echo -e "  Step 5: ssh-add (keychain)"
-if $DRY_RUN; then
-    echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
-    echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
-else
-    # ssh-agent が起動していなければ起動
-    if ! ssh-add -l &>/dev/null && [[ "${SSH_AUTH_SOCK:-}" == "" ]]; then
-        eval "$(ssh-agent -s)" &>/dev/null
-        echo -e "    ${GREEN}✓${NC} ssh-agent started"
-    fi
-    if [[ -f "$SETUP_AUTH_KEY" ]]; then
-        if ssh-add --apple-use-keychain "$SETUP_AUTH_KEY"; then
-            echo -e "    ${GREEN}✓${NC} $SETUP_AUTH_KEY → keychain"
-        else
-            echo -e "    ${RED}FAIL${NC} ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
-            echo -e "    ${YELLOW}TIP${NC}:  手動で実行してください: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
-            ((ERRORS++))
-        fi
+# Step 5: 鍵ファイルの存在確認
+echo -e "  Step 5: key files"
+for key in "$SETUP_AUTH_KEY" "$SETUP_SIGN_KEY"; do
+    if [[ -f "$key" ]]; then
+        echo -e "    ${GREEN}✓${NC} $key"
     else
-        echo -e "    ${RED}FAIL${NC} $SETUP_AUTH_KEY not found"
+        echo -e "    ${RED}FAIL${NC} $key not found"
         ((ERRORS++))
     fi
-    if [[ -f "$SETUP_SIGN_KEY" ]]; then
-        if ssh-add --apple-use-keychain "$SETUP_SIGN_KEY"; then
-            echo -e "    ${GREEN}✓${NC} $SETUP_SIGN_KEY → keychain"
-        else
-            echo -e "    ${RED}FAIL${NC} ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
-            echo -e "    ${YELLOW}TIP${NC}:  手動で実行してください: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
-            ((ERRORS++))
-        fi
-    else
-        echo -e "    ${RED}FAIL${NC} $SETUP_SIGN_KEY not found"
-        ((ERRORS++))
-    fi
+done
+if ! ssh-add -l &>/dev/null 2>&1; then
+    echo -e "    ${YELLOW}NOTE${NC} ssh-agent 未起動のため ssh-add はスキップ"
+    echo -e "    ${YELLOW}TIP${NC}  fish conf.d/ssh-agent.fish が agent を自動起動します"
+    echo -e "    ${YELLOW}TIP${NC}  初回のみ手動で実行: ssh-add $SETUP_AUTH_KEY && ssh-add $SETUP_SIGN_KEY"
 fi
 
 # Step 6: 接続テスト
