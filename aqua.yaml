@@ -23,3 +23,13 @@ packages:
 - name: mikefarah/yq@v4.52.4
 - name: ajeetdsouza/zoxide@v0.9.9
 - name: junegunn/fzf@v0.68.0
+- name: knative/client@knative-v1.14.0
+- name: kubernetes-sigs/kubebuilder@v4.0.0
+- name: ahmetb/kubectx/kubens@v0.9.5
+- name: stern/stern@v1.30.0
+- name: nodejs/node@v22.7.0
+- name: hashicorp/terraform@v1.10.3
+- name: mike-engel/jwt-cli@6.2.0
+- name: kubernetes-sigs/kwok/kwokctl@v0.6.1
+- name: a8m/envsubst@v1.4.3
+- name: cli/cli@v2.69.0
