@@ -72,10 +72,13 @@ F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/t
 
 どの端末固有リポジトリを使うかは `terminal-repo.local` に定義する（`terminal-repo.local.example` を参照）。端末固有リポジトリの `setup.sh` を実行すると以下が配置される。端末固有リポジトリを持たない環境では `.example` テンプレートから手動作成する。
 
-| ツール | 配置先 | テンプレート（dotfiles 側） |
-|--------|--------|---------------------------|
-| Git | `~/.gitconfig.local` | `.gitconfig.local.example` |
+| ツール | 配置先 | 初期配布 |
+|--------|--------|---------|
+| Git | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布。端末固有設定は直接編集 |
+| Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。端末固有設定は直接編集 |
 | Fish (tmw) | `~/.config/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
 | Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
+
+`setup.sh --dry-run` で validate チェックが実行され、共通設定のキーが `~/.gitconfig` や `~/.claude/settings.json` に存在するか検証される（WARN 出力のみ、失敗しない）。
