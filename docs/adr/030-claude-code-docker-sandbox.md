@@ -95,5 +95,9 @@ init-firewall.sh でネットワーク制御は可能だが、DNS レベルの�
 | `configs/claude/docker/entrypoint.sh` | dotfiles | 新規作成（SSH 鍵コピー・権限ドロップ・Claude Code インストール） |
 | `configs/claude/docker/run.sh` | dotfiles | 新規作成（マウント構成・環境変数注入・docker run 起動スクリプト） |
 
+## setup.sh プロファイル制約
+
+docker / colima / docker-compose の Homebrew インストールおよび colima の自動起動は `remote` プロファイル時のみ実行される（`scripts/lib/deps-macos.sh`）。`full`（メイン Mac）では不要なためスキップする。
+
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-030 セクション）

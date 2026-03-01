@@ -28,7 +28,10 @@ install_deps() {
             exit 1
         fi
 
-        BREW_PACKAGES=("fish:fish" "tmux:tmux" "nvim:neovim" "jq:jq" "aqua:aqua" "docker:docker" "colima:colima" "docker-compose:docker-compose")
+        BREW_PACKAGES=("fish:fish" "tmux:tmux" "nvim:neovim" "jq:jq" "aqua:aqua")
+        if [[ "${PROFILE:-full}" == "remote" ]]; then
+            BREW_PACKAGES+=("docker:docker" "colima:colima" "docker-compose:docker-compose")
+        fi
         missing_packages=()
 
         for entry in "${BREW_PACKAGES[@]}"; do
@@ -60,7 +63,7 @@ install_deps() {
         fi
 
         # Colima: コンテナランタイムが動いていなければ起動
-        if command -v colima >/dev/null 2>&1; then
+        if [[ "${PROFILE:-full}" == "remote" ]] && command -v colima >/dev/null 2>&1; then
             if docker info >/dev/null 2>&1; then
                 echo -e "  ${GREEN}colima${NC}\t✓ running"
             else
