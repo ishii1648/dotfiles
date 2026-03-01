@@ -115,6 +115,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [029-per-terminal-ssh-key-generation.md](adr/029-per-terminal-ssh-key-generation.md)
 - [030-claude-code-docker-sandbox.md](adr/030-claude-code-docker-sandbox.md)
 - [031-setup-interactive-mode.md](adr/031-setup-interactive-mode.md)
+- [032-setup-sh-modularization.md](adr/032-setup-sh-modularization.md)
 
 ## Neovim プラグイン一覧
 

@@ -32,6 +32,7 @@
 | ✔ | ○ | git | SSH 鍵の pub 鍵をリポ管理しているが秘密鍵を配布できない — 端末ごとに鍵ペアを生成すべきで pub 鍵のリポ管理が無意味 | [ADR-029](adr/029-per-terminal-ssh-key-generation.md) |
 | ✔ | ○ | claude | lab 環境で Claude Code を安全に自律実行できない — Built-in Sandbox はツールバイパス問題があり、Docker コンテナ隔離 + Cloudflare Gateway が必要 | [ADR-030](adr/030-claude-code-docker-sandbox.md) |
 | ✔ | ○ | 複合 | setup.sh に interactive / non-interactive モードがない — 環境によって入力を求められるケースがあり、CI や Docker e2e でのテスタビリティが低い | [ADR-031](adr/031-setup-interactive-mode.md) |
+| ✔ | ○ | 複合 | setup.sh が 500 行超で保守・テストが困難 — 関数群が 1 ファイルに密集しユニットテスト不可、機能追加時の衝突リスクが高い | [ADR-032](adr/032-setup-sh-modularization.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -326,4 +327,20 @@
 - [x] `--dry-run` 指定時は常に non-interactive として動作する
 - [x] 委譲先の setup.sh に `SETUP_INTERACTIVE` 環境変数でモードが伝播される
 - [x] `tests/Dockerfile` で `--non-interactive` が明示的に指定されている
+
+---
+
+### ADR-032: setup.sh のモジュール分割
+
+**コンポーネント**: 複合 | **ADR**: [ADR-032](adr/032-setup-sh-modularization.md)
+
+**受け入れ条件**:
+
+- [x] `scripts/lib/` ディレクトリが存在し、`colors.sh`, `symlink.sh`, `copy.sh`, `validate.sh`, `manifest.sh`, `deps-macos.sh` が配置されている
+- [x] `scripts/setup.sh` が `scripts/lib/*.sh` を source して動作する
+- [x] `scripts/setup.sh` のメイン部分が約 100 行以下に圧縮されている
+- [x] `bash scripts/setup.sh --dry-run` が分割前と同じ出力・終了コードを返す
+- [x] `bash scripts/setup.sh --dry-run --profile remote` が分割前と同じ出力・終了コードを返す
+- [x] Docker e2e テスト（`docker build -f tests/Dockerfile .`）が分割後も PASS する
+- [x] 各 lib ファイルが単独で `bash -n` 構文チェックを通過する
 
