@@ -87,6 +87,12 @@ SSH_CONFIG="$HOME/.ssh/config"
 if grep -q "^Host github.com" "$SSH_CONFIG" 2>/dev/null; then
     echo -e "    ${GREEN}✓${NC} Host github.com already configured"
 else
+    # macOS のみ UseKeychain を追加
+    MACOS_LINES=""
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        MACOS_LINES=$'\n  UseKeychain yes'
+    fi
+
     if $DRY_RUN; then
         echo -e "    Would add to $SSH_CONFIG:"
         echo "      Host github.com"
@@ -94,7 +100,7 @@ else
         echo "        IdentityFile $SETUP_AUTH_KEY"
         echo "        User git"
         echo "        AddKeysToAgent yes"
-        echo "        UseKeychain yes"
+        [[ -n "$MACOS_LINES" ]] && echo "        UseKeychain yes"
     else
         mkdir -p "$HOME/.ssh"
         if cat >> "$SSH_CONFIG" <<EOF
@@ -103,8 +109,7 @@ Host github.com
   HostName github.com
   IdentityFile $SETUP_AUTH_KEY
   User git
-  AddKeysToAgent yes
-  UseKeychain yes
+  AddKeysToAgent yes${MACOS_LINES}
 EOF
         then
             chmod 600 "$SSH_CONFIG"
