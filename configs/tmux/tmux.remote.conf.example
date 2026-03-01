@@ -4,18 +4,3 @@
 # リモート側では Ghostty user-keys が届かないため、
 # ローカル固有のキーバインド設定は不要。
 # 必要に応じてリモート環境固有のオーバーライドをここに追加する。
-
-# F12: ローカル tmux を無効化してリモート tmux にパススルー
-bind -T root F12 \
-  set prefix None \;\
-  set key-table off \;\
-  set status-style "bg=#444444" \;\
-  set status-left "#[fg=#f8f8f2,bold] [PASSTHROUGH] #S #[default]│ " \;\
-  refresh-client -S
-
-bind -T off F12 \
-  set -u prefix \;\
-  set -u key-table \;\
-  set -u status-style \;\
-  set -u status-left \;\
-  refresh-client -S
