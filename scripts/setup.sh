@@ -104,7 +104,7 @@ if [[ "$(uname)" == "Darwin" ]]; then
         exit 1
     fi
 
-    BREW_PACKAGES=("fish:fish" "tmux:tmux" "nvim:neovim" "jq:jq" "aqua:aqua")
+    BREW_PACKAGES=("fish:fish" "tmux:tmux" "nvim:neovim" "jq:jq" "aqua:aqua" "docker:docker" "colima:colima" "docker-compose:docker-compose")
     missing_packages=()
 
     for entry in "${BREW_PACKAGES[@]}"; do
@@ -127,6 +127,22 @@ if [[ "$(uname)" == "Darwin" ]]; then
         fi
     else
         echo -e "  ${GREEN}All packages installed${NC}"
+    fi
+
+    # Colima: コンテナランタイムが動いていなければ起動
+    if command -v colima >/dev/null 2>&1; then
+        if docker info >/dev/null 2>&1; then
+            echo -e "  ${GREEN}colima${NC}\t✓ running"
+        else
+            if $DRY_RUN; then
+                echo -e "  ${YELLOW}colima${NC}\t✗ NOT RUNNING"
+                echo "  Fix: colima start"
+            else
+                echo "  Starting colima..."
+                colima start
+                echo -e "  ${GREEN}colima${NC}\t✓ started"
+            fi
+        fi
     fi
     echo ""
 fi
