@@ -66,10 +66,10 @@ install_deps() {
             else
                 if $DRY_RUN; then
                     echo -e "  ${YELLOW}colima${NC}\t✗ NOT RUNNING"
-                    echo "  Fix: colima start"
-                elif confirm "  Start colima?"; then
+                    echo "  Fix: colima start --cpu 4 --memory 8"
+                elif confirm "  Start colima? (4 CPU / 8 GiB)"; then
                     echo "  Starting colima..."
-                    colima start
+                    colima start --cpu 4 --memory 8
                     echo -e "  ${GREEN}colima${NC}\t✓ started"
                 else
                     echo -e "  ${YELLOW}colima${NC}\tskipped"

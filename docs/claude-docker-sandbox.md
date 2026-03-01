@@ -7,6 +7,7 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 ## 前提条件
 
 - Docker がインストールされていること
+- colima 使用時はメモリ 8GiB 以上で起動すること（Claude Code のインストール時に native ビルドで 4GB+ 必要。`setup.sh` 実行時は `--cpu 4 --memory 8` で自動起動される）
 - Claude Code の subscription が有効であること（ホストの `~/.claude` をマウントして認証を共有）
 
 ## 使い方
