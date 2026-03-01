@@ -135,6 +135,11 @@ if $DRY_RUN; then
     echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
     echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
 else
+    # ssh-agent が起動していなければ起動
+    if ! ssh-add -l &>/dev/null && [[ "${SSH_AUTH_SOCK:-}" == "" ]]; then
+        eval "$(ssh-agent -s)" &>/dev/null
+        echo -e "    ${GREEN}✓${NC} ssh-agent started"
+    fi
     if [[ -f "$SETUP_AUTH_KEY" ]]; then
         if ssh-add --apple-use-keychain "$SETUP_AUTH_KEY"; then
             echo -e "    ${GREEN}✓${NC} $SETUP_AUTH_KEY → keychain"
