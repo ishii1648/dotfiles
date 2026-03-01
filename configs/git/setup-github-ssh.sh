@@ -21,6 +21,12 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
+# ~ を $HOME に展開
+SETUP_AUTH_KEY="${SETUP_AUTH_KEY:-}"
+SETUP_AUTH_KEY="${SETUP_AUTH_KEY/#\~/$HOME}"
+SETUP_SIGN_KEY="${SETUP_SIGN_KEY:-}"
+SETUP_SIGN_KEY="${SETUP_SIGN_KEY/#\~/$HOME}"
+
 # 環境変数チェック
 if [[ -z "${SETUP_AUTH_KEY:-}" ]]; then
     echo -e "  ${YELLOW}WARN${NC}: SETUP_AUTH_KEY is not set, skipping SSH setup"
