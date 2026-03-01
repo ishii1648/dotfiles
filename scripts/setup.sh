@@ -72,6 +72,7 @@ NC='\033[0m'
 ok_count=0
 fix_count=0
 fail_count=0
+warn_count=0
 total_count=0
 
 # ========================================
@@ -266,6 +267,86 @@ process_copy() {
     fi
 }
 
+# validate: gitconfig 型チェック
+validate_gitconfig() {
+    local src="$1"
+    local dest="$2"
+    local display_name
+    display_name=$(basename "$dest")
+
+    if [[ ! -e "$dest" ]]; then
+        echo -e "  ${YELLOW}$display_name${NC}\tWARN: dest not found (validate skipped)"
+        warn_count=$((warn_count + 1))
+        return
+    fi
+
+    local keys
+    keys=$(git config --file "$src" --list | cut -d= -f1)
+    local missing=0
+    for key in $keys; do
+        if ! git config --file "$dest" --get "$key" >/dev/null 2>&1; then
+            echo -e "  ${YELLOW}$display_name${NC}\tWARN: key missing: $key"
+            missing=$((missing + 1))
+        fi
+    done
+
+    if [[ $missing -eq 0 ]]; then
+        echo -e "  ${GREEN}$display_name${NC}\t✓ validate OK"
+    else
+        warn_count=$((warn_count + missing))
+    fi
+}
+
+# validate: json 型チェック
+validate_json() {
+    local src="$1"
+    local dest="$2"
+    local display_name
+    display_name=$(basename "$dest")
+
+    if [[ ! -e "$dest" ]]; then
+        echo -e "  ${YELLOW}$display_name${NC}\tWARN: dest not found (validate skipped)"
+        warn_count=$((warn_count + 1))
+        return
+    fi
+
+    local keys
+    keys=$(jq -r 'keys[]' "$src")
+    local missing=0
+    for key in $keys; do
+        if ! jq -e --arg k "$key" 'has($k)' "$dest" >/dev/null 2>&1; then
+            echo -e "  ${YELLOW}$display_name${NC}\tWARN: key missing: $key"
+            missing=$((missing + 1))
+        fi
+    done
+
+    if [[ $missing -eq 0 ]]; then
+        echo -e "  ${GREEN}$display_name${NC}\t✓ validate OK"
+    else
+        warn_count=$((warn_count + missing))
+    fi
+}
+
+# validate ディスパッチ
+process_validate() {
+    local type="$1"
+    local src="$2"
+    local dest="$3"
+
+    case "$type" in
+        gitconfig)
+            validate_gitconfig "$src" "$dest"
+            ;;
+        json)
+            validate_json "$src" "$dest"
+            ;;
+        *)
+            echo -e "  ${YELLOW}Unknown validate type: $type${NC}"
+            warn_count=$((warn_count + 1))
+            ;;
+    esac
+}
+
 # ========================================
 # メイン実行
 # ========================================
@@ -306,6 +387,19 @@ for component in $COMPONENT_LIST; do
             src_abs="$DOTFILES_DIR/$src_rel"
             if [[ ! -e "$src_abs" ]]; then
                 echo -e "  ${RED}ERROR${NC}: src not found: $src_rel (component: $component)"
+                manifest_errors=$((manifest_errors + 1))
+            fi
+        done
+    fi
+
+    # validate の src チェック
+    validate_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].validate // [] | length')
+    if [[ $validate_count -gt 0 ]]; then
+        for i in $(seq 0 $((validate_count - 1))); do
+            validate_src_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].validate[$i].src')
+            validate_src_abs="$DOTFILES_DIR/$validate_src_rel"
+            if [[ ! -e "$validate_src_abs" ]]; then
+                echo -e "  ${RED}ERROR${NC}: validate src not found: $validate_src_rel (component: $component)"
                 manifest_errors=$((manifest_errors + 1))
             fi
         done
@@ -381,6 +475,19 @@ for component in $COMPONENT_LIST; do
         done
     fi
 
+    # validate 処理
+    validate_count=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].validate // [] | length')
+    if [[ $validate_count -gt 0 ]]; then
+        for i in $(seq 0 $((validate_count - 1))); do
+            validate_type=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].validate[$i].type')
+            validate_src_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].validate[$i].src')
+            validate_dest_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].validate[$i].dest')
+            validate_src_abs="$DOTFILES_DIR/$validate_src_rel"
+            validate_dest_path=$(expand_path "$validate_dest_rel")
+            process_validate "$validate_type" "$validate_src_abs" "$validate_dest_path"
+        done
+    fi
+
     echo ""
 done
 
@@ -389,16 +496,20 @@ done
 # ========================================
 echo "========================================"
 if $DRY_RUN; then
-    if [[ $fail_count -eq 0 ]]; then
+    if [[ $fail_count -eq 0 && $warn_count -eq 0 ]]; then
         echo -e "Result: ${GREEN}All OK${NC} ($ok_count checked)"
+    elif [[ $fail_count -eq 0 ]]; then
+        echo -e "Result: ${GREEN}All OK${NC} ($ok_count checked, ${YELLOW}$warn_count warning(s)${NC})"
     else
-        echo -e "Result: ${RED}$fail_count issue(s) found${NC} ($ok_count OK)"
+        echo -e "Result: ${RED}$fail_count issue(s) found${NC} ($ok_count OK, ${YELLOW}$warn_count warning(s)${NC})"
     fi
 else
-    if [[ $fail_count -eq 0 ]]; then
+    if [[ $fail_count -eq 0 && $warn_count -eq 0 ]]; then
         echo -e "Result: ${GREEN}All OK${NC} (created/fixed: $fix_count, already OK: $ok_count)"
+    elif [[ $fail_count -eq 0 ]]; then
+        echo -e "Result: ${GREEN}All OK${NC} (created/fixed: $fix_count, already OK: $ok_count, ${YELLOW}$warn_count warning(s)${NC})"
     else
-        echo -e "Result: ${YELLOW}$ok_count OK, $fix_count fixed, $fail_count failed${NC}"
+        echo -e "Result: ${YELLOW}$ok_count OK, $fix_count fixed, $fail_count failed, $warn_count warning(s)${NC}"
     fi
 fi
 

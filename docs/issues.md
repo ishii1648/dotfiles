@@ -27,6 +27,7 @@
 | ✔ | ○ | tmux | tmux ネスト構成の採用理由が明文化されていない — ADR-016/021/022 がネスト前提だが設計判断の根拠が暗黙的 | [ADR-023](adr/023-tmux-nested-architecture-decision.md) |
 | ✔ | ○ | claude | ADR 運用ルールが未整備で一貫性を保てない — 採用案の表記ぶれ・ADR 間矛盾チェックの欠如・Supersede フロー未定義 | [ADR-025](adr/025-adr-reference-skill.md) |
 | ✔ | ○ | tmux / fish | パススルーモードの UI が直感的でない — 表示が実装寄り（`[PASSTHROUGH]`）で操作対象が分かりづらく、ネスト時にステータスバーが重複する | [ADR-026](adr/026-tmux-passthrough-ui-improvement.md) |
+| ✔ | ○ | git / claude | 設定ファイル管理が複雑で端末固有リポへの依存が重い — .gitconfig は未配布、settings.json は jq マージ方式でメンテ性が悪い | [ADR-027](adr/027-config-copy-validate-pattern.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -238,4 +239,21 @@
 - [x] ~~パススルーモード OFF 時のステータスバー表示が操作対象レイヤー（LOCAL）を示す~~ → 不要と判断し削除
 - [x] SSH window 以外でパススルーモードを手動有効化する機能（F12）が削除されている
 - [x] SSH 接続時に自動でリモート側の tmux が操作対象になる（F12 で LOCAL に切り替え可）
+
+---
+
+### ADR-027: 設定ファイルの管理を copy + validate 方式に統一する
+
+**コンポーネント**: git / claude | **ADR**: [ADR-027](adr/027-config-copy-validate-pattern.md)
+
+**受け入れ条件**:
+
+- [x] `.gitconfig` が `configs/git/gitconfig` に移動され、`credential.helper` と `[include]` が除去されている
+- [x] `setup-manifest.yml` に git コンポーネントが定義され、`copies: if_missing: true` で `~/.gitconfig` に配布される
+- [x] `setup-manifest.yml` の claude コンポーネントに `copies: if_missing: true` で `~/.claude/settings.json` が配布される
+- [x] `configs/claude/setup.sh` から jq マージロジックが廃止されている
+- [x] `setup.sh` が validate 機能を持ち、gitconfig 型（`git config --file --get`）で共通設定の存在をチェックできる
+- [x] `setup.sh` が validate 機能を持ち、json 型（`jq`）で共通キーの存在をチェックできる
+- [x] validate 失敗時に WARN を出力して続行する（exit 1 しない）
+- [x] `setup.sh --dry-run` で validate チェックが実行される
 

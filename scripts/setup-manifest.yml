@@ -10,18 +10,21 @@ profiles:
     - tmux
     - claude
     - aqua
+    - git
   remote:
     - fish
     - nvim
     - tmux
     - claude
     - aqua
+    - git
   linux:
     - fish
     - nvim
     - tmux
     - claude
     - aqua
+    - git
 
 components:
   fish:
@@ -36,6 +39,8 @@ components:
     symlinks:
       - link: ~/.config/ghostty/config
         target: configs/ghostty/config
+      - link: ~/.local/bin/ghostty-tmux-init
+        target: configs/ghostty/ghostty-tmux-init.sh
 
   tmux:
     symlinks:
@@ -50,7 +55,6 @@ components:
         if_missing: true
 
   claude:
-    setup: configs/claude/setup.sh
     symlinks:
       - link: ~/.claude/CLAUDE.md
         target: configs/claude/CLAUDE.md
@@ -58,9 +62,27 @@ components:
         target: configs/claude/scripts
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
+    copies:
+      - src: configs/claude/settings.json
+        dest: ~/.claude/settings.json
+        if_missing: true
+    validate:
+      - type: json
+        src: configs/claude/settings.json
+        dest: ~/.claude/settings.json
 
   aqua:
     setup: configs/aqua/setup.sh
     symlinks:
       - link: ~/.config/aquaproj-aqua/aqua.yaml
         target: aqua.yaml
+
+  git:
+    copies:
+      - src: configs/git/gitconfig
+        dest: ~/.gitconfig
+        if_missing: true
+    validate:
+      - type: gitconfig
+        src: configs/git/gitconfig
+        dest: ~/.gitconfig

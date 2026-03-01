@@ -28,7 +28,7 @@
 | shell | Fish | `configs/fish/` |
 | coding agent | Claude Code | `configs/claude/` |
 | package manager | aqua | `aqua.yaml` |
-| VCS | Git (SSH署名) | `.gitconfig` |
+| VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
 ## 並列作業の構成
 
@@ -110,6 +110,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [023-tmux-nested-architecture-decision.md](adr/023-tmux-nested-architecture-decision.md)
 - [025-adr-reference-skill.md](adr/025-adr-reference-skill.md)
 - [026-tmux-passthrough-ui-improvement.md](adr/026-tmux-passthrough-ui-improvement.md)
+- [027-config-copy-validate-pattern.md](adr/027-config-copy-validate-pattern.md)
 
 ## Neovim プラグイン一覧
 
