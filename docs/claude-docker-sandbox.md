@@ -81,6 +81,17 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | pnpm | corepack 経由 |
 | Claude Code | 初回起動時に自動インストール（named volume で永続化） |
 
+## 初回セットアップ: gh CLI 認証
+
+ホストに `~/.config/gh` がない場合、初回のコンテナ起動時に gh CLI の認証が必要。GitHub の [Personal Access Token](https://github.com/settings/tokens) を発行し、トークン認証で設定する:
+
+```bash
+# コンテナ内で実行
+gh auth login --with-token <<< "ghp_xxxxx"
+```
+
+認証情報は `claude-code-gh` named volume に保存されるため、以降のコンテナ起動では自動的に認証済み状態になる。
+
 ## トラブルシューティング
 
 ### SSH 認証エラー
