@@ -13,7 +13,14 @@ if [ -d /home/claude/.ssh-host ]; then
     find /home/claude/.ssh -type f -exec chmod 600 {} \;
     # Ensure known_hosts and config are usable
     [ -f /home/claude/.ssh/known_hosts ] && chmod 644 /home/claude/.ssh/known_hosts
-    [ -f /home/claude/.ssh/config ] && chmod 644 /home/claude/.ssh/config
+    # Strip macOS-only directives that cause errors on Linux
+    if [ -f /home/claude/.ssh/config ]; then
+        chmod 644 /home/claude/.ssh/config
+        sed -i \
+            -e '/^[[:space:]]*UseKeychain/d' \
+            -e '/^[[:space:]]*AddKeysToAgent.*apple/Id' \
+            /home/claude/.ssh/config
+    fi
     # Ensure pub keys are readable
     find /home/claude/.ssh -name "*.pub" -exec chmod 644 {} \;
 fi
