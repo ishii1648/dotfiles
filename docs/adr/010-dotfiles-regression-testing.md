@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+採用済み
 
 ## コンテキスト
 
@@ -24,11 +24,27 @@ coding agent による実装・フィードバックループを活用するた�
 
 ## 設計案
 
-テスト設計の検討結果（`.outputs/claude/regression-test-design.md`）では以下の 3 層構成を提案している：
+### 案 A: 独自テストランナー（却下）
 
-- **Layer 1: Static Analysis** — `fish -n`, `bash -n`, `shellcheck`, キーバインドチェーン整合性, 参照整合性
-- **Layer 2: Integration Tests** — `bats-core` + テスト用 tmux ソケット + テスト用 git リポジトリで全関数を検証。fzf は `--filter` と `tmux send-keys` で対応
-- **Layer 3: Smoke Tests** — fish/tmux 起動確認、全関数ロード確認、symlink 検証
+初期検討では独自のシェルスクリプトベースのテストランナーを検討したが、テスト記述の冗長さと TAP 出力の自前実装コストから却下。
+
+### 案 B: ADR-019 の Docker 環境に bats-core を統合（採用）
+
+ADR-019 で構築済みの Docker ベース e2e テスト環境に bats-core を追加し、2 層構成でリグレッションテストを実行する。
+
+- **Layer 1: 静的解析 + チェーン整合性**
+  - `fish -n` / `bash -n` による構文検証
+  - Ghostty CSI シーケンス ↔ tmux user-keys の対応検証
+- **Layer 2: 統合テスト**
+  - fish 関数のロードと `__tm_session_name` の単体テスト
+  - テスト専用ソケットでの tmux server 起動・キーバインド登録確認
+  - パススルーモードの ON/OFF 状態遷移検証
+
+Dockerfile 内の `RUN bats tests/` で Docker build 時にテストが実行され、失敗すれば build failure として既存の CI ワークフロー（`.github/workflows/e2e.yml`）で検出される。
+
+## 関連 ADR
+
+- **依存**: [ADR-019](019-dotfiles-linux-support-and-e2e-testing.md)（Docker ベース e2e テスト環境）
 
 ## 受け入れ条件
 

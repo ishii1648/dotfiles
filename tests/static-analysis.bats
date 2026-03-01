@@ -1,0 +1,38 @@
+#!/usr/bin/env bats
+
+# Layer 1: 静的解析テスト
+# fish / bash スクリプトの構文チェックと tmux.conf の読み込み検証
+
+@test "all .fish files pass fish -n syntax check" {
+  local failed=()
+  while IFS= read -r f; do
+    if ! fish -n "$f" 2>/dev/null; then
+      failed+=("$f")
+    fi
+  done < <(find configs/fish -name '*.fish' -type f)
+
+  if [ ${#failed[@]} -gt 0 ]; then
+    printf 'syntax error: %s\n' "${failed[@]}"
+    return 1
+  fi
+}
+
+@test "all .sh scripts pass bash -n syntax check" {
+  local failed=()
+  while IFS= read -r f; do
+    if ! bash -n "$f" 2>/dev/null; then
+      failed+=("$f")
+    fi
+  done < <(find scripts configs -name '*.sh' -type f)
+
+  if [ ${#failed[@]} -gt 0 ]; then
+    printf 'syntax error: %s\n' "${failed[@]}"
+    return 1
+  fi
+}
+
+@test "tmux.conf loads without error" {
+  local tmux_conf="$HOME/.tmux.conf"
+  [ -f "$tmux_conf" ] || tmux_conf="configs/tmux/tmux.conf"
+  tmux -f "$tmux_conf" start-server \; kill-server
+}
