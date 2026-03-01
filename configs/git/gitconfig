@@ -7,15 +7,6 @@
     aa = add -A
     cm = commit -m
     amend = commit --amend --no-edit
-    unstage = reset HEAD --
-    discard = checkout --
-    lg = log --oneline --graph --decorate -20
-    ll = log --pretty=format:'%C(yellow)%h%Creset %s %C(cyan)<%an>%Creset %C(green)(%cr)%Creset' -20
-    df = diff
-    dfs = diff --staged
-    stash-all = stash push -u
-    wip = !git add -A && git commit -m 'WIP'
-    undo = reset --soft HEAD~1
 [commit]
     gpgsign = true
 [gpg]
