@@ -1,0 +1,85 @@
+# Claude Code Docker サンドボックス
+
+Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付きで安全に自律実行する。
+
+> 設計の背景・判断根拠は [ADR-030](adr/030-claude-code-docker-sandbox.md) を参照。
+
+## 前提条件
+
+- Docker がインストールされていること
+- Anthropic API キーを取得済みであること
+
+## 使い方
+
+```bash
+# カレントディレクトリのプロジェクトで起動
+ANTHROPIC_API_KEY=<your-key> bash configs/claude/docker/run.sh
+
+# プロジェクトディレクトリを指定して起動
+ANTHROPIC_API_KEY=<your-key> bash configs/claude/docker/run.sh ~/projects/my-app
+```
+
+初回実行時は Docker イメージのビルドが自動で行われる。2回目以降はキャッシュ済みイメージを使用する。
+
+### イメージの再ビルド
+
+Dockerfile を更新した場合など、手動で再ビルドするには:
+
+```bash
+docker build -t claude-code-sandbox configs/claude/docker/
+```
+
+## マウント構成
+
+deny-by-default 方式。明示的にマウントしたディレクトリのみコンテナからアクセスできる。
+
+| ホスト | コンテナ | アクセス | 用途 |
+|---|---|---|---|
+| プロジェクトディレクトリ | 同パス | R/W | 作業対象 |
+| `claude-code-local` (named volume) | `/home/claude/.local` | R/W | Claude Code インストール永続化 |
+| `~/.claude` | `/home/claude/.claude` | R/W | Claude Code 設定・セッション |
+| `~/.ssh` | `/home/claude/.ssh-host` | **Read-Only** | SSH 鍵（entrypoint で writable コピー） |
+| `~/.gitconfig` | `/home/claude/.gitconfig` | R/W | Git 設定（存在時のみ） |
+| `~/.config/gh` | `/home/claude/.config/gh` | R/W | gh CLI 認証（存在時のみ） |
+
+ホストの `~/.zshrc`, `~/.local/bin`, LaunchAgent 等はマウントされない。
+
+## セキュリティモデル
+
+| 項目 | 方式 |
+|------|------|
+| ファイルシステム | deny-by-default マウント。プロジェクトディレクトリ以外のホストファイルにアクセス不可 |
+| 実行ユーザー | entrypoint で root セットアップ後、`claude` ユーザー（非 root）にドロップ |
+| SSH 鍵 | Read-Only マウント → コンテナ内で writable コピー。ホスト側の鍵は変更不可 |
+| API トークン | 環境変数（`-e ANTHROPIC_API_KEY`）で注入。コンテナ内ファイルに永続保存しない |
+| ネットワーク | 現在は制限なし。将来的に iptables + Cloudflare Gateway で egress 制御予定 |
+
+## コンテナ内の環境
+
+| ツール | バージョン |
+|--------|-----------|
+| OS | Debian Bookworm (slim) |
+| Node.js | 22.x |
+| git | Debian パッケージ版 |
+| gh CLI | GitHub 公式リポジトリ版 |
+| Python | 3.x |
+| pnpm | corepack 経由 |
+| Claude Code | 初回起動時に自動インストール（named volume で永続化） |
+
+## トラブルシューティング
+
+### `ANTHROPIC_API_KEY is not set` エラー
+
+環境変数が未設定。`export ANTHROPIC_API_KEY=<key>` を実行するか、コマンドの前に付与する。
+
+### SSH 認証エラー
+
+ホストの `~/.ssh` に GitHub 用の鍵が配置されていることを確認する。コンテナ内では `/home/claude/.ssh` にコピーされる。
+
+### パーミッションエラー
+
+named volume のオーナーが合わない場合に発生することがある。volume を削除して再作成する:
+
+```bash
+docker volume rm claude-code-local
+```

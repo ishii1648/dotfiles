@@ -83,6 +83,10 @@ tms lab dev       # セッション名を指定
 
 F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/tmux.local.conf.example` の F12 設定をコピーしておく）。
 
+## Claude Code Docker サンドボックス
+
+Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付きで安全に自律実行する。詳細は [docs/claude-docker-sandbox.md](docs/claude-docker-sandbox.md) を参照。
+
 ## 端末固有設定
 
 端末固有の設定（社内ツール・AWS 認証・端末固有 keybind・Git ユーザー情報等）は端末固有リポジトリで管理する。dotfiles には含めない。
