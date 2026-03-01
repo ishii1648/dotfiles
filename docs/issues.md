@@ -33,6 +33,7 @@
 | ✔ | ○ | claude | lab 環境で Claude Code を安全に自律実行できない — Built-in Sandbox はツールバイパス問題があり、Docker コンテナ隔離 + Cloudflare Gateway が必要 | [ADR-030](adr/030-claude-code-docker-sandbox.md) |
 | ✔ | ○ | 複合 | setup.sh に interactive / non-interactive モードがない — 環境によって入力を求められるケースがあり、CI や Docker e2e でのテスタビリティが低い | [ADR-031](adr/031-setup-interactive-mode.md) |
 | ✔ | ○ | 複合 | setup.sh が 500 行超で保守・テストが困難 — 関数群が 1 ファイルに密集しユニットテスト不可、機能追加時の衝突リスクが高い | [ADR-032](adr/032-setup-sh-modularization.md) |
+| - | ○ | tmux | tmux popup 内でバグが多発するがテストがない — $TMUX 変数ネスティング・switch-client 失敗・ソケット管理等の壊れやすいパターンが未検証 | [ADR-033](adr/033-tmux-popup-regression-testing.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -343,4 +344,18 @@
 - [x] `bash scripts/setup.sh --dry-run --profile remote` が分割前と同じ出力・終了コードを返す
 - [x] Docker e2e テスト（`docker build -f tests/Dockerfile .`）が分割後も PASS する
 - [x] 各 lib ファイルが単独で `bash -n` 構文チェックを通過する
+
+---
+
+### ADR-033: tmux popup リグレッションテスト
+
+**コンポーネント**: tmux | **ADR**: [ADR-033](adr/033-tmux-popup-regression-testing.md)
+
+**受け入れ条件**:
+
+- [ ] popup 内で `$TMUX` 変数をクリアして tmux コマンドが正常実行できることが検証される
+- [ ] `display-popup -E "fish -c '...'"` パターンで Fish 関数が正常に起動・終了することが検証される
+- [ ] `prtrack-popup.sh` のソケットパス抽出・セッション作成・detach が検証される
+- [ ] popup の正常終了・強制終了がホスト側 tmux に影響しないことが検証される
+- [ ] `bats tests/popup.bats` が CI で自動実行される
 
