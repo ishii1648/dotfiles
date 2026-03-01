@@ -25,7 +25,6 @@
 | ✔ | ○ | fish / tmux | SSH 先・tmux ネスト状態の判別が付きづらい — プロンプトに SSH インジケーターがなく、パススルーモードも背景色の微妙な変化のみで状態が分かりづらい | [ADR-021](adr/021-ssh-visual-indicator.md) |
 | ✔ | ○ | fish / tmux | SSH 実行時にリモート先の tmux セッションへ自動で入りたい — `ssh` 実行後に毎回手動で tmux attach する手間を省きたい | [ADR-022](adr/022-ssh-auto-tmux-attach.md) |
 | ✔ | ○ | tmux | tmux ネスト構成の採用理由が明文化されていない — ADR-016/021/022 がネスト前提だが設計判断の根拠が暗黙的 | [ADR-023](adr/023-tmux-nested-architecture-decision.md) |
-| - | ○ | tmux | リモート tmux セッション中にローカル tmux セッションへ移動できない — remote tmux にアタッチ中は exit しない限り local セッションに戻れない | [ADR-024](adr/024-tmux-nested-session-switching.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -203,14 +202,3 @@
 - [x] ネスト構成のコスト（パススルー切替・キーバインド衝突等）が記載されている
 - [x] ADR-016/021/022 がこの決定に依拠していることが明記されている
 
----
-
-### ADR-024: tmux ネスト環境での remote/local セッション間移動
-
-**コンポーネント**: tmux | **ADR**: [ADR-024](adr/024-tmux-nested-session-switching.md)
-
-**受け入れ条件**:
-
-- [ ] リモート tmux セッション内からワンアクションでローカル tmux のセッション一覧を表示できる
-- [ ] ローカル tmux のセッション一覧から任意のセッションに切り替えできる
-- [ ] ローカルセッションに切り替えた後、再びリモートセッションに戻ることができる
