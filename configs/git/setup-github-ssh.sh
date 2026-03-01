@@ -6,6 +6,7 @@
 #   SETUP_SIGN_KEY  - SSH 署名鍵のパス（例: ~/.ssh/private_ed25519_github_sign）
 #   SETUP_USER_NAME - Git ユーザー名（例: Your Name）
 #   SETUP_USER_EMAIL - Git メールアドレス（例: your_email@example.com）
+#   SETUP_GHQ_ROOT  - ghq root パス（例: ~/src）
 #
 # 使い方:
 #   bash setup-github-ssh.sh [--dry-run]
@@ -42,9 +43,27 @@ if [[ -z "${SETUP_SIGN_KEY:-}" ]]; then
     exit 0
 fi
 
-# Step 1: Git ユーザー情報を設定
+# Step 1: ghq.root を設定
+echo -e "  Step 1: ghq.root"
+if [[ -n "${SETUP_GHQ_ROOT:-}" ]]; then
+    GHQ_ROOT="${SETUP_GHQ_ROOT/#\~/$HOME}"
+    if $DRY_RUN; then
+        echo -e "    Would run: git config --global ghq.root $GHQ_ROOT"
+    else
+        if git config --global ghq.root "$GHQ_ROOT"; then
+            echo -e "    ${GREEN}✓${NC} ghq.root=$GHQ_ROOT"
+        else
+            echo -e "    ${RED}FAIL${NC} git config --global ghq.root failed"
+            ((ERRORS++))
+        fi
+    fi
+else
+    echo -e "    ${YELLOW}SKIP${NC} SETUP_GHQ_ROOT is not set"
+fi
+
+# Step 2: Git ユーザー情報を設定
 if [[ -n "${SETUP_USER_NAME:-}" && -n "${SETUP_USER_EMAIL:-}" ]]; then
-    echo -e "  Step 1: user.name / user.email"
+    echo -e "  Step 2: user.name / user.email"
     if $DRY_RUN; then
         echo -e "    Would run: git config --global user.name \"$SETUP_USER_NAME\""
         echo -e "    Would run: git config --global user.email \"$SETUP_USER_EMAIL\""
@@ -58,12 +77,12 @@ if [[ -n "${SETUP_USER_NAME:-}" && -n "${SETUP_USER_EMAIL:-}" ]]; then
         fi
     fi
 else
-    echo -e "  Step 1: user.name / user.email"
+    echo -e "  Step 2: user.name / user.email"
     echo -e "    ${YELLOW}SKIP${NC} SETUP_USER_NAME or SETUP_USER_EMAIL is not set"
 fi
 
-# Step 2: ~/.ssh/config に GitHub Host 設定を追加
-echo -e "  Step 2: ~/.ssh/config"
+# Step 3: ~/.ssh/config に GitHub Host 設定を追加
+echo -e "  Step 3: ~/.ssh/config"
 SSH_CONFIG="$HOME/.ssh/config"
 if grep -q "^Host github.com" "$SSH_CONFIG" 2>/dev/null; then
     echo -e "    ${GREEN}✓${NC} Host github.com already configured"
@@ -97,8 +116,8 @@ EOF
     fi
 fi
 
-# Step 3: ~/.gitconfig に user.signingkey を設定
-echo -e "  Step 3: user.signingkey"
+# Step 4: ~/.gitconfig に user.signingkey を設定
+echo -e "  Step 4: user.signingkey"
 if $DRY_RUN; then
     echo -e "    Would run: git config --global user.signingkey ${SETUP_SIGN_KEY}.pub"
 else
@@ -110,8 +129,8 @@ else
     fi
 fi
 
-# Step 4: ssh-agent + Keychain に鍵を登録
-echo -e "  Step 4: ssh-add (keychain)"
+# Step 5: ssh-agent + Keychain に鍵を登録
+echo -e "  Step 5: ssh-add (keychain)"
 if $DRY_RUN; then
     echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_AUTH_KEY"
     echo -e "    Would run: ssh-add --apple-use-keychain $SETUP_SIGN_KEY"
@@ -142,8 +161,8 @@ else
     fi
 fi
 
-# Step 5: 接続テスト
-echo -e "  Step 5: connection test"
+# Step 6: 接続テスト
+echo -e "  Step 6: connection test"
 if $DRY_RUN; then
     echo -e "    Would run: ssh -T git@github.com"
 else
