@@ -31,5 +31,5 @@ if $DRY_RUN; then
     echo -e "  ${GREEN}aqua${NC}\t✓ installed"
 else
     echo "  Running aqua install..."
-    aqua install
+    aqua install -l
 fi
