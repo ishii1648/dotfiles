@@ -18,3 +18,5 @@
     insteadOf = https://github.com/
 [credential]
     helper = osxkeychain
+[ghq]
+    root = ~/src
