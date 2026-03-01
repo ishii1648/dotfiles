@@ -4,6 +4,11 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-021](021-ssh-visual-indicator.md) — SSH 関連（視覚的インジケーター）
+- [ADR-023](023-tmux-nested-architecture-decision.md) — ネスト構成が前提
+
 ## コンテキスト
 
 現在、リモートサーバーの tmux セッションに入るには `tms <host>` コマンドを使用する必要がある（ADR-016 で実装済み）。しかし、`ssh <host>` を直接実行した場合はシェルが起動するだけで tmux セッションには入らない。
@@ -12,9 +17,17 @@
 
 ## 設計案
 
-1. **fish の ssh ラッパー関数**: `ssh` を fish function でラップし、接続時にリモート側で `tmux new-session -A -s main` 等を自動実行する
-2. **SSH の RemoteCommand 設定**: `~/.ssh/config` に `RemoteCommand` を設定してリモート側で tmux を起動する
-3. **`tms` コマンドの拡張**: `tms` を `ssh` のエイリアス的に使えるよう拡張し、パススルーモード切り替えも含めた統合体験を提供する
+### 案 1: fish の ssh ラッパー関数（採用）
+
+`ssh` を fish function でラップし、接続時にリモート側で `tmux new-session -A -s main` 等を自動実行する。
+
+### 案 2: SSH の RemoteCommand 設定（却下）
+
+`~/.ssh/config` に `RemoteCommand` を設定してリモート側で tmux を起動する。
+
+### 案 3: `tms` コマンドの拡張（却下）
+
+`tms` を `ssh` のエイリアス的に使えるよう拡張し、パススルーモード切り替えも含めた統合体験を提供する。
 
 ### 変更が必要なファイル
 

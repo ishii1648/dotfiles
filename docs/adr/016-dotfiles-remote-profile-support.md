@@ -4,6 +4,10 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-023](023-tmux-nested-remote-architecture.md) — ネスト構成が前提
+
 ## コンテキスト
 
 dotfiles を lab（Mac mini）などの SSH 先にもデプロイして使いたいが、ローカル PC とリモート環境では必要な設定が異なる。

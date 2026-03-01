@@ -8,9 +8,12 @@
 
 `set -g mouse on` により tmux が全マウスイベントをインターセプトするため、Ghostty がクリックを受け取れない。OSC 8 ハイパーリンクの「表示」は対応済みだが、「クリック」が tmux に奪われる。
 
+- [Ghostty Discussion #9735](https://github.com/ghostty-org/ghostty/discussions/9735)
+- [wfxr/tmux-fzf-url](https://github.com/wfxr/tmux-fzf-url)
+
 ## 設計案
 
-### 採用案: tmux-fzf-url プラグイン
+### 案A: tmux-fzf-url プラグイン（採用）
 
 `Cmd + u`（または `prefix + u`）で画面上の URL を fzf 一覧表示し、選択して開く。
 
@@ -26,7 +29,9 @@ keybind = super+u=text:\x00u
 
 カスタムフィルター（`tmux-fzf-url-pr-filter`）により、`#123` のような PR 番号もペインの git remote 情報と組み合わせて GitHub PR URL に変換される。OSC 8 の制約を回避できるため、tmux 環境では最も確実な方法。
 
-### 却下: Shift + Cmd + クリック（テキスト URL のみ）
+tmux-fzf-url プラグインを採用。`Cmd+u` で URL を fzf 一覧表示し選択して開く方式とした。OSC 8 の制約を回避でき、カスタムフィルターで PR 番号にも対応できる。
+
+### 案B: Shift + Cmd + クリック（却下）
 
 Shift キーを追加で押すことで tmux のマウスキャプチャをバイパスし、Ghostty にイベントを渡す。
 
@@ -37,15 +42,6 @@ Shift キーを追加で押すことで tmux のマウスキャプチャをバ�
 
 「Shift なしの Cmd+クリック」は [Ghostty Discussion #8748](https://github.com/ghostty-org/ghostty/discussions/8748) で要望されているが未対応。
 
-## 決定
-
-tmux-fzf-url プラグインを採用。`Cmd+u` で URL を fzf 一覧表示し選択して開く方式とした。OSC 8 の制約を回避でき、カスタムフィルターで PR 番号にも対応できる。
-
 ## 受け入れ条件
 
-（issues.md 導入前の ADR）
-
-## 参考
-
-- [Ghostty Discussion #9735](https://github.com/ghostty-org/ghostty/discussions/9735)
-- [wfxr/tmux-fzf-url](https://github.com/wfxr/tmux-fzf-url)
+→ [issues.md](../issues.md)（ADR-002 セクション）

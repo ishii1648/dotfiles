@@ -4,6 +4,10 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-007](007-tmux-claude-pane-state.md) — 通知で場所を伝え、セッションリストの状態バッジで素早く遷移できるよう補完
+
 ## コンテキスト
 
 3つの問題が複合している:
@@ -12,9 +16,11 @@
 2. **Ghostty の通知クリックでフォーカスが壊れている** — [Issue #9145](https://github.com/ghostty-org/ghostty/issues/9145)、v1.3.0（2026年3月予定）で修正予定
 3. **Ghostty は tmux セッション内部を認識できない** — session-A と session-B は Ghostty から見ると同一プロセス
 
-## 設計案
+- [Claude Code macOS notifications](https://hoelter.prose.sh/claude-code-notifications)
+- [terminal-notifier](https://github.com/julienXX/terminal-notifier)
+- [Notification System for Tmux and Claude Code](https://quemy.info/2025-08-04-notification-system-tmux-claude.html)
 
-### 採用案: terminal-notifier + Hooks
+## 設計案
 
 `terminal-notifier` で macOS デスクトップ通知を発行する（通知のみ、クリック操作なし）。
 `-execute` は tmux 環境で正常に動作しないため使用しない。
@@ -77,18 +83,8 @@ Claude Code Hooks 設定 (`~/.claude/settings.json`):
 }
 ```
 
-## 決定
-
 `terminal-notifier` + Claude Code Hooks でデスクトップ通知を発行する。通知にセッション名を含めることで移動先を把握できる。Ghostty のバグ修正（v1.3.0）を待たずに解決可能。
 
 ## 受け入れ条件
 
-（issues.md 導入前の ADR。以下は実装後の結果）
-
-- terminal-notifier + Hooks で Ghostty のバグ修正を待たずに解決可能
-
-## 参考
-
-- [Claude Code macOS notifications](https://hoelter.prose.sh/claude-code-notifications)
-- [terminal-notifier](https://github.com/julienXX/terminal-notifier)
-- [Notification System for Tmux and Claude Code](https://quemy.info/2025-08-04-notification-system-tmux-claude.html)
+→ [issues.md](../issues.md)（ADR-003 セクション）

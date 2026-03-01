@@ -4,6 +4,11 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-006](006-claude-code-custom-slash-commands.md) — PreToolUse hook 関連
+- [ADR-008](008-claude-code-pretooluse-hook.md) — PreToolUse hook 関連
+
 ## コンテキスト
 
 Claude Code はシステムプロンプトで `git commit -m "$(cat <<'EOF'...EOF)"` の heredoc パターンを推奨しているが、`$()` (command substitution) を含むコマンドは一律で permission ask が発生する。
@@ -12,9 +17,9 @@ Claude Code はシステムプロンプトで `git commit -m "$(cat <<'EOF'...EO
 
 現状の PreToolUse hook `redirect-to-tools.py` は「Bash の代わりに専用ツールを使え」と **block する**責務に特化しており、approve（許可）のロジックを混ぜると設計思想に反する。
 
-## 補足: PreToolUse hook の permission 制御の仕組み
+### 補足: PreToolUse hook の permission 制御の仕組み
 
-### 処理フロー
+#### 処理フロー
 
 ```
 Claude がツール呼び出しを生成
@@ -32,7 +37,7 @@ hook の出力を確認
 
 hook は permission システムの **前段** に位置するため、`allow` を返せばその後の permission チェック（`$()` 検出を含む）自体を通らない。
 
-### `permissions.allow` との違い
+#### `permissions.allow` との違い
 
 | | `permissions.allow` | PreToolUse hook の `allow` |
 |---|---|---|
@@ -40,7 +45,7 @@ hook は permission システムの **前段** に位置するため、`allow` �
 | `$()` 対応 | 不可（展開前後の不一致） | 可能（文字列として検査できる） |
 | 柔軟性 | ワイルドカードのみ | 任意のロジックが書ける |
 
-### 新旧の出力形式
+#### 新旧の出力形式
 
 旧形式（deprecated）:
 ```json
@@ -65,14 +70,17 @@ hook は permission システムの **前段** に位置するため、`allow` �
 
 ## 設計案
 
-1. **approve 専用の PreToolUse hook を新規作成する**（例: `approve-safe-commands.py`）
-   - `redirect-to-tools.py`（block 専用）と責務を分離
-   - `git commit` + `$(cat <<'EOF'...EOF)` のみを含むコマンドを `permissionDecision: "allow"` で自動承認
-   - 将来的に他の安全パターンも追加可能
+### 案1: approve 専用の PreToolUse hook を新規作成する（採用）
 
-2. **redirect-to-tools.py に approve ロジックを追加する**
-   - ファイルが1つで済むが、block と approve の責務が混在する
-   - 却下済み
+例: `approve-safe-commands.py`
+
+- `redirect-to-tools.py`（block 専用）と責務を分離
+- `git commit` + `$(cat <<'EOF'...EOF)` のみを含むコマンドを `permissionDecision: "allow"` で自動承認
+- 将来的に他の安全パターンも追加可能
+
+### 案2: redirect-to-tools.py に approve ロジックを追加する（却下）
+
+- ファイルが1つで済むが、block と approve の責務が混在する
 
 ### 変更が必要なファイル
 

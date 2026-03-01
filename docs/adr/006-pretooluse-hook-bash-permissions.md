@@ -10,6 +10,8 @@ Claude Code の `settings.json` で `permissions.allow` に書き込み系 Bash 
 
 一方、`permissions.deny` に登録したコマンドも、チェインコマンド（`&&`, `||`, `;`, `|`）の中に埋め込まれた場合にすり抜ける可能性がある。
 
+- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
+
 ## 設計案
 
 ### 構成
@@ -41,18 +43,8 @@ Claude Code の `settings.json` で `permissions.allow` に書き込み系 Bash 
 - **deny のチェイン分割**: `ls && sudo whoami` のようなコマンドで deny ルール（`sudo`）を確実に捕捉
 - **allow はコマンド全体のみ**: チェインの一部だけが allow パターンにマッチしてもコマンド全体を許可しない
 
-## 決定
-
 `PreToolUse` hook を使い、`settings.json` の permission ルールを Python スクリプトで再評価するワークアラウンドを実装する。`settings.json` の既存ルールを変更せず hook が同じルールを読み取って強制実行する。
 
 ## 受け入れ条件
 
-（issues.md 導入前の ADR。以下は実装後の結果）
-
-- `settings.json` の既存ルールを変更せず、hook が同じルールを読み取って強制実行する
-- Claude Code 本体のバグが修正された場合でも、hook は同じルールを二重に適用するだけで副作用はない（allow が二重に許可されるのみ）
-- チェインコマンドによる deny すり抜けも防止される
-
-## 参考
-
-- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
+→ [issues.md](../issues.md)（ADR-006 セクション）

@@ -103,6 +103,12 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [016-dotfiles-remote-profile-support.md](adr/016-dotfiles-remote-profile-support.md)
 - [017-pretooluse-hook-approve-safe-commands.md](adr/017-pretooluse-hook-approve-safe-commands.md)
 - [018-unified-setup-command.md](adr/018-unified-setup-command.md)
+- [019-dotfiles-linux-support-and-e2e-testing.md](adr/019-dotfiles-linux-support-and-e2e-testing.md)
+- [020-unify-local-override-into-terminal-repo.md](adr/020-unify-local-override-into-terminal-repo.md)
+- [021-ssh-visual-indicator.md](adr/021-ssh-visual-indicator.md)
+- [022-ssh-auto-tmux-attach.md](adr/022-ssh-auto-tmux-attach.md)
+- [023-tmux-nested-architecture-decision.md](adr/023-tmux-nested-architecture-decision.md)
+- [025-adr-reference-skill.md](adr/025-adr-reference-skill.md)
 
 ## Neovim プラグイン一覧
 

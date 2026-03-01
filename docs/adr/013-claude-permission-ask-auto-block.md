@@ -35,11 +35,11 @@ permission ask には 2 種類のメカニズムがある。
 
 ## 設計案
 
-### 案1: CLAUDE.md ソフトガイダンスのみ
+### 案1: CLAUDE.md ソフトガイダンスのみ（却下）
 
 Claude に「Bash ループを書くな」と指示する。効果はあるが、長いセッションや圧縮後に薄れる可能性がある。
 
-### 案2: redirect-to-tools.py ハードブロックのみ
+### 案2: redirect-to-tools.py ハードブロックのみ（却下）
 
 代替可能コマンドを PreToolUse フックで自動ブロック。permission UI が出る前に止められるため、ユーザー介入なしに Claude が自律的にリトライできる。ただし未知パターンは捕捉できない。
 
@@ -47,20 +47,16 @@ Claude に「Bash ループを書くな」と指示する。効果はあるが�
 
 CLAUDE.md による原則提示（ソフト）と `redirect-to-tools.py` による強制執行（ハード）を組み合わせる。新しいパターンを観測したら `redirect-to-tools.py` を拡張していく継続的改善サイクルを回す。
 
-## 決定
-
-**案3（2層アプローチ）** を採用する。
-
-### 層1: CLAUDE.md 自律性の原則
+#### 層1: CLAUDE.md 自律性の原則
 
 ```
 複雑な Bash（ループ・パイプ・インラインスクリプト）を生成せず、
 専用ツールか個別コマンドに分解すること。
 ```
 
-### 層2: redirect-to-tools.py ハードブロック
+#### 層2: redirect-to-tools.py ハードブロック
 
-#### どの hook に組み込むか
+##### どの hook に組み込むか
 
 `settings.json` の `PreToolUse` フック（matcher: `Bash`）として登録する。Bash ツールが呼ばれるたびに実行され、`decision: block` を返すことで Claude Code の permission UI が出る前にコマンドを止める。
 
@@ -73,7 +69,7 @@ Bash ツール呼び出し
 
 allow/deny リストの評価は Claude Code ネイティブに委ね、スクリプトは代替可能コマンドの誘導のみに専念する。
 
-#### スクリプトの概要
+##### スクリプトの概要
 
 `configs/claude/scripts/redirect-to-tools.py` として実装する。
 

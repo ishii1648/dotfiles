@@ -4,9 +4,15 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-003](./003-tmux-claude-notification.md) — 通知の仕組みを状態バッジに発展
+
 ## コンテキスト
 
 tmux の `prefix+s` で表示される fzf セッション/ウィンドウリストでは、各ウィンドウで Claude Code が動作中かどうかが分からなかった。複数ウィンドウで Claude Code を並行利用する場合、どのウィンドウが応答待ち・権限要求中・実行中かを一覧から判断できず、ウィンドウを切り替えて確認する必要があった。
+
+- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
 
 ## 設計案
 
@@ -66,18 +72,8 @@ prefix+s (fzf セッションリスト)
 - **tmux 外では無動作**: `$TMUX_PANE` 未設定時は即座に exit
 - **stale running 検知**: 読み取り時に tmux の `pane_idle`（ペインへの最終出力からの秒数）を確認。`running` 状態だがペインに15秒以上出力がない場合、Stop 未発火とみなし `idle` に補正する
 
-## 決定
-
 Claude Code の hooks でペインごとに状態ファイルを `/tmp` に書き出し、tmux セッションリスト生成時に読み取って色付きバッジとして表示する。状態ファイル方式により外部依存なしで実装できる。
 
 ## 受け入れ条件
 
-（issues.md 導入前の ADR。以下は実装後の結果）
-
-- `prefix+s` のセッションリストで各ウィンドウの Claude Code 状態が一目でわかるようになった
-- 権限要求中（赤）のウィンドウを素早く特定して切り替えられる
-- Claude Code のクラッシュ時に状態ファイルが残留する可能性があるが、`/tmp` 配下のため OS 再起動でクリーンアップされる
-
-## 参考
-
-- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
+→ [issues.md](../issues.md)（ADR-007 セクション）

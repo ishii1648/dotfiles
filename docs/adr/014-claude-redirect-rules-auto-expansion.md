@@ -2,7 +2,11 @@
 
 ## ステータス
 
-Accepted
+採用済み
+
+## 関連 ADR
+
+- [ADR-013](013-claude-permission-ask-auto-block.md) — permission ask 自動ブロックの拡張
 
 ## コンテキスト
 
@@ -42,36 +46,32 @@ ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプ�
 
 ## 設計案
 
-### 案1: PermissionRequest フックでログ記録のみ
+### 案1: PermissionRequest フックでログ記録のみ（却下）
 
 未知コマンドを `PermissionRequest` フックで `~/.claude/permission-asks.log` に記録する。permission UI は通常通り表示され、ログを後から分析してルール追加を検討できる。
 
 **メリット**: 正当な新コマンドを誤って弾かない
 **デメリット**: ログ蓄積まで permission UI は引き続き出る
 
-### 案2: fix-permission-ask スキルによるバッチ処理
+### 案2: fix-permission-ask スキルによるバッチ処理（却下）
 
 `permission-asks.log` が蓄積されたタイミングでスキルを実行し、ログを分析して `redirect-to-tools.py` へのルール追加を提案する。ユーザーが承認したものだけ反映する。
 
 **メリット**: 正当なコマンドを誤って弾かない
 **デメリット**: ログ蓄積まで手動運用が続く
 
-### 案3: 案1 + 案2の組み合わせ
+### 案3: 案1 + 案2の組み合わせ（採用）
 
 ログ記録で permission ask を捕捉しつつ、スキルでバッチ処理してルールを追加する。permission ask は初回のみ発生し、ルール追加後は以降の同パターンで発生しなくなる。
 
-## 決定
-
-**案3（案1 + 案2 の組み合わせ）を採用する。**
-
-### PermissionRequest フック: deny + ログ記録
+#### PermissionRequest フック: deny + ログ記録
 
 `configs/claude/hooks/log-permission-ask.py` を新規作成し、`PermissionRequest` イベントで次の処理を行う：
 
 1. `tool_input.command` を `~/.claude/permission-asks.log` に追記（タイムスタンプ付き）
 2. フックからは何も返さず permission UI を通常通り表示させる（初回は許容）
 
-### fix-permission-ask スキル: バッチ処理
+#### fix-permission-ask スキル: バッチ処理
 
 `configs/claude/plugins/dotfiles/skills/fix-permission-ask.md` を新規作成し、次のフローを実行する：
 
@@ -84,7 +84,7 @@ ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプ�
 4. 承認分のみ `redirect-to-tools.py` を編集してルールを追加
 5. 処理済みエントリをログからクリア
 
-### ログフォーマット
+#### ログフォーマット
 
 ```
 2026-02-28T10:00:00 command="find . -name '*.py'"
@@ -93,4 +93,4 @@ ADR-013 で代替可能な Bash コマンドの自動ブロック（2層アプ�
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-013/014 セクション）
+→ [issues.md](../issues.md)（ADR-014 セクション）

@@ -4,6 +4,10 @@
 
 採用済み
 
+## 関連 ADR
+
+- [ADR-006](./006-pretooluse-hook-bash-permissions.md) — 両方 PreToolUse hook（権限制御とリダイレクトで関心事を分離）
+
 ## コンテキスト
 
 CLAUDE.md に「`find` の代わりに Glob ツールを使う」「`grep`/`rg` の代わりに Grep ツールを使う」等のツール使用ルールが記載されているが、LLM がこれを守らず Bash コマンドを直接実行してしまうケースがある。
@@ -11,6 +15,9 @@ CLAUDE.md に「`find` の代わりに Glob ツールを使う」「`grep`/`rg` 
 [公式の hook 例](https://github.com/anthropics/claude-code/blob/main/examples/hooks/bash_command_validator_example.py)は `grep` → `rg` のような Bash 間リダイレクトだが、本環境では **Bash コマンド → Claude Code ネイティブツール**（Glob, Grep, Read, Edit, Write）へのリダイレクトが必要。
 
 既存の `enforce-bash-permissions.py`（ADR-006）は deny/allow の権限制御を担当しており、関心事が異なるため新しい hook スクリプトとして分離する。
+
+- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
+- [公式 hook 例: bash_command_validator_example.py](https://github.com/anthropics/claude-code/blob/main/examples/hooks/bash_command_validator_example.py)
 
 ## 設計案
 
@@ -71,20 +78,8 @@ redirect hook でブロックされるコマンドの allow ルールは不要�
 
 `Bash(echo:*)` はリダイレクトなしの `echo` が許可される必要があるため保持（ただし元々 allow リストに未登録）。
 
-## 決定
-
 `PreToolUse` hook として `redirect-to-tools.py` を作成し、`enforce-bash-permissions.py`（ADR-006）の**前**に配置する。LLM が CLAUDE.md のルールを無視した場合でも hook レベルで強制的にブロックし、適切なネイティブツールの使用を促す。
 
 ## 受け入れ条件
 
-（issues.md 導入前の ADR。以下は実装後の結果）
-
-- LLM が CLAUDE.md のツール使用ルールを無視した場合でも、hook レベルで強制的にブロックし適切なツールの使用を促す
-- `enforce-bash-permissions.py` とは独立して動作し、各 hook が単一責任を持つ
-- パイプ内のフィルタリング用途（`git log | grep` 等）は引き続き許可され、正当な利用が阻害されない
-
-## 参考
-
-- [ADR-006: PreToolUse Hook による Bash Permission の強制実行](./006-pretooluse-hook-bash-permissions.md)
-- [Claude Code Hooks ドキュメント](https://docs.anthropic.com/en/docs/claude-code/hooks)
-- [公式 hook 例: bash_command_validator_example.py](https://github.com/anthropics/claude-code/blob/main/examples/hooks/bash_command_validator_example.py)
+→ [issues.md](../issues.md)（ADR-008 セクション）
