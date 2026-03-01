@@ -8,13 +8,6 @@ IMAGE_NAME="claude-code-sandbox"
 PROJECT_DIR="${1:-$(pwd)}"
 PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 
-# Check ANTHROPIC_API_KEY
-if [ -z "$ANTHROPIC_API_KEY" ]; then
-    echo "Error: ANTHROPIC_API_KEY is not set." >&2
-    echo "Usage: ANTHROPIC_API_KEY=<key> $0 [project-dir]" >&2
-    exit 1
-fi
-
 # Build image if not exists
 if ! docker image inspect "$IMAGE_NAME" > /dev/null 2>&1; then
     echo "Building Docker image: $IMAGE_NAME ..."
@@ -40,7 +33,6 @@ fi
 # Run container
 exec docker run --rm -it \
     "${MOUNTS[@]}" \
-    -e ANTHROPIC_API_KEY \
     -e HOST_WORKSPACE="$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \

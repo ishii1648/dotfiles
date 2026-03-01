@@ -303,6 +303,6 @@
 - [x] `configs/claude/docker/Dockerfile` が存在し、debian:bookworm-slim ベースで Node.js・git・gh CLI・非 root ユーザー `claude` が定義されている
 - [x] `configs/claude/docker/entrypoint.sh` が存在し、SSH 鍵の RO → writable コピー、パーミッション修正、claude ユーザーへの権限ドロップ、Claude Code インストールが実装されている
 - [x] `configs/claude/docker/run.sh` が存在し、deny-by-default マウント構成（プロジェクトディレクトリ R/W、~/.ssh RO、~/.gitconfig・~/.config/gh は存在時のみ）で `claude --dangerously-skip-permissions` を起動する
-- [x] `run.sh` が API トークンを環境変数（`ANTHROPIC_API_KEY`）経由で注入し、コンテナ内のファイルに永続保存しない
+- [x] `run.sh` が `~/.claude` マウントで subscription 認証を共有し、API トークンをコンテナ内に永続保存しない
 - [x] `docker build` + `run.sh <project-dir>` でコンテナが起動し、Claude Code のヘルプが表示される
 

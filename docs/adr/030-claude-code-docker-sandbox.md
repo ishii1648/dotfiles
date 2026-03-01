@@ -72,7 +72,7 @@ init-firewall.sh は Enforce フェーズで追加する（本 ADR のスコー�
 | 方針 | 詳細 |
 |------|------|
 | SSH 鍵 | RO マウント → entrypoint で writable コピー（パーミッション修正） |
-| API トークン | `docker run -e` で環境変数として注入。ファイルに永続保存しない |
+| Claude Code 認証 | `~/.claude` マウントでホストの subscription 認証を共有 |
 | Git credentials | `~/.config/gh` マウント or `GIT_ASKPASS` |
 
 #### 実行ユーザー

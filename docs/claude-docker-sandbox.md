@@ -7,16 +7,16 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 ## 前提条件
 
 - Docker がインストールされていること
-- Anthropic API キーを取得済みであること
+- Claude Code の subscription が有効であること（ホストの `~/.claude` をマウントして認証を共有）
 
 ## 使い方
 
 ```bash
 # カレントディレクトリのプロジェクトで起動
-ANTHROPIC_API_KEY=<your-key> bash configs/claude/docker/run.sh
+bash configs/claude/docker/run.sh
 
 # プロジェクトディレクトリを指定して起動
-ANTHROPIC_API_KEY=<your-key> bash configs/claude/docker/run.sh ~/projects/my-app
+bash configs/claude/docker/run.sh ~/projects/my-app
 ```
 
 初回実行時は Docker イメージのビルドが自動で行われる。2回目以降はキャッシュ済みイメージを使用する。
@@ -51,7 +51,7 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | ファイルシステム | deny-by-default マウント。プロジェクトディレクトリ以外のホストファイルにアクセス不可 |
 | 実行ユーザー | entrypoint で root セットアップ後、`claude` ユーザー（非 root）にドロップ |
 | SSH 鍵 | Read-Only マウント → コンテナ内で writable コピー。ホスト側の鍵は変更不可 |
-| API トークン | 環境変数（`-e ANTHROPIC_API_KEY`）で注入。コンテナ内ファイルに永続保存しない |
+| 認証 | ホストの `~/.claude` をマウントして subscription 認証を共有 |
 | ネットワーク | 現在は制限なし。将来的に iptables + Cloudflare Gateway で egress 制御予定 |
 
 ## コンテナ内の環境
@@ -67,10 +67,6 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 | Claude Code | 初回起動時に自動インストール（named volume で永続化） |
 
 ## トラブルシューティング
-
-### `ANTHROPIC_API_KEY is not set` エラー
-
-環境変数が未設定。`export ANTHROPIC_API_KEY=<key>` を実行するか、コマンドの前に付与する。
 
 ### SSH 認証エラー
 
