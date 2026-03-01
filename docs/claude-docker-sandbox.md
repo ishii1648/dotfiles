@@ -44,6 +44,19 @@ deny-by-default 方式。明示的にマウントしたディレクトリのみ�
 
 ホストの `~/.zshrc`, `~/.local/bin`, LaunchAgent 等はマウントされない。
 
+## GitHub アクセス
+
+コンテナから GitHub にアクセスする経路は2つ。
+
+| 用途 | プロトコル | 認証ソース |
+|------|-----------|-----------|
+| `git push/pull` | SSH | `~/.ssh` (RO マウント → コンテナ内コピー) |
+| `gh pr create` 等 | HTTPS | `~/.config/gh` (R/W マウント、存在時のみ) |
+
+### SSH config の OS 分岐
+
+`setup-github-ssh.sh` が `~/.ssh/config` の `Host github.com` エントリを生成する際、`uname -s` で OS を判定し macOS のみ `UseKeychain yes` を追加する。Linux（Docker コンテナ含む）では付与されないため、ホスト側でセットアップ済みの `~/.ssh/config` をそのままマウントしても問題ない。
+
 ## セキュリティモデル
 
 | 項目 | 方式 |
