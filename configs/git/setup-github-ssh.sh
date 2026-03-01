@@ -4,6 +4,8 @@
 # 環境変数:
 #   SETUP_AUTH_KEY  - SSH 認証鍵のパス（例: ~/.ssh/private_ed25519_github）
 #   SETUP_SIGN_KEY  - SSH 署名鍵のパス（例: ~/.ssh/private_ed25519_github_sign）
+#   SETUP_USER_NAME - Git ユーザー名（例: Your Name）
+#   SETUP_USER_EMAIL - Git メールアドレス（例: your_email@example.com）
 #
 # 使い方:
 #   bash setup-github-ssh.sh [--dry-run]
@@ -36,6 +38,19 @@ fi
 if [[ -z "${SETUP_SIGN_KEY:-}" ]]; then
     echo -e "  ${YELLOW}WARN${NC}: SETUP_SIGN_KEY is not set, skipping SSH setup"
     exit 0
+fi
+
+# Step 0: Git ユーザー情報を設定
+if [[ -n "${SETUP_USER_NAME:-}" && -n "${SETUP_USER_EMAIL:-}" ]]; then
+    echo -e "  ${GREEN}Step 0${NC}: user.name / user.email"
+    if $DRY_RUN; then
+        echo -e "  Would run: git config --global user.name \"$SETUP_USER_NAME\""
+        echo -e "  Would run: git config --global user.email \"$SETUP_USER_EMAIL\""
+    else
+        git config --global user.name "$SETUP_USER_NAME"
+        git config --global user.email "$SETUP_USER_EMAIL"
+        echo -e "  ${GREEN}✓${NC} Set user.name=$SETUP_USER_NAME, user.email=$SETUP_USER_EMAIL"
+    fi
 fi
 
 # Step 1: ~/.ssh/config に GitHub Host 設定を追加

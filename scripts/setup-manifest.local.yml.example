@@ -3,5 +3,7 @@
 components:
   git:
     setup_args:
+      user_name: "Your Name"
+      user_email: "your_email@example.com"
       auth_key: ~/.ssh/id_ed25519_github
       sign_key: ~/.ssh/id_ed25519_github_sign

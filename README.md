@@ -21,9 +21,9 @@ ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_github_sign -C "your_email@example.co
 #    - Signing key:        ~/.ssh/id_ed25519_github_sign.pub
 #    https://github.com/settings/keys
 
-# 3. overlay manifest に鍵パスを設定
+# 3. overlay manifest にユーザー情報と鍵パスを設定
 cp scripts/setup-manifest.local.yml.example scripts/setup-manifest.local.yml
-# エディタで鍵パスを自分の環境に合わせて編集
+# エディタで user_name / user_email / 鍵パスを自分の環境に合わせて編集
 ```
 
 ### 実行
@@ -32,15 +32,7 @@ cp scripts/setup-manifest.local.yml.example scripts/setup-manifest.local.yml
 bash scripts/setup.sh
 ```
 
-マニフェスト（`scripts/setup-manifest.yml`）に定義された全コンポーネントのセットアップが一発で完了する。SSH 鍵の設定（`~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録）も含まれる。
-
-### セットアップ後の設定
-
-```bash
-# Git ユーザー情報を設定（setup.sh が配布した ~/.gitconfig に追記される）
-git config --global user.name "Your Name"
-git config --global user.email "your_email@example.com"
-```
+マニフェスト（`scripts/setup-manifest.yml`）に定義された全コンポーネントのセットアップが一発で完了する。Git ユーザー情報・SSH 鍵の設定（`~/.ssh/config` 追加・`user.signingkey` 設定・`ssh-add` 登録）も含まれる。
 
 ### オプション
 
