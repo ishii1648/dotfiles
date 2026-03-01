@@ -9,6 +9,6 @@ RUN useradd -m testuser
 COPY --chown=testuser:testuser . /home/testuser/dotfiles
 USER testuser
 WORKDIR /home/testuser/dotfiles
-RUN bash scripts/setup.sh --profile linux
+RUN bash scripts/setup.sh --non-interactive --profile linux
 RUN bash scripts/setup.sh --dry-run --profile linux
 RUN bats tests/

@@ -2,11 +2,13 @@
 # dotfiles 統合セットアップスクリプト
 #
 # 使い方:
-#   bash scripts/setup.sh [--dry-run] [--profile <name>]
+#   bash scripts/setup.sh [--dry-run] [--profile <name>] [--interactive|--non-interactive]
 #
 # オプション:
 #   --dry-run              チェックのみ（変更しない）
 #   --profile <name>       プロファイル指定（デフォルト: full）
+#   --interactive          確認プロンプトを表示する
+#   --non-interactive      確認なしで自動続行する
 #
 # プロファイル:
 #   full    - 全コンポーネント（デフォルト）
@@ -23,6 +25,7 @@ set -euo pipefail
 # ========================================
 DRY_RUN=false
 PROFILE="full"
+INTERACTIVE="auto"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -38,12 +41,28 @@ while [[ $# -gt 0 ]]; do
             fi
             shift 2
             ;;
+        --interactive)
+            INTERACTIVE="true"
+            shift
+            ;;
+        --non-interactive)
+            INTERACTIVE="false"
+            shift
+            ;;
         *)
             echo "Error: Unknown option: $1" >&2
             exit 1
             ;;
     esac
 done
+
+# TTY 自動判定
+if [[ "$INTERACTIVE" == "auto" ]]; then
+    if [[ -t 0 ]]; then INTERACTIVE=true; else INTERACTIVE=false; fi
+fi
+
+# --dry-run 時は強制 non-interactive
+if $DRY_RUN; then INTERACTIVE=false; fi
 
 # ========================================
 # パス設定
@@ -121,9 +140,15 @@ if [[ "$(uname)" == "Darwin" ]]; then
     if [[ ${#missing_packages[@]} -gt 0 ]]; then
         if $DRY_RUN; then
             echo "  Fix: brew install ${missing_packages[*]}"
-        else
+        elif confirm "  Install missing packages: ${missing_packages[*]}?"; then
             echo "  Installing: ${missing_packages[*]}..."
-            brew install "${missing_packages[@]}"
+            if [[ "$INTERACTIVE" == "false" ]]; then
+                HOMEBREW_NO_AUTO_UPDATE=1 brew install "${missing_packages[@]}"
+            else
+                brew install "${missing_packages[@]}"
+            fi
+        else
+            echo -e "  ${YELLOW}Skipped package installation${NC}"
         fi
     else
         echo -e "  ${GREEN}All packages installed${NC}"
@@ -137,10 +162,12 @@ if [[ "$(uname)" == "Darwin" ]]; then
             if $DRY_RUN; then
                 echo -e "  ${YELLOW}colima${NC}\t✗ NOT RUNNING"
                 echo "  Fix: colima start"
-            else
+            elif confirm "  Start colima?"; then
                 echo "  Starting colima..."
                 colima start
                 echo -e "  ${GREEN}colima${NC}\t✓ started"
+            else
+                echo -e "  ${YELLOW}colima${NC}\tskipped"
             fi
         fi
     fi
@@ -180,6 +207,14 @@ fi
 # ========================================
 # ユーティリティ関数
 # ========================================
+
+# 確認プロンプト（non-interactive 時は自動 yes）
+confirm() {
+    local msg="$1"
+    if [[ "$INTERACTIVE" == "false" ]]; then return 0; fi
+    read -r -p "$msg [Y/n] " answer
+    [[ -z "$answer" || "$answer" =~ ^[Yy] ]]
+}
 
 # ~ を $HOME に展開する
 expand_path() {
@@ -503,7 +538,7 @@ for component in $COMPONENT_LIST; do
         echo -e "  Delegating to $setup_script..."
 
         # setup_args → SETUP_ prefix 環境変数に変換
-        setup_env=()
+        setup_env=("SETUP_INTERACTIVE=$INTERACTIVE")
         setup_args_json=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].setup_args // empty')
         if [[ -n "$setup_args_json" && "$setup_args_json" != "null" ]]; then
             while IFS='=' read -r key value; do
@@ -514,18 +549,10 @@ for component in $COMPONENT_LIST; do
             done < <(echo "$setup_args_json" | jq -r 'to_entries[] | "\(.key)=\(.value)"')
         fi
 
-        if [[ ${#setup_env[@]} -gt 0 ]]; then
-            if $DRY_RUN; then
-                env "${setup_env[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
-            else
-                env "${setup_env[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
-            fi
+        if $DRY_RUN; then
+            env "${setup_env[@]}" bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
         else
-            if $DRY_RUN; then
-                bash "$setup_abs" --dry-run || fail_count=$((fail_count + 1))
-            else
-                bash "$setup_abs" || fail_count=$((fail_count + 1))
-            fi
+            env "${setup_env[@]}" bash "$setup_abs" || fail_count=$((fail_count + 1))
         fi
     fi
 

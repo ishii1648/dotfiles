@@ -18,6 +18,9 @@ if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
 fi
 
+# SETUP_INTERACTIVE 環境変数を読み取り（デフォルト: true）
+SETUP_INTERACTIVE="${SETUP_INTERACTIVE:-true}"
+
 # カラー出力
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -144,7 +147,10 @@ for key in "$SETUP_AUTH_KEY" "$SETUP_SIGN_KEY"; do
         ((ERRORS++))
     fi
 done
-if ! ssh-add -l &>/dev/null 2>&1; then
+if [[ "$SETUP_INTERACTIVE" == "false" ]]; then
+    echo -e "    ${YELLOW}SKIP${NC} ssh-add (non-interactive mode)"
+    echo -e "    ${YELLOW}TIP${NC}  初回のみ手動で実行: ssh-add $SETUP_AUTH_KEY && ssh-add $SETUP_SIGN_KEY"
+elif ! ssh-add -l &>/dev/null 2>&1; then
     echo -e "    ${YELLOW}NOTE${NC} ssh-agent 未起動のため ssh-add はスキップ"
     echo -e "    ${YELLOW}TIP${NC}  fish conf.d/ssh-agent.fish が agent を自動起動します"
     echo -e "    ${YELLOW}TIP${NC}  初回のみ手動で実行: ssh-add $SETUP_AUTH_KEY && ssh-add $SETUP_SIGN_KEY"
@@ -155,7 +161,11 @@ echo -e "  Step 6: connection test"
 if $DRY_RUN; then
     echo -e "    Would run: ssh -T git@github.com"
 else
-    if ssh -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    SSH_OPTS=()
+    if [[ "$SETUP_INTERACTIVE" == "false" ]]; then
+        SSH_OPTS+=(-o "StrictHostKeyChecking=accept-new")
+    fi
+    if ssh "${SSH_OPTS[@]}" -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
         echo -e "    ${GREEN}✓${NC} SSH connection to GitHub OK"
     else
         echo -e "    ${YELLOW}WARN${NC} SSH connection test failed (key may not be registered on GitHub yet)"
