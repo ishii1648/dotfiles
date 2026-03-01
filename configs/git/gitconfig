@@ -16,5 +16,9 @@
     stash-all = stash push -u
     wip = !git add -A && git commit -m 'WIP'
     undo = reset --soft HEAD~1
+[commit]
+    gpgsign = true
+[gpg]
+    format = ssh
 [url "git@github.com:"]
     insteadOf = https://github.com/
