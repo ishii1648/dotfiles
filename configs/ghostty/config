@@ -12,6 +12,8 @@ window-save-state = always
 font-thicken
 macos-titlebar-style = transparent
 macos-option-as-alt = true
+clipboard-write = allow
+clipboard-read = allow
 
 keybind = super+r=reload_config
 keybind = super+shift+r=text:\x00r
