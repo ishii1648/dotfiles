@@ -20,6 +20,12 @@
 @test "all .sh scripts pass bash -n syntax check" {
   local failed=()
   while IFS= read -r f; do
+    # shebang が bash 以外（python 等）のファイルはスキップ
+    local shebang
+    shebang=$(head -1 "$f")
+    case "$shebang" in
+      *python*|*ruby*|*perl*|*node*) continue ;;
+    esac
     if ! bash -n "$f" 2>/dev/null; then
       failed+=("$f")
     fi

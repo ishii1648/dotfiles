@@ -121,7 +121,15 @@ FISH_PATH=$(command -v fish 2>/dev/null || true)
 if [[ -n "$FISH_PATH" ]]; then
     CURRENT_SHELL=$(dscl . -read /Users/"$(whoami)" UserShell 2>/dev/null | awk '{print $2}' || echo "$SHELL")
     if [[ "$CURRENT_SHELL" != "$FISH_PATH" ]]; then
-        if $DRY_RUN; then
+        if [[ "${SETUP_INTERACTIVE:-true}" == "false" ]]; then
+            # non-interactive モードでは chsh をスキップ（Docker 等でパスワード不可）
+            if $DRY_RUN; then
+                echo -e "  ${YELLOW}default shell${NC}\tSKIP (non-interactive mode)"
+            else
+                echo -e "  ${YELLOW}default shell${NC}\tSKIP (non-interactive mode)"
+                echo "    Fix: chsh -s $FISH_PATH"
+            fi
+        elif $DRY_RUN; then
             echo -e "  ${YELLOW}default shell${NC}\t✗ NOT fish (current: $CURRENT_SHELL)"
             echo "    Fix: chsh -s $FISH_PATH"
             fail_count=$((fail_count + 1))
