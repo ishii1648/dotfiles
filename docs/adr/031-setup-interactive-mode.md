@@ -16,6 +16,8 @@ Draft
 - `brew install` — パッケージインストール時の確認プロンプト（Homebrew の設定に依存）
 - `colima start` — コンテナランタイム起動時の対話
 - `pip3 install pyyaml` — パッケージインストール時の確認
+- `ssh-add` — パスフレーズ付き鍵の登録時にパスフレーズ入力を求められる（`setup-github-ssh.sh` Step 5 付近）
+- `ssh -T git@github.com` — 接続テスト時に known_hosts 確認（`setup-github-ssh.sh` Step 6）
 - 委譲先の `setup.sh`（fish, claude 等）— 将来的に対話が発生する可能性
 
 テスタブルかつ CI で安定実行するには、これらの対話を明示的に制御する仕組みが必要。現在は `--dry-run` と `--profile` オプションのみで、実行モードの制御手段がない。
@@ -45,6 +47,8 @@ bash scripts/setup.sh --non-interactive       # 確認なし・自動続行
 - `brew install`: non-interactive 時に `HOMEBREW_NO_AUTO_UPDATE=1` を設定し、`--quiet` を付与
 - `pip3 install`: non-interactive 時にそのまま続行（元々プロンプトなし）
 - `colima start`: non-interactive 時に自動起動。interactive 時は確認プロンプト表示
+- `ssh-add`: non-interactive 時はスキップ（パスフレーズ入力不可）。TIP メッセージで手動実行を案内
+- `ssh -T git@github.com`: non-interactive 時は `StrictHostKeyChecking=accept-new` を付与、またはスキップ
 - 委譲先 setup.sh: `SETUP_INTERACTIVE` 環境変数で伝播
 
 #### 実装方針
