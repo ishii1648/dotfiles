@@ -12,7 +12,7 @@
 | ✔ | ○ | tmux | terminal 上のテキストをコピーできない — `mouse on` がマウス選択をインターセプトし、OS のクリップボードにコピーできない | [ADR-004](adr/004-tmux-text-copy.md) |
 | - | × | ~~tmux / ghostty~~ | ~~tmux セッション内外でペイン移動のキーバインドを共有できない — Ghostty は条件分岐付きキーバインドに非対応~~ | ~~[ADR-005](adr/005-tmux-pane-keybind-sharing.md)~~ |
 | - | △ | tmux / claude | Claude permission ask 発生時にセッション移動が必要 — 内容閲覧と allow/deny 選択だけならセッション移動なしで対応したい | [ADR-009](adr/009-claude-permission-ask-inline-response.md) |
-| - | ○ | tmux / fish / ghostty | 設定変更時に既存機能が壊れる — キーバインドチェーン・関数依存・symlink など変更の影響範囲が広くリグレッションを手動確認している | [ADR-010](adr/010-dotfiles-regression-testing.md) |
+| ✔ | ○ | tmux / fish / ghostty | 設定変更時に既存機能が壊れる — キーバインドチェーン・関数依存・symlink など変更の影響範囲が広くリグレッションを手動確認している | [ADR-010](adr/010-dotfiles-regression-testing.md) |
 | ✔ | ○ | claude | Claude セッションを PR ベースで追跡できない — セッション開始・終了・ツール出力から PR URL を自動収集して JSONL に蓄積したい | [ADR-011](adr/011-claude-session-index.md) |
 | ✔ | ○ | fish / tmux / ghostty | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
 | - | ○ | claude | permission ask で Claude の自律的な作業が中断される — 代替可能な Bash コマンドを生成するたびに承認ダイアログが発生し、観測・対応サイクルが手動になっている | [ADR-013](adr/013-claude-permission-ask-auto-block.md) [ADR-014](adr/014-claude-redirect-rules-auto-expansion.md) |
@@ -59,13 +59,13 @@
 
 **受け入れ条件**:
 
-- [ ] `bats tests/` で全テストが PASS する
-- [ ] 全 .fish ファイルが `fish -n` で構文エラーなく通過する
-- [ ] Ghostty CSI シーケンスと tmux user-keys の対応が自動検証される
-- [ ] `__tm_session_name` の入出力がテストケースで検証される
-- [ ] tmux.conf の読み込みとキーバインド登録が自動検証される
-- [ ] パススルーモードの ON/OFF 状態遷移が自動検証される
-- [ ] CI の push/PR トリガーで全テストが自動実行される
+- [x] `bats tests/` で全テストが PASS する
+- [x] 全 .fish ファイルが `fish -n` で構文エラーなく通過する
+- [x] Ghostty CSI シーケンスと tmux user-keys の対応が自動検証される
+- [x] `__tm_session_name` の入出力がテストケースで検証される
+- [x] tmux.conf の読み込みとキーバインド登録が自動検証される
+- [x] パススルーモードの ON/OFF 状態遷移が自動検証される
+- [x] CI の push/PR トリガーで全テストが自動実行される
 
 ---
 
