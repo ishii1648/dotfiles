@@ -31,6 +31,7 @@
 | ✔ | ○ | git | SSH 鍵・gitconfig が手動管理で散在している — pub 鍵がリポ管理外、gitconfig が OS 非依存の単一ファイル、SSH セットアップが手動 | [ADR-028](adr/028-git-ssh-key-gitconfig-profile-separation.md) |
 | ✔ | ○ | git | SSH 鍵の pub 鍵をリポ管理しているが秘密鍵を配布できない — 端末ごとに鍵ペアを生成すべきで pub 鍵のリポ管理が無意味 | [ADR-029](adr/029-per-terminal-ssh-key-generation.md) |
 | ✔ | ○ | claude | lab 環境で Claude Code を安全に自律実行できない — Built-in Sandbox はツールバイパス問題があり、Docker コンテナ隔離 + Cloudflare Gateway が必要 | [ADR-030](adr/030-claude-code-docker-sandbox.md) |
+| - | ○ | 複合 | setup.sh に interactive / non-interactive モードがない — 環境によって入力を求められるケースがあり、CI や Docker e2e でのテスタビリティが低い | [ADR-031](adr/031-setup-interactive-mode.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -57,8 +58,13 @@
 
 **受け入れ条件**:
 
-- [ ] 設定変更後に主要なキーバインド・関数・symlink が壊れていないことを自動で確認できる
-- [ ] リグレッションチェックを CI またはローカルコマンド一発で実行できる
+- [ ] `bats tests/` で全テストが PASS する
+- [ ] 全 .fish ファイルが `fish -n` で構文エラーなく通過する
+- [ ] Ghostty CSI シーケンスと tmux user-keys の対応が自動検証される
+- [ ] `__tm_session_name` の入出力がテストケースで検証される
+- [ ] tmux.conf の読み込みとキーバインド登録が自動検証される
+- [ ] パススルーモードの ON/OFF 状態遷移が自動検証される
+- [ ] CI の push/PR トリガーで全テストが自動実行される
 
 ---
 
@@ -305,4 +311,19 @@
 - [x] `configs/claude/docker/run.sh` が存在し、deny-by-default マウント構成（プロジェクトディレクトリ R/W、~/.ssh RO、~/.gitconfig・~/.config/gh は存在時のみ）で `claude --dangerously-skip-permissions` を起動する
 - [x] `run.sh` が `~/.claude` マウントで subscription 認証を共有し、API トークンをコンテナ内に永続保存しない
 - [x] `docker build` + `run.sh <project-dir>` でコンテナが起動し、Claude Code のヘルプが表示される
+
+---
+
+### ADR-031: setup.sh に interactive / non-interactive モードを追加する
+
+**コンポーネント**: 複合 | **ADR**: [ADR-031](adr/031-setup-interactive-mode.md)
+
+**受け入れ条件**:
+
+- [ ] `bash scripts/setup.sh --non-interactive` で確認プロンプトなしにセットアップが完走する
+- [ ] `bash scripts/setup.sh --interactive` で破壊的操作・パッケージインストール前に確認プロンプトが表示される
+- [ ] オプション未指定時に TTY 接続の有無で interactive / non-interactive が自動判定される
+- [ ] `--dry-run` 指定時は常に non-interactive として動作する
+- [ ] 委譲先の setup.sh に `SETUP_INTERACTIVE` 環境変数でモードが伝播される
+- [ ] `tests/Dockerfile` で `--non-interactive` が明示的に指定されている
 
