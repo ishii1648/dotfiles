@@ -46,16 +46,21 @@ function gw_add -d "Add a git worktree and cd into it"
         return 0
     end
 
-    # リモートブランチの存在確認
-    set -l remote_branch_exists (git ls-remote --heads origin "$worktree_name" 2>/dev/null)
+    # リモートの最新情報を取得
+    git fetch origin
 
-    if test -n "$remote_branch_exists"
+    # リモートブランチの存在確認（fetch済みのローカルリモート追跡ブランチを確認）
+    if git rev-parse --verify "refs/remotes/origin/$worktree_name" >/dev/null 2>&1
         # リモートブランチが存在する場合: fetch してから追跡ブランチとして作成
         git fetch origin "$worktree_name":"$worktree_name"
         git worktree add "$worktree_path" "$worktree_name"
     else
-        # リモートブランチが存在しない場合: 新規ブランチ作成
-        git worktree add "$worktree_path" -b "$worktree_name"
+        # リモートブランチが存在しない場合: origin/HEAD をベースに新規ブランチ作成
+        set -l default_branch (git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | string replace 'refs/remotes/origin/' '')
+        if test -z "$default_branch"
+            set default_branch main
+        end
+        git worktree add "$worktree_path" -b "$worktree_name" "origin/$default_branch"
     end
 
     if test $status -ne 0
