@@ -14,8 +14,9 @@ import re
 import os
 import statistics
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, date, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from urllib.parse import urlparse, parse_qs
 
 PERMISSION_LOG = os.path.expanduser("~/.claude/logs/permission.log")
 SESSION_INDEX = os.path.expanduser("~/.claude/session-index.jsonl")
@@ -127,8 +128,12 @@ def compute_stretches(tool_use_times, perm_times):
     return stretches
 
 
-def aggregate():
+def aggregate(from_dt=None, to_dt=None):
     """PR ごとの permission UI 回数 + 自律ストレッチ統計を集計する。
+
+    Args:
+        from_dt: フィルタ開始日時（UTC aware datetime）。None の場合フィルタなし。
+        to_dt: フィルタ終了日時（UTC aware datetime）。None の場合フィルタなし。
 
     Returns:
         pr_stats: {pr_url: {perm_count, avg_stretch, median_stretch, stretches}}
@@ -138,12 +143,25 @@ def aggregate():
     sessions = load_sessions()
     perm_by_session = load_permission_timestamps_by_session()
 
-    total = sum(len(v) for v in perm_by_session.values())
+    total_raw = sum(len(v) for v in perm_by_session.values())
     unmatched = 0
     pr_perm_counts = defaultdict(int)
     pr_stretches = defaultdict(list)
 
     for sid, perm_times in perm_by_session.items():
+        # 日付フィルタ
+        if from_dt is not None or to_dt is not None:
+            filtered = []
+            for pt in perm_times:
+                if from_dt is not None and pt < from_dt:
+                    continue
+                if to_dt is not None and pt > to_dt:
+                    continue
+                filtered.append(pt)
+            perm_times = filtered
+        if not perm_times:
+            continue
+
         session = sessions.get(sid, {})
         pr_url = session.get("pr_url", "")
         if not pr_url or pr_url == "https://github.com/org/repo/pull/123":
@@ -155,6 +173,10 @@ def aggregate():
             tool_times = load_transcript_tool_uses(transcript)
             pr_stretches[pr_url].extend(compute_stretches(tool_times, perm_times))
 
+    total = sum(len(v) for v in perm_by_session.values())
+    if from_dt is not None or to_dt is not None:
+        total = sum(pr_perm_counts.values()) + unmatched
+
     pr_stats = {}
     for pr_url in pr_perm_counts:
         stretches = pr_stretches.get(pr_url, [])
@@ -165,6 +187,49 @@ def aggregate():
             "median": statistics.median(stretches) if stretches else None,
         }
     return pr_stats, unmatched, total
+
+
+def aggregate_by_date(from_dt, to_dt):
+    """日付でフィルタし、日別ストレッチ統計を昇順で返す。
+
+    Returns:
+        {date_str: {perm_count, avg, stretches}}  昇順ソート済み dict
+    """
+    sessions = load_sessions()
+    perm_by_session = load_permission_timestamps_by_session()
+
+    date_perm_counts = defaultdict(int)
+    date_stretches = defaultdict(list)
+
+    for sid, perm_times in perm_by_session.items():
+        # 日付範囲フィルタ
+        filtered = [
+            pt for pt in perm_times
+            if from_dt <= pt <= to_dt
+        ]
+        if not filtered:
+            continue
+
+        session = sessions.get(sid, {})
+        transcript = session.get("transcript", "")
+        tool_times = load_transcript_tool_uses(transcript) if transcript else []
+        stretches = compute_stretches(tool_times, filtered)
+
+        for i, perm_ts in enumerate(filtered):
+            d = perm_ts.date().isoformat()
+            date_perm_counts[d] += 1
+            if i < len(stretches):
+                date_stretches[d].append(stretches[i])
+
+    result = {}
+    for d in sorted(date_perm_counts.keys()):
+        s = date_stretches.get(d, [])
+        result[d] = {
+            "perm_count": date_perm_counts[d],
+            "stretches": s,
+            "avg": round(statistics.mean(s), 1) if s else None,
+        }
+    return result
 
 
 # ── 描画 ───────────────────────────────────────────────────────────────────────
@@ -260,11 +325,152 @@ def generate_autonomy_table(pr_stats):
 """
 
 
-def generate_html():
-    pr_stats, unmatched, total = aggregate()
+def generate_trend_line_chart(date_stats):
+    """日別 avg ストレッチ長の折れ線グラフ（純粋 SVG）。"""
+    # avg データが存在する日のみ対象
+    items = [(d, s) for d, s in date_stats.items() if s["avg"] is not None]
+
+    if len(items) <= 1:
+        return "<p>データが不足しています（2 日以上のデータが必要です）</p>"
+
+    pad_left, pad_right, pad_top, pad_bottom = 50, 20, 20, 50
+    chart_w, chart_h = 600, 200
+    total_w = pad_left + chart_w + pad_right
+    total_h = pad_top + chart_h + pad_bottom
+
+    avgs = [s["avg"] for _, s in items]
+    max_avg = max(avgs)
+    min_avg = min(avgs)
+    avg_range = max_avg - min_avg if max_avg != min_avg else 1.0
+
+    n = len(items)
+    x_step = chart_w / (n - 1)
+
+    def cx(i):
+        return pad_left + i * x_step
+
+    def cy(v):
+        return pad_top + chart_h - ((v - min_avg) / avg_range) * chart_h
+
+    # 折れ線の点列
+    points = " ".join(f"{cx(i):.1f},{cy(s['avg']):.1f}" for i, (_, s) in enumerate(items))
+
+    # X 軸ラベル（最大 10 本まで等間隔）
+    label_step = max(1, n // 10)
+    x_labels = []
+    for i, (d, _) in enumerate(items):
+        if i % label_step == 0 or i == n - 1:
+            lx = cx(i)
+            ly = pad_top + chart_h + 16
+            short = d[5:]  # MM-DD
+            x_labels.append(
+                f'<text x="{lx:.1f}" y="{ly}" text-anchor="middle" '
+                f'font-size="10" fill="#94a3b8">{short}</text>'
+            )
+
+    # Y 軸ラベル（min, max）
+    y_labels = [
+        f'<text x="{pad_left - 6}" y="{pad_top + chart_h:.1f}" text-anchor="end" '
+        f'font-size="10" fill="#94a3b8">{min_avg:.1f}</text>',
+        f'<text x="{pad_left - 6}" y="{pad_top:.1f}" text-anchor="end" '
+        f'font-size="10" fill="#94a3b8">{max_avg:.1f}</text>',
+    ]
+
+    # データ点（circle + tooltip）
+    circles = []
+    for i, (d, s) in enumerate(items):
+        px, py = cx(i), cy(s["avg"])
+        title = f"{d}: avg={s['avg']:.1f}, perm={s['perm_count']}"
+        circles.append(
+            f'<circle cx="{px:.1f}" cy="{py:.1f}" r="4" fill="#3b82f6" stroke="#60a5fa" stroke-width="1">'
+            f'<title>{title}</title>'
+            f'</circle>'
+        )
+
+    # 軸線
+    axes = (
+        f'<line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + chart_h}" '
+        f'stroke="#2d3748" stroke-width="1"/>'
+        f'<line x1="{pad_left}" y1="{pad_top + chart_h}" x2="{pad_left + chart_w}" y2="{pad_top + chart_h}" '
+        f'stroke="#2d3748" stroke-width="1"/>'
+    )
+
+    inner = "\n  ".join(
+        [axes]
+        + x_labels
+        + y_labels
+        + [
+            f'<polyline points="{points}" fill="none" stroke="#3b82f6" stroke-width="2"/>',
+        ]
+        + circles
+    )
+
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_w}" height="{total_h}" '
+        f'style="font-family: monospace;">\n  {inner}\n</svg>'
+    )
+
+
+def generate_trend_table(date_stats):
+    """日別テーブル（昇順）: 日付 / perm 回数 / avg ストレッチ長。"""
+    if not date_stats:
+        return "<p>データがありません</p>"
+
+    rows = []
+    for d, s in date_stats.items():
+        avg = f"{s['avg']:.1f}" if s["avg"] is not None else "—"
+        rows.append(
+            f'<tr>'
+            f'<td>{d}</td>'
+            f'<td style="text-align:right">{s["perm_count"]}</td>'
+            f'<td style="text-align:right">{avg}</td>'
+            f'</tr>'
+        )
+
+    rows_html = "\n".join(rows)
+    return f"""
+<table style="width:auto">
+  <thead>
+    <tr>
+      <th>日付</th>
+      <th style="width:110px">permission UI 回数</th>
+      <th style="width:110px">avg ストレッチ長</th>
+    </tr>
+  </thead>
+  <tbody>
+{rows_html}
+  </tbody>
+</table>
+"""
+
+
+def generate_html(from_dt=None, to_dt=None):
+    # デフォルト期間: 今日から 30 日前〜今日
+    today = date.today()
+    if to_dt is None:
+        to_dt = datetime(today.year, today.month, today.day, 23, 59, 59, tzinfo=timezone.utc)
+    if from_dt is None:
+        d30 = today - timedelta(days=30)
+        from_dt = datetime(d30.year, d30.month, d30.day, 0, 0, 0, tzinfo=timezone.utc)
+
+    from_val = from_dt.date().isoformat()
+    to_val = to_dt.date().isoformat()
+
+    pr_stats, unmatched, total = aggregate(from_dt, to_dt)
     pr_count = len(pr_stats)
     svg = generate_svg_bar_chart(pr_stats)
     table = generate_autonomy_table(pr_stats)
+
+    date_stats = aggregate_by_date(from_dt, to_dt)
+    trend_chart = generate_trend_line_chart(date_stats)
+    trend_table = generate_trend_table(date_stats)
+
+    date_form = f"""<form method="get" style="display:flex; gap:8px; align-items:center; margin-bottom:16px">
+  <input type="date" name="from" value="{from_val}" style="background:#252d3d; color:#e2e8f0; border:1px solid #2d3748; padding:4px 8px; border-radius:4px">
+  <span>〜</span>
+  <input type="date" name="to" value="{to_val}" style="background:#252d3d; color:#e2e8f0; border:1px solid #2d3748; padding:4px 8px; border-radius:4px">
+  <button type="submit" style="background:#3b82f6; color:#fff; border:none; padding:4px 12px; border-radius:4px; cursor:pointer">適用</button>
+</form>"""
 
     return f"""<!DOCTYPE html>
 <html lang="ja">
@@ -289,11 +495,23 @@ def generate_html():
 <body>
   <h1>Claude 自律度ダッシュボード</h1>
 
+  {date_form}
+
   <div class="card summary">
     <strong>総 permission UI 回数:</strong> {total}<br>
     <strong>PR 件数:</strong> {pr_count}<br>
     <strong>未マッチ（PR URL なし）:</strong> {unmatched}<br>
     <small>10 秒ごとに自動更新</small>
+  </div>
+
+  <h2>時系列トレンド（日別 avg ストレッチ長）</h2>
+  <div class="card">
+    {trend_chart}
+  </div>
+
+  <h2>日別統計</h2>
+  <div class="card">
+    {trend_table}
   </div>
 
   <h2>Permission UI 回数（PR 別）</h2>
@@ -313,8 +531,22 @@ def generate_html():
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
-        if self.path == "/":
-            html = generate_html().encode("utf-8")
+        parsed = urlparse(self.path)
+        if parsed.path == "/":
+            params = parse_qs(parsed.query)
+            from_dt = None
+            to_dt = None
+            try:
+                if "from" in params:
+                    d = date.fromisoformat(params["from"][0])
+                    from_dt = datetime(d.year, d.month, d.day, 0, 0, 0, tzinfo=timezone.utc)
+                if "to" in params:
+                    d = date.fromisoformat(params["to"][0])
+                    to_dt = datetime(d.year, d.month, d.day, 23, 59, 59, tzinfo=timezone.utc)
+            except (ValueError, IndexError):
+                pass
+
+            html = generate_html(from_dt, to_dt).encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html)))
