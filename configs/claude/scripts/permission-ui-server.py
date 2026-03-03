@@ -238,7 +238,7 @@ def generate_trend_line_chart(stats, short_label_fn, min_points=2):
     if len(items) < min_points:
         return f"<p>データが不足しています（{min_points} 件以上のデータが必要です）</p>"
 
-    pad_left, pad_right, pad_top, pad_bottom = 65, 20, 20, 60
+    pad_left, pad_right, pad_top, pad_bottom = 65, 60, 20, 60
     chart_w, chart_h = 600, 200
     total_w = pad_left + chart_w + pad_right
     total_h = pad_top + chart_h + pad_bottom
