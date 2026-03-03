@@ -39,6 +39,7 @@
 | ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
 | - | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
 | ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
+| - | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -416,6 +417,19 @@
 - [x] `Spike中` から `Draft`（設計確定）への遷移ルールが `adr-reference` skill に記載されている
 - [x] `development.md` に Spike フロー（`create-spec` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
 - [x] `adr-ship` skill に `Spike中` ステータスの ADR には適用しないガードが明記されている
+
+---
+
+### ADR-039: Stop フックで既存 PR URL を補完する
+
+**コンポーネント**: claude | **ADR**: [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md)
+
+**受け入れ条件**:
+
+- [ ] 既存 PR があるブランチのセッション終了後、`session-index.jsonl` の対象レコードの `pr_urls` に PR URL が記録される
+- [ ] セッション中に `gh pr view` 等の Bash コマンドを実行しなかった場合でも `pr_urls` が補完される
+- [ ] `pr_urls` が既に埋まっている場合は `gh pr view` を実行しない（余分な API 呼び出しを避ける）
+- [ ] Stop フックのタイムアウト（10 秒）内に補完処理が完了する
 
 ---
 
