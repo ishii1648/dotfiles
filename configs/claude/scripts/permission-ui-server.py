@@ -26,6 +26,22 @@ PORT = 18765
 EXCLUDED_REPOS = {"ishii1648/dotfiles"}
 
 
+def is_excluded_session(session):
+    """EXCLUDED_REPOS に含まれるリポジトリのセッションかどうかを判定する。
+
+    pr_url（PR あり repos）と transcript パス（PR なし repos）の両方で照合する。
+    transcript パスは "owner/repo" の "/" を "-" に置換した文字列を含む。
+    """
+    pr_url = session.get("pr_url", "")
+    transcript = session.get("transcript", "")
+    for repo in EXCLUDED_REPOS:
+        if repo in pr_url:
+            return True
+        if repo.replace("/", "-") in transcript:
+            return True
+    return False
+
+
 # ── データ読み込み ──────────────────────────────────────────────────────────────
 
 def parse_ts(ts_str):
@@ -144,8 +160,7 @@ def _aggregate_by_key(from_dt, to_dt, key_fn):
             continue
 
         session = sessions.get(sid, {})
-        pr_url = session.get("pr_url", "")
-        if any(repo in pr_url for repo in EXCLUDED_REPOS):
+        if is_excluded_session(session):
             continue
         transcript = session.get("transcript", "")
         tool_times = load_transcript_tool_uses(transcript) if transcript else []
@@ -200,11 +215,11 @@ def aggregate(from_dt=None, to_dt=None):
             continue
 
         session = sessions.get(sid, {})
+        if is_excluded_session(session):
+            continue
         pr_url = session.get("pr_url", "")
         if not pr_url or pr_url == "https://github.com/org/repo/pull/123":
             unmatched += len(perm_times)
-            continue
-        if any(repo in pr_url for repo in EXCLUDED_REPOS):
             continue
         pr_perm_counts[pr_url] += len(perm_times)
         transcript = session.get("transcript", "")
