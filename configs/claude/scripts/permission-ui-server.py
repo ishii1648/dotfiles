@@ -29,16 +29,20 @@ EXCLUDED_REPOS = {"ishii1648/dotfiles"}
 def is_excluded_session(session):
     """EXCLUDED_REPOS に含まれるリポジトリのセッションかどうかを判定する。
 
-    pr_url（PR あり repos）と transcript パス（PR なし repos）の両方で照合する。
-    transcript パスは "owner/repo" の "/" を "-" に置換した文字列を含む。
+    - pr_url がある場合: pr_url のみで照合（他リポジトリの PR を誤除外しない）
+    - pr_url がない場合: transcript パスで照合（PR を挟まない repos の除外用）
+      transcript パスは "owner/repo" の "/" を "-" に置換した文字列を含む。
     """
     pr_url = session.get("pr_url", "")
     transcript = session.get("transcript", "")
+    has_valid_pr = bool(pr_url) and pr_url != "https://github.com/org/repo/pull/123"
     for repo in EXCLUDED_REPOS:
-        if repo in pr_url:
-            return True
-        if repo.replace("/", "-") in transcript:
-            return True
+        if has_valid_pr:
+            if repo in pr_url:
+                return True
+        else:
+            if repo.replace("/", "-") in transcript:
+                return True
     return False
 
 
