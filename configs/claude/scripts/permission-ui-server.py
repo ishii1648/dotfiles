@@ -220,10 +220,12 @@ def generate_autonomy_table(pr_stats):
         return "<p>データがありません</p>"
 
     items = sorted(
-        pr_stats.items(),
-        key=lambda x: (x[1]["avg"] or 0),
+        ((url, s) for url, s in pr_stats.items() if s["avg"] is not None),
+        key=lambda x: x[1]["avg"],
         reverse=True,
     )
+    if not items:
+        return "<p>ストレッチデータがありません（transcript が取得できていない可能性があります）</p>"
 
     rows = []
     for url, stat in items:
