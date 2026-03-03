@@ -381,7 +381,6 @@ def generate_html(from_dt=None, to_dt=None):
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta http-equiv="refresh" content="10">
   <title>Claude 自律度ダッシュボード</title>
   <style>
     body {{ font-family: monospace; padding: 20px; background: #0f1117; color: #e2e8f0; }}
@@ -410,8 +409,7 @@ def generate_html(from_dt=None, to_dt=None):
   <div class="card summary">
     <strong>総 permission UI 回数:</strong> {total}<br>
     <strong>PR 件数:</strong> {pr_count}<br>
-    <strong>未マッチ（PR URL なし）:</strong> {unmatched}<br>
-    <small>10 秒ごとに自動更新</small>
+    <strong>未マッチ（PR URL なし）:</strong> {unmatched}
   </div>
 
   <h2>時系列トレンド（avg ストレッチ長）</h2>
