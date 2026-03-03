@@ -11,5 +11,5 @@ SESSION_ID=$(echo "$input" | jq -r '.session_id // ""')
 LOG_DIR="$HOME/.claude/logs"
 mkdir -p "$LOG_DIR"
 
-echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) PERMISSION_UI session=${SESSION_ID}" \
+echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) session=${SESSION_ID}" \
   >> "$LOG_DIR/permission.log"
