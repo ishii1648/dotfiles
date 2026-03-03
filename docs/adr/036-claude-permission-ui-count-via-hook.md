@@ -57,6 +57,8 @@ Deny 数は正確に取れるが、Approve 数は取れないため「permission
 |----------|----------|
 | `configs/claude/scripts/permission-log.sh` | 新規作成（Notification: permission_prompt hook 用ログスクリプト） |
 | `configs/claude/settings.json` | Notification.permission_prompt hooks への登録 |
+| `configs/claude/scripts/permission-ui-server.py` | 新規作成（可視化 Web サーバ、port 18765、純粋 SVG グラフ） |
+| `configs/claude/scripts/permission-ui-start.sh` | 新規作成（二重起動防止付き起動スクリプト） |
 
 ## 受け入れ条件
 

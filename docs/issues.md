@@ -387,6 +387,8 @@
 - [x] `permission-log.sh` が `Notification: permission_prompt` hook として登録され、セッションIDとタイムスタンプをログに記録できる
 - [x] `~/.claude/logs/permission.log` に permission UI 表示が記録される
 - [x] transcript の `[Request interrupted by user for tool use]` と合算せずとも、ログのみで permission UI 表示回数（Approve + Deny 合算）が集計できる
+- [x] `permission-ui-server.py` が port 18765 で起動し、`http://localhost:18765` でグラフが表示される
+- [x] session-index.jsonl と permission.log を結合して PR ごとの permission UI 表示回数が棒グラフで確認できる
 
 ---
 
