@@ -241,13 +241,13 @@ def generate_autonomy_table(pr_stats):
 
     rows_html = "\n".join(rows)
     return f"""
-<table>
+<table style="width:auto">
   <thead>
     <tr>
       <th>PR</th>
-      <th>permission UI 回数</th>
-      <th>avg ストレッチ長</th>
-      <th>median ストレッチ長</th>
+      <th style="width:110px">permission UI 回数</th>
+      <th style="width:110px">avg ストレッチ長</th>
+      <th style="width:110px">median ストレッチ長</th>
     </tr>
   </thead>
   <tbody>
