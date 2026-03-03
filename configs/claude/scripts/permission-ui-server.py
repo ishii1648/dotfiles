@@ -183,9 +183,12 @@ def generate_svg_bar_chart(pr_stats):
     max_val = max(s["perm_count"] for _, s in items)
 
     bar_height, bar_gap = 30, 10
-    label_width, chart_width, padding = 240, 400, 20
+    label_width, chart_width, count_width, padding = 240, 360, 40, 20
     total_height = (bar_height + bar_gap) * len(items) + padding * 2
-    total_width = label_width + chart_width + padding * 2
+    total_width = label_width + chart_width + count_width + padding * 2
+
+    # count は bar エリア右端に固定して縦に揃える
+    count_x = label_width + chart_width + 8
 
     bars = []
     for i, (url, stat) in enumerate(items):
@@ -201,7 +204,7 @@ def generate_svg_bar_chart(pr_stats):
             f'</a>'
             f'<rect x="{label_width}" y="{y}" width="{bar_w}" height="{bar_height}" '
             f'fill="#4f8ef7" rx="3"/>'
-            f'<text x="{label_width + bar_w + 6}" y="{ty}" font-size="12" fill="#333">{count}</text>'
+            f'<text x="{count_x}" y="{ty}" font-size="12" fill="#333">{count}</text>'
         )
 
     bars_svg = "\n  ".join(bars)
