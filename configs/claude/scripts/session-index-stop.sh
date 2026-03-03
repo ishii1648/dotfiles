@@ -20,3 +20,30 @@ except Exception:
 if pr_urls:
     script = os.path.expanduser("~/.claude/scripts/session-index-update.py")
     subprocess.run([sys.executable, script, session_id] + sorted(pr_urls))
+else:
+    index_file = os.path.expanduser("~/.claude/session-index.jsonl")
+    branch, cwd = "", ""
+    if os.path.exists(index_file):
+        try:
+            with open(index_file, 'r') as f:
+                for raw in f:
+                    raw = raw.strip()
+                    if not raw:
+                        continue
+                    entry = json.loads(raw)
+                    if entry.get("session_id") == session_id:
+                        if not entry.get("pr_urls"):
+                            branch = entry.get("branch", "")
+                            cwd = entry.get("cwd", "")
+                        break
+        except Exception:
+            pass
+
+    if branch and cwd:
+        backfill_script = os.path.expanduser("~/.claude/scripts/session-index-backfill.py")
+        subprocess.Popen(
+            [sys.executable, backfill_script, session_id, branch, cwd],
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
