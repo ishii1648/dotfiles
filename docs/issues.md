@@ -36,6 +36,7 @@
 | ✔ | ○ | tmux | tmux popup 内でバグが多発するがテストがない — $TMUX 変数ネスティング・switch-client 失敗・ソケット管理等の壊れやすいパターンが未検証 | [ADR-033](adr/033-tmux-popup-regression-testing.md) |
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
 | ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
+| ✔ | △ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -373,6 +374,19 @@
 - [x] セッション開始後に `gh pr` コマンドを実行した際、PostToolUse フックが PR URL を JSONL に記録できる
 - [x] PR URL なしで記録されたレコードが Stop フックにより PR URL で補完される
 - [x] Claude Code の起動時間（SessionStart フック完了まで）が体感で 2 秒以内になる
+
+---
+
+### ADR-036: Notification hook による permission UI 表示回数の計測
+
+**コンポーネント**: claude | **ADR**: [ADR-036](adr/036-claude-permission-ui-count-via-hook.md)
+
+**受け入れ条件**:
+
+- [x] `Notification: permission_prompt` hook が permission UI 表示時に発火することが確認されている
+- [x] `permission-log.sh` が `Notification: permission_prompt` hook として登録され、セッションIDとタイムスタンプをログに記録できる
+- [x] `~/.claude/logs/permission.log` に permission UI 表示が記録される
+- [x] transcript の `[Request interrupted by user for tool use]` と合算せずとも、ログのみで permission UI 表示回数（Approve + Deny 合算）が集計できる
 
 ---
 
