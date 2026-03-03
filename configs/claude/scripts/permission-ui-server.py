@@ -146,7 +146,7 @@ def aggregate():
     for sid, perm_times in perm_by_session.items():
         session = sessions.get(sid, {})
         pr_url = session.get("pr_url", "")
-        if not pr_url:
+        if not pr_url or pr_url == "https://github.com/org/repo/pull/123":
             unmatched += len(perm_times)
             continue
         pr_perm_counts[pr_url] += len(perm_times)
