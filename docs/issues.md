@@ -36,7 +36,7 @@
 | ✔ | ○ | tmux | tmux popup 内でバグが多発するがテストがない — $TMUX 変数ネスティング・switch-client 失敗・ソケット管理等の壊れやすいパターンが未検証 | [ADR-033](adr/033-tmux-popup-regression-testing.md) |
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
 | ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
-| ✔ | △ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
+| ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
