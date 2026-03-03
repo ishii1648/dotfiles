@@ -200,11 +200,11 @@ def generate_svg_bar_chart(pr_stats):
         bars.append(
             f'<a href="{url}" target="_blank">'
             f'<text x="{label_width - 8}" y="{ty}" text-anchor="end" '
-            f'font-size="12" fill="#2563eb" text-decoration="underline">{label}</text>'
+            f'font-size="12" fill="#60a5fa" text-decoration="underline">{label}</text>'
             f'</a>'
             f'<rect x="{label_width}" y="{y}" width="{bar_w}" height="{bar_height}" '
-            f'fill="#4f8ef7" rx="3"/>'
-            f'<text x="{count_x}" y="{ty}" font-size="12" fill="#333">{count}</text>'
+            f'fill="#3b82f6" rx="3"/>'
+            f'<text x="{count_x}" y="{ty}" font-size="12" fill="#e2e8f0">{count}</text>'
         )
 
     bars_svg = "\n  ".join(bars)
@@ -271,17 +271,17 @@ def generate_html():
   <meta http-equiv="refresh" content="10">
   <title>Claude 自律度ダッシュボード</title>
   <style>
-    body {{ font-family: monospace; padding: 20px; background: #f5f5f5; color: #333; }}
+    body {{ font-family: monospace; padding: 20px; background: #0f1117; color: #e2e8f0; }}
     h1, h2 {{ margin-top: 0; }}
-    h2 {{ margin-top: 24px; font-size: 1rem; color: #555; }}
-    .card {{ background: white; padding: 20px; border-radius: 8px; margin-bottom: 20px; overflow-x: auto; }}
+    h2 {{ margin-top: 24px; font-size: 1rem; color: #94a3b8; }}
+    .card {{ background: #1e2330; padding: 20px; border-radius: 8px; margin-bottom: 20px; overflow-x: auto; }}
     .summary {{ line-height: 1.8; }}
     table {{ border-collapse: collapse; width: 100%; font-size: 13px; }}
-    th, td {{ padding: 6px 12px; border-bottom: 1px solid #e5e7eb; }}
-    th {{ background: #f9fafb; text-align: left; }}
-    tr:hover td {{ background: #f0f4ff; }}
-    a {{ color: #2563eb; }}
-    .note {{ font-size: 11px; color: #888; margin-top: 8px; }}
+    th, td {{ padding: 6px 12px; border-bottom: 1px solid #2d3748; }}
+    th {{ background: #252d3d; text-align: left; color: #94a3b8; }}
+    tr:hover td {{ background: #2a3347; }}
+    a {{ color: #60a5fa; }}
+    .note {{ font-size: 11px; color: #64748b; margin-top: 8px; }}
   </style>
 </head>
 <body>
