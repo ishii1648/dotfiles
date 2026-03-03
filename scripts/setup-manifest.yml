@@ -62,6 +62,10 @@ components:
         target: configs/claude/scripts
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
+      - link: ~/.claude/skills/textlint
+        target: configs/claude/skills/textlint
+      - link: ~/.local/bin/claude-stats
+        target: configs/claude/scripts/claude-stats
     copies:
       - src: configs/claude/settings.json
         dest: ~/.claude/settings.json
