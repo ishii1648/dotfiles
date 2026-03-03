@@ -67,7 +67,7 @@ def shorten_pr_url(url):
 
 
 def aggregate():
-    """PR URL ごとの permission UI 表示回数を集計"""
+    """PR URL ごとの permission UI 表示回数を集計。{full_url: count} を返す"""
     session_to_pr = load_session_index()
     session_to_count = load_permission_log()
     pr_counts = defaultdict(int)
@@ -75,16 +75,16 @@ def aggregate():
     for session_id, count in session_to_count.items():
         pr_url = session_to_pr.get(session_id, "")
         if pr_url:
-            pr_counts[shorten_pr_url(pr_url)] += count
+            pr_counts[pr_url] += count
         else:
             unmatched += count
     return pr_counts, unmatched, sum(session_to_count.values())
 
 
 def generate_svg_bar_chart(pr_counts):
-    """純粋な SVG 棒グラフを生成（外部ライブラリ不使用）"""
+    """純粋な SVG 棒グラフを生成。pr_counts は {full_url: count}"""
     if not pr_counts:
-        return "<p>データがありません（permission.log または session-index.jsonl が空）</p>"
+        return "<p>PR URL が紐付いたデータがありません</p>"
 
     items = sorted(pr_counts.items(), key=lambda x: x[1], reverse=True)
 
@@ -99,15 +99,20 @@ def generate_svg_bar_chart(pr_counts):
     total_width = label_width + chart_width + padding * 2
 
     bars = []
-    for i, (label, count) in enumerate(items):
+    for i, (url, count) in enumerate(items):
+        label = shorten_pr_url(url)
         y = padding + i * (bar_height + bar_gap)
         bar_w = max(2, int((count / max_val) * chart_width))
+        ty = y + bar_height // 2 + 5
         bars.append(
-            f'<text x="{label_width - 8}" y="{y + bar_height // 2 + 5}" '
-            f'text-anchor="end" font-size="12" fill="#444">{label}</text>'
+            f'<a href="{url}" target="_blank">'
+            f'<text x="{label_width - 8}" y="{ty}" '
+            f'text-anchor="end" font-size="12" fill="#2563eb" '
+            f'text-decoration="underline">{label}</text>'
+            f'</a>'
             f'<rect x="{label_width}" y="{y}" width="{bar_w}" height="{bar_height}" '
             f'fill="#4f8ef7" rx="3"/>'
-            f'<text x="{label_width + bar_w + 6}" y="{y + bar_height // 2 + 5}" '
+            f'<text x="{label_width + bar_w + 6}" y="{ty}" '
             f'font-size="12" fill="#333">{count}</text>'
         )
 
@@ -122,11 +127,7 @@ def generate_svg_bar_chart(pr_counts):
 def generate_html():
     pr_counts, unmatched, total = aggregate()
     pr_count = len(pr_counts)
-    # 未マッチ分もグラフに含める（PR URL が取得できていないセッション）
-    chart_data = dict(pr_counts)
-    if unmatched > 0:
-        chart_data["(PR URL なし)"] = unmatched
-    svg = generate_svg_bar_chart(chart_data)
+    svg = generate_svg_bar_chart(pr_counts)
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
