@@ -167,9 +167,12 @@ def aggregate_by_date(from_dt, to_dt):
     return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.date().isoformat())
 
 
+JST = timezone(timedelta(hours=9))
+
+
 def aggregate_by_hour(from_dt, to_dt):
-    """時間別ストレッチ統計を昇順で返す。key = 'YYYY-MM-DD HH'"""
-    return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.strftime("%Y-%m-%d %H"))
+    """時間別ストレッチ統計を昇順で返す。key = 'YYYY-MM-DD HH'（JST）"""
+    return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.astimezone(JST).strftime("%Y-%m-%d %H"))
 
 
 def aggregate(from_dt=None, to_dt=None):
@@ -367,8 +370,8 @@ def generate_html(from_dt=None, to_dt=None):
     day_stats = aggregate_by_date(from_dt, to_dt)
     hour_stats = aggregate_by_hour(from_dt, to_dt)
 
-    day_chart = generate_trend_line_chart(day_stats, lambda k: k[5:])          # MM-DD
-    hour_chart = generate_trend_line_chart(hour_stats, lambda k: k[5:13])      # MM-DD HH
+    day_chart = generate_trend_line_chart(day_stats, lambda k: k[5:7] + "/" + k[8:10])                      # MM/DD
+    hour_chart = generate_trend_line_chart(hour_stats, lambda k: k[5:7] + "/" + k[8:10] + " " + k[11:13] + ":00")  # MM/DD HH:00
 
     date_form = f"""<form method="get" style="display:flex; gap:8px; align-items:center; margin-bottom:16px">
   <input type="date" name="from" value="{from_val}" style="background:#252d3d; color:#e2e8f0; border:1px solid #2d3748; padding:4px 8px; border-radius:4px">
