@@ -35,6 +35,7 @@
 | ✔ | ○ | 複合 | setup.sh が 500 行超で保守・テストが困難 — 関数群が 1 ファイルに密集しユニットテスト不可、機能追加時の衝突リスクが高い | [ADR-032](adr/032-setup-sh-modularization.md) |
 | ✔ | ○ | tmux | tmux popup 内でバグが多発するがテストがない — $TMUX 変数ネスティング・switch-client 失敗・ソケット管理等の壊れやすいパターンが未検証 | [ADR-033](adr/033-tmux-popup-regression-testing.md) |
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
+| ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -359,6 +360,19 @@
 - [x] `prtrack-popup.sh` のソケットパス抽出・セッション作成・detach が検証される
 - [x] popup の正常終了・強制終了がホスト側 tmux に影響しないことが検証される
 - [x] `bats tests/popup.bats` が CI で自動実行される
+
+---
+
+### ADR-035: Claude Code 起動時の session-index.sh ネットワーク呼び出し最適化
+
+**コンポーネント**: claude | **ADR**: [ADR-035](adr/035-claude-session-index-startup-optimization.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/scripts/session-index.sh` から `gh pr view` の呼び出しが削除されている
+- [x] セッション開始後に `gh pr` コマンドを実行した際、PostToolUse フックが PR URL を JSONL に記録できる
+- [x] PR URL なしで記録されたレコードが Stop フックにより PR URL で補完される
+- [x] Claude Code の起動時間（SessionStart フック完了まで）が体感で 2 秒以内になる
 
 ---
 

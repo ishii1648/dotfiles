@@ -11,7 +11,6 @@ TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 # git リポジトリ情報を取得（非 git ディレクトリでは空文字）
 REPO=""
 BRANCH=""
-PR_URL=""
 if git -C "$CWD" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
     REMOTE_URL=$(git -C "$CWD" remote get-url origin 2>/dev/null || echo "")
     if [ -n "$REMOTE_URL" ]; then
@@ -23,17 +22,7 @@ if git -C "$CWD" rev-parse --is-inside-work-tree > /dev/null 2>&1; then
         REPO=$(echo "$TOPLEVEL" | sed -E 's|.*/([^/]+/[^/@]+)(@.*)?$|\1|')
     fi
     BRANCH=$(git -C "$CWD" branch --show-current 2>/dev/null || echo "")
-
-    # ブランチに紐づく PR URL を取得（リモートありかつ gh コマンドが利用可能な場合のみ）
-    if [ -n "$BRANCH" ] && [ -n "$REMOTE_URL" ] && command -v gh > /dev/null 2>&1; then
-        PR_URL=$(GIT_DIR="$CWD/.git" gh pr view "$BRANCH" --json url -q '.url' 2>/dev/null || echo "")
-    fi
-fi
-
-PR_URLS="[]"
-if [ -n "$PR_URL" ]; then
-    PR_URLS="[\"$PR_URL\"]"
 fi
 
 INDEX_FILE="$HOME/.claude/session-index.jsonl"
-echo "{\"timestamp\": \"$TIMESTAMP\", \"session_id\": \"$SESSION_ID\", \"cwd\": \"$CWD\", \"repo\": \"$REPO\", \"branch\": \"$BRANCH\", \"pr_urls\": $PR_URLS, \"transcript\": \"$TRANSCRIPT\"}" >> "$INDEX_FILE"
+echo "{\"timestamp\": \"$TIMESTAMP\", \"session_id\": \"$SESSION_ID\", \"cwd\": \"$CWD\", \"repo\": \"$REPO\", \"branch\": \"$BRANCH\", \"pr_urls\": [], \"transcript\": \"$TRANSCRIPT\"}" >> "$INDEX_FILE"
