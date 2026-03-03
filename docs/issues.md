@@ -38,6 +38,7 @@
 | ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
 | ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
 | - | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
+| ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -402,6 +403,19 @@
 - [ ] permission UI 間の tool_use 数（自律的に動けたストレッチの長さ）が集計できる
 - [ ] PR ごとに中央値・平均値が算出され、ダッシュボードに表示される
 - [ ] 作業量（絶対数）に依存せず、PR 間で自律度を比較できる
+
+---
+
+### ADR-038: ADR 確定前検証（Spike）パターンの導入
+
+**コンポーネント**: claude | **ADR**: [ADR-038](adr/038-adr-spike-validation-pattern.md)
+
+**受け入れ条件**:
+
+- [x] `adr-reference` skill に `Spike中` ステータスが定義されている
+- [x] `Spike中` から `Draft`（設計確定）への遷移ルールが `adr-reference` skill に記載されている
+- [x] `development.md` に Spike フロー（`create-spec` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
+- [x] `adr-ship` skill に `Spike中` ステータスの ADR には適用しないガードが明記されている
 
 ---
 

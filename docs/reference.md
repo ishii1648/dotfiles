@@ -119,6 +119,8 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [033-tmux-popup-regression-testing.md](adr/033-tmux-popup-regression-testing.md)
 - [035-claude-session-index-startup-optimization.md](adr/035-claude-session-index-startup-optimization.md)
 - [036-claude-permission-ui-count-via-hook.md](adr/036-claude-permission-ui-count-via-hook.md)
+- [037-claude-autonomy-rate-per-work-unit.md](adr/037-claude-autonomy-rate-per-work-unit.md)
+- [038-adr-spike-validation-pattern.md](adr/038-adr-spike-validation-pattern.md)
 
 ## Neovim プラグイン一覧
 
