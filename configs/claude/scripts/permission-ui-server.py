@@ -397,6 +397,9 @@ def generate_html(from_dt=None, to_dt=None):
     tr:hover td {{ background: #2a3347; }}
     a {{ color: #60a5fa; }}
     .note {{ font-size: 11px; color: #64748b; margin-top: 8px; }}
+    .definition {{ border-left: 3px solid #3b82f6; line-height: 1.8; }}
+    .definition strong {{ font-size: 1rem; color: #93c5fd; }}
+    .definition-sub {{ color: #94a3b8; font-size: 12px; }}
     .tab-btn {{
       background: #252d3d; color: #94a3b8; border: 1px solid #2d3748;
       padding: 4px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
@@ -413,6 +416,12 @@ def generate_html(from_dt=None, to_dt=None):
     <strong>総 permission UI 回数:</strong> {total}<br>
     <strong>PR 件数:</strong> {pr_count}<br>
     <strong>未マッチ（PR URL なし）:</strong> {unmatched}
+  </div>
+
+  <div class="card definition">
+    <strong>ストレッチ長とは</strong><br>
+    permission UI と permission UI の間に Claude が自律実行した tool_use の数。<br>
+    <span class="definition-sub">値が大きいほど、割り込まれるまでに多くの作業を自律的にこなせたことを示す。</span>
   </div>
 
   <h2>時系列トレンド（avg ストレッチ長）</h2>
