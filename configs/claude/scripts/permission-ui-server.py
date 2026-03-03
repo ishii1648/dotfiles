@@ -29,9 +29,16 @@ def load_session_index():
             try:
                 entry = json.loads(line)
                 session_id = entry.get("session_id", "")
+                # フィールドは pr_urls (配列) または pr_url (文字列) の両方に対応
+                pr_urls = entry.get("pr_urls", [])
+                if isinstance(pr_urls, str):
+                    pr_urls = [pr_urls] if pr_urls else []
                 pr_url = entry.get("pr_url", "")
-                if session_id and pr_url:
-                    mapping[session_id] = pr_url
+                if pr_url and pr_url not in pr_urls:
+                    pr_urls.append(pr_url)
+                if session_id and pr_urls:
+                    # 最後の（最新の）PR URL を採用
+                    mapping[session_id] = pr_urls[-1]
             except json.JSONDecodeError:
                 pass
     return mapping
@@ -115,7 +122,11 @@ def generate_svg_bar_chart(pr_counts):
 def generate_html():
     pr_counts, unmatched, total = aggregate()
     pr_count = len(pr_counts)
-    svg = generate_svg_bar_chart(pr_counts)
+    # 未マッチ分もグラフに含める（PR URL が取得できていないセッション）
+    chart_data = dict(pr_counts)
+    if unmatched > 0:
+        chart_data["(PR URL なし)"] = unmatched
+    svg = generate_svg_bar_chart(chart_data)
     return f"""<!DOCTYPE html>
 <html lang="ja">
 <head>
