@@ -40,6 +40,7 @@
 | - | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
 | ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
 | ✔ | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
+| - | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -430,6 +431,21 @@
 - [x] セッション中に `gh pr view` 等の Bash コマンドを実行しなかった場合でも `pr_urls` が補完される
 - [x] `pr_urls` が既に埋まっている場合は `gh pr view` を実行しない（余分な API 呼び出しを避ける）
 - [x] Stop フックのタイムアウト（10 秒）内に補完処理が完了する
+
+---
+
+### ADR-040: session-index pr_urls バックフィルを cron バッチ方式に移行する
+
+**コンポーネント**: claude | **ADR**: [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md)
+
+**受け入れ条件**:
+
+- [ ] `session-index.jsonl` の `pr_urls` が空の全エントリが定期的に `gh pr view` で補完される
+- [ ] ADR-039 採用以前に記録された過去セッション分の `pr_urls` も補完される
+- [ ] 同一 branch の複数セッションに対して `gh pr view` は 1 回のみ呼ばれる
+- [ ] macOS では launchd エージェントが `~/Library/LaunchAgents/` に登録され、毎時・ログイン時に実行される
+- [ ] `session-index-stop.sh` から backfill ロジック（else ブランチ）が削除されシンプルな形に戻る
+- [ ] ADR-039 で作成した `session-index-backfill.py` が削除される
 
 ---
 
