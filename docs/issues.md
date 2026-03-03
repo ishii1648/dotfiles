@@ -37,6 +37,7 @@
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
 | ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
 | ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
+| - | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -389,6 +390,18 @@
 - [x] transcript の `[Request interrupted by user for tool use]` と合算せずとも、ログのみで permission UI 表示回数（Approve + Deny 合算）が集計できる
 - [x] `permission-ui-server.py` が port 18765 で起動し、`http://localhost:18765` でグラフが表示される
 - [x] session-index.jsonl と permission.log を結合して PR ごとの permission UI 表示回数が棒グラフで確認できる
+
+---
+
+### ADR-037: 作業量で正規化した Claude 自律度指標の導入
+
+**コンポーネント**: claude | **ADR**: [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md)
+
+**受け入れ条件**:
+
+- [ ] permission UI 間の tool_use 数（自律的に動けたストレッチの長さ）が集計できる
+- [ ] PR ごとに中央値・平均値が算出され、ダッシュボードに表示される
+- [ ] 作業量（絶対数）に依存せず、PR 間で自律度を比較できる
 
 ---
 
