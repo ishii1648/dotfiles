@@ -22,6 +22,9 @@ PERMISSION_LOG = os.path.expanduser("~/.claude/logs/permission.log")
 SESSION_INDEX = os.path.expanduser("~/.claude/session-index.jsonl")
 PORT = 18765
 
+# PR を挟まないリポジトリは計測から除外する
+EXCLUDED_REPOS = {"ishii1648/dotfiles"}
+
 
 # ── データ読み込み ──────────────────────────────────────────────────────────────
 
@@ -141,6 +144,9 @@ def _aggregate_by_key(from_dt, to_dt, key_fn):
             continue
 
         session = sessions.get(sid, {})
+        pr_url = session.get("pr_url", "")
+        if any(repo in pr_url for repo in EXCLUDED_REPOS):
+            continue
         transcript = session.get("transcript", "")
         tool_times = load_transcript_tool_uses(transcript) if transcript else []
         stretches = compute_stretches(tool_times, filtered)
@@ -197,6 +203,8 @@ def aggregate(from_dt=None, to_dt=None):
         pr_url = session.get("pr_url", "")
         if not pr_url or pr_url == "https://github.com/org/repo/pull/123":
             unmatched += len(perm_times)
+            continue
+        if any(repo in pr_url for repo in EXCLUDED_REPOS):
             continue
         pr_perm_counts[pr_url] += len(perm_times)
         transcript = session.get("transcript", "")
