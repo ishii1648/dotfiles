@@ -238,7 +238,7 @@ def generate_trend_line_chart(stats, short_label_fn, min_points=2):
     if len(items) < min_points:
         return f"<p>データが不足しています（{min_points} 件以上のデータが必要です）</p>"
 
-    pad_left, pad_right, pad_top, pad_bottom = 50, 20, 20, 50
+    pad_left, pad_right, pad_top, pad_bottom = 65, 20, 20, 60
     chart_w, chart_h = 600, 200
     total_w = pad_left + chart_w + pad_right
     total_h = pad_top + chart_h + pad_bottom
@@ -264,15 +264,15 @@ def generate_trend_line_chart(stats, short_label_fn, min_points=2):
     for i, (k, _) in enumerate(items):
         if i % label_step == 0 or i == n - 1:
             x_labels.append(
-                f'<text x="{cx(i):.1f}" y="{pad_top + chart_h + 16}" text-anchor="middle" '
-                f'font-size="10" fill="#94a3b8">{short_label_fn(k)}</text>'
+                f'<text x="{cx(i):.1f}" y="{pad_top + chart_h + 20}" text-anchor="middle" '
+                f'font-size="13" fill="#94a3b8">{short_label_fn(k)}</text>'
             )
 
     y_labels = [
-        f'<text x="{pad_left - 6}" y="{pad_top + chart_h:.1f}" text-anchor="end" '
-        f'font-size="10" fill="#94a3b8">{min_avg:.1f}</text>',
-        f'<text x="{pad_left - 6}" y="{pad_top:.1f}" text-anchor="end" '
-        f'font-size="10" fill="#94a3b8">{max_avg:.1f}</text>',
+        f'<text x="{pad_left - 8}" y="{pad_top + chart_h:.1f}" text-anchor="end" '
+        f'font-size="13" fill="#94a3b8">{min_avg:.1f}</text>',
+        f'<text x="{pad_left - 8}" y="{pad_top + 10:.1f}" text-anchor="end" '
+        f'font-size="13" fill="#94a3b8">{max_avg:.1f}</text>',
     ]
 
     circles = []
