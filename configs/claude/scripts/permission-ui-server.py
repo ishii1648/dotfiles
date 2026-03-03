@@ -309,35 +309,12 @@ def generate_html():
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         if self.path == "/":
-            try:
-                html = generate_html().encode("utf-8")
-            except Exception as e:
-                import traceback
-                body = f"<pre>Error:\n{traceback.format_exc()}</pre>".encode("utf-8")
-                self.send_response(500)
-                self.send_header("Content-Type", "text/html; charset=utf-8")
-                self.send_header("Content-Length", str(len(body)))
-                self.end_headers()
-                self.wfile.write(body)
-                return
+            html = generate_html().encode("utf-8")
             self.send_response(200)
             self.send_header("Content-Type", "text/html; charset=utf-8")
             self.send_header("Content-Length", str(len(html)))
             self.end_headers()
             self.wfile.write(html)
-        elif self.path == "/debug":
-            try:
-                pr_stats, unmatched, total = aggregate()
-                import pprint
-                body = f"<pre>{pprint.pformat({'pr_stats': pr_stats, 'unmatched': unmatched, 'total': total})}</pre>".encode("utf-8")
-            except Exception as e:
-                import traceback
-                body = f"<pre>{traceback.format_exc()}</pre>".encode("utf-8")
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
         else:
             self.send_response(404)
             self.end_headers()
