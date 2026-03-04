@@ -1,18 +1,13 @@
 #!/usr/bin/env python3
 """Permission UI 表示回数の可視化 Web サーバ
 
-port 18765 で起動、GET / で SVG 折れ線グラフ + 自律ストレッチ統計 HTML を返す。
-外部ライブラリ不使用（純粋 SVG / HTML）。
-
-自律ストレッチ長（avg_stretch）:
-  permission UI と permission UI の間に Claude が自律的に実行した tool_use の数。
-  値が大きいほど「割り込まれるまでに多くの作業を自律的にこなせた」ことを示す。
+port 18765 で起動、GET / で PR 別統計 HTML を返す。
+外部ライブラリ不使用（純粋 HTML）。
 """
 
 import json
 import re
 import os
-import statistics
 from collections import defaultdict
 from datetime import datetime, date, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -125,13 +120,11 @@ def load_transcript_stats(transcript_path):
 
     Returns:
       {
-        "tool_use_times": [...],   # assistant msgs with tool_use のタイムスタンプ（stretch 計算用）
         "tool_use_total": int,     # tool_use アイテムの合計数（perm_rate 分母）
         "mid_session_msgs": int,   # 初回プロンプト以降の人間が打ったメッセージ数
         "ask_user_question": int,  # AskUserQuestion tool_use 回数
       }
     """
-    tool_use_times = []
     tool_use_total = 0
     mid_session_msgs = 0
     ask_user_question = 0
@@ -139,7 +132,6 @@ def load_transcript_stats(transcript_path):
 
     if not transcript_path or not os.path.exists(transcript_path):
         return {
-            "tool_use_times": tool_use_times,
             "tool_use_total": tool_use_total,
             "mid_session_msgs": mid_session_msgs,
             "ask_user_question": ask_user_question,
@@ -165,111 +157,31 @@ def load_transcript_stats(transcript_path):
                     content = entry.get("message", {}).get("content", [])
                     if not isinstance(content, list):
                         content = []
-                    has_tool_use = False
                     for item in content:
                         if not isinstance(item, dict):
                             continue
                         if item.get("type") == "tool_use":
-                            has_tool_use = True
                             tool_use_total += 1
                             if item.get("name") == "ask-user-question":
                                 ask_user_question += 1
-                    if has_tool_use:
-                        ts_str = entry.get("timestamp", "")
-                        if ts_str:
-                            tool_use_times.append(parse_ts(ts_str))
 
             except (json.JSONDecodeError, ValueError, KeyError):
                 pass
 
     return {
-        "tool_use_times": sorted(tool_use_times),
         "tool_use_total": tool_use_total,
         "mid_session_msgs": mid_session_msgs,
         "ask_user_question": ask_user_question,
     }
 
 
-def load_transcript_tool_uses(transcript_path):
-    """transcript JSONL → tool_use が含まれる assistant メッセージの timestamp リスト（昇順）。"""
-    return load_transcript_stats(transcript_path)["tool_use_times"]
-
-
 # ── 集計 ───────────────────────────────────────────────────────────────────────
-
-def compute_stretches(tool_use_times, perm_times):
-    """permission UI 間の tool_use 数（ストレッチ長）リストを返す。"""
-    stretches = []
-    prev = None
-    for perm_ts in perm_times:
-        if prev is None:
-            count = sum(1 for t in tool_use_times if t <= perm_ts)
-        else:
-            count = sum(1 for t in tool_use_times if prev < t <= perm_ts)
-        stretches.append(max(count, 1))
-        prev = perm_ts
-    return stretches
-
-
-def _aggregate_by_key(from_dt, to_dt, key_fn):
-    """permission イベントを key_fn(perm_ts) でグループ化して集計する共通実装。
-
-    Returns:
-        昇順ソート済み {key: {perm_count, avg, stretches}}
-    """
-    sessions = load_sessions()
-    perm_by_session = load_permission_timestamps_by_session()
-
-    key_perm_counts = defaultdict(int)
-    key_stretches = defaultdict(list)
-
-    for sid, perm_times in perm_by_session.items():
-        filtered = [pt for pt in perm_times if from_dt <= pt <= to_dt]
-        if not filtered:
-            continue
-
-        session = sessions.get(sid, {})
-        if is_excluded_session(session):
-            continue
-        transcript = session.get("transcript", "")
-        tool_times = load_transcript_tool_uses(transcript) if transcript else []
-        stretches = compute_stretches(tool_times, filtered)
-
-        for i, perm_ts in enumerate(filtered):
-            k = key_fn(perm_ts)
-            key_perm_counts[k] += 1
-            if i < len(stretches):
-                key_stretches[k].append(stretches[i])
-
-    result = {}
-    for k in sorted(key_perm_counts.keys()):
-        s = key_stretches.get(k, [])
-        result[k] = {
-            "perm_count": key_perm_counts[k],
-            "stretches": s,
-            "avg": round(statistics.mean(s), 1) if s else None,
-        }
-    return result
-
-
-def aggregate_by_date(from_dt, to_dt):
-    """日別ストレッチ統計を昇順で返す。key = 'YYYY-MM-DD'"""
-    return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.date().isoformat())
-
-
-JST = timezone(timedelta(hours=9))
-
-
-def aggregate_by_hour(from_dt, to_dt):
-    """時間別ストレッチ統計を昇順で返す。key = 'YYYY-MM-DD HH'（JST）"""
-    return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.astimezone(JST).strftime("%Y-%m-%d %H"))
-
 
 DUMMY_PR_URL = "https://github.com/org/repo/pull/123"
 
 
 def aggregate(from_dt=None, to_dt=None):
-    """PR ごとの permission UI 回数 + 自律ストレッチ統計を集計する。"""
+    """PR ごとの permission UI 回数を集計する。"""
     sessions = load_sessions()
     perm_by_session = load_permission_timestamps_by_session()
 
@@ -296,10 +208,9 @@ def aggregate(from_dt=None, to_dt=None):
             pr_mid_session[pr_url] += stats["mid_session_msgs"]
             pr_ask_user[pr_url] += stats["ask_user_question"]
 
-    # Pass 2: permission イベントとストレッチ計算
+    # Pass 2: permission イベント集計
     unmatched = 0
     pr_perm_counts = defaultdict(int)
-    pr_stretches = defaultdict(list)
 
     for sid, perm_times in perm_by_session.items():
         if from_dt is not None or to_dt is not None:
@@ -318,24 +229,15 @@ def aggregate(from_dt=None, to_dt=None):
             unmatched += len(perm_times)
             continue
         pr_perm_counts[pr_url] += len(perm_times)
-        transcript = session.get("transcript", "")
-        if transcript:
-            cached = transcript_cache.get(transcript) or load_transcript_stats(transcript)
-            tool_times = cached["tool_use_times"]
-            pr_stretches[pr_url].extend(compute_stretches(tool_times, perm_times))
 
     total = sum(pr_perm_counts.values()) + unmatched
 
     pr_stats = {}
     for pr_url in pr_perm_counts:
-        stretches = pr_stretches.get(pr_url, [])
         tool_use_total = pr_tool_use_total.get(pr_url, 0)
         perm_count = pr_perm_counts[pr_url]
         pr_stats[pr_url] = {
             "perm_count": perm_count,
-            "stretches": stretches,
-            "avg": round(statistics.mean(stretches), 1) if stretches else None,
-            "median": statistics.median(stretches) if stretches else None,
             "tool_use_total": tool_use_total,
             "perm_rate": round(perm_count / tool_use_total * 100, 1) if tool_use_total else None,
             "mid_session_msgs": pr_mid_session.get(pr_url, 0),
@@ -352,112 +254,24 @@ def shorten_pr_url(url):
     return f"{m.group(1)}/{m.group(2)}#{m.group(3)}" if m else url
 
 
-def generate_trend_line_chart(stats, short_label_fn, min_points=2):
-    """avg ストレッチ長の折れ線グラフ（純粋 SVG）。
-
-    Args:
-        stats: {key: {perm_count, avg, ...}} 昇順ソート済み
-        short_label_fn: key → X 軸表示文字列
-        min_points: これ未満のデータ点数では「不足」メッセージを返す
-    """
-    items = [(k, s) for k, s in stats.items() if s["avg"] is not None]
-
-    if len(items) < min_points:
-        return f"<p>データが不足しています（{min_points} 件以上のデータが必要です）</p>"
-
-    pad_left, pad_right, pad_top, pad_bottom = 65, 60, 20, 60
-    chart_w, chart_h = 600, 200
-    total_w = pad_left + chart_w + pad_right
-    total_h = pad_top + chart_h + pad_bottom
-
-    avgs = [s["avg"] for _, s in items]
-    max_avg = max(avgs)
-    min_avg = min(avgs)
-    avg_range = max_avg - min_avg if max_avg != min_avg else 1.0
-
-    n = len(items)
-    x_step = chart_w / (n - 1) if n > 1 else chart_w
-
-    def cx(i):
-        return pad_left + i * x_step
-
-    def cy(v):
-        return pad_top + chart_h - ((v - min_avg) / avg_range) * chart_h
-
-    points = " ".join(f"{cx(i):.1f},{cy(s['avg']):.1f}" for i, (_, s) in enumerate(items))
-
-    label_step = max(1, n // 10)
-    x_labels = []
-    for i, (k, _) in enumerate(items):
-        if i % label_step == 0 or i == n - 1:
-            x_labels.append(
-                f'<text x="{cx(i):.1f}" y="{pad_top + chart_h + 20}" text-anchor="middle" '
-                f'font-size="13" fill="#94a3b8">{short_label_fn(k)}</text>'
-            )
-
-    y_labels = [
-        f'<text x="{pad_left - 8}" y="{pad_top + chart_h:.1f}" text-anchor="end" '
-        f'font-size="13" fill="#94a3b8">{min_avg:.1f}</text>',
-        f'<text x="{pad_left - 8}" y="{pad_top + 10:.1f}" text-anchor="end" '
-        f'font-size="13" fill="#94a3b8">{max_avg:.1f}</text>',
-    ]
-
-    circles = []
-    for i, (k, s) in enumerate(items):
-        title = f"{k}: avg={s['avg']:.1f}, perm={s['perm_count']}"
-        avg_val = s["avg"]
-        circles.append(
-            f'<circle cx="{cx(i):.1f}" cy="{cy(avg_val):.1f}" r="4" '
-            f'fill="#3b82f6" stroke="#60a5fa" stroke-width="1">'
-            f'<title>{title}</title></circle>'
-        )
-
-    axes = (
-        f'<line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + chart_h}" '
-        f'stroke="#2d3748" stroke-width="1"/>'
-        f'<line x1="{pad_left}" y1="{pad_top + chart_h}" '
-        f'x2="{pad_left + chart_w}" y2="{pad_top + chart_h}" stroke="#2d3748" stroke-width="1"/>'
-    )
-
-    inner = "\n  ".join(
-        [axes]
-        + x_labels
-        + y_labels
-        + [f'<polyline points="{points}" fill="none" stroke="#3b82f6" stroke-width="2"/>']
-        + circles
-    )
-
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_w}" height="{total_h}" '
-        f'style="font-family: monospace;">\n  {inner}\n</svg>'
-    )
-
-
-def generate_autonomy_table(pr_stats):
-    """自律ストレッチ統計テーブルを生成（avg_stretch 降順）。"""
+def generate_pr_table(pr_stats):
+    """PR 別統計テーブルを生成（perm UI 発生率 昇順）。"""
     if not pr_stats:
         return "<p>データがありません</p>"
 
     items = sorted(
-        ((url, s) for url, s in pr_stats.items() if s["avg"] is not None),
-        key=lambda x: x[1]["avg"],
-        reverse=True,
+        pr_stats.items(),
+        key=lambda x: x[1]["perm_rate"] if x[1]["perm_rate"] is not None else float("inf"),
     )
-    if not items:
-        return "<p>ストレッチデータがありません（transcript が取得できていない可能性があります）</p>"
 
     rows = []
     for url, stat in items:
         label = shorten_pr_url(url)
-        avg = f"{stat['avg']:.1f}" if stat["avg"] is not None else "—"
-        med = stat["median"] if stat["median"] is not None else "—"
         perm_rate = f"{stat['perm_rate']:.1f}%" if stat.get("perm_rate") is not None else "—"
         rows.append(
             f'<tr>'
             f'<td><a href="{url}" target="_blank">{label}</a></td>'
             f'<td style="text-align:right">{stat["perm_count"]}</td>'
-            f'<td style="text-align:right">{avg}</td>'
-            f'<td style="text-align:right">{med}</td>'
             f'<td style="text-align:right">{stat.get("session_count", 0)}</td>'
             f'<td style="text-align:right">{stat.get("mid_session_msgs", 0)}</td>'
             f'<td style="text-align:right">{perm_rate}</td>'
@@ -472,8 +286,6 @@ def generate_autonomy_table(pr_stats):
     <tr>
       <th>PR</th>
       <th style="width:110px">permission UI 回数</th>
-      <th style="width:110px">avg ストレッチ長</th>
-      <th style="width:110px">median ストレッチ長</th>
       <th style="width:90px">セッション数</th>
       <th style="width:130px">mid-session msgs</th>
       <th style="width:120px">perm UI 発生率</th>
@@ -484,8 +296,7 @@ def generate_autonomy_table(pr_stats):
 {rows_html}
   </tbody>
 </table>
-<p class="note">ストレッチ長 = permission UI と permission UI の間に Claude が自律実行した tool_use 数。大きいほど自律的。</p>
-<p class="note">perm UI 発生率 = permission UI 回数 / tool_use 総数（%）。mid-session msgs = 初回プロンプト以降にユーザーが送信したテキストメッセージ数。</p>
+<p class="note">perm UI 発生率 = permission UI 回数 / tool_use 総数（%）。低いほど自律的。mid-session msgs = 初回プロンプト以降にユーザーが送信したテキストメッセージ数。</p>
 """
 
 
@@ -502,13 +313,7 @@ def generate_html(from_dt=None, to_dt=None):
 
     pr_stats, unmatched, total = aggregate(from_dt, to_dt)
     pr_count = len(pr_stats)
-    autonomy_table = generate_autonomy_table(pr_stats)
-
-    day_stats = aggregate_by_date(from_dt, to_dt)
-    hour_stats = aggregate_by_hour(from_dt, to_dt)
-
-    day_chart = generate_trend_line_chart(day_stats, lambda k: k[5:7] + "/" + k[8:10])                      # MM/DD
-    hour_chart = generate_trend_line_chart(hour_stats, lambda k: k[5:7] + "/" + k[8:10] + " " + k[11:13] + ":00")  # MM/DD HH:00
+    pr_table = generate_pr_table(pr_stats)
 
     date_form = f"""<form method="get" style="display:flex; gap:8px; align-items:center; margin-bottom:16px">
   <input type="date" name="from" value="{from_val}" style="background:#252d3d; color:#e2e8f0; border:1px solid #2d3748; padding:4px 8px; border-radius:4px">
@@ -537,11 +342,6 @@ def generate_html(from_dt=None, to_dt=None):
     .definition {{ border-left: 3px solid #3b82f6; line-height: 1.8; }}
     .definition strong {{ font-size: 1rem; color: #93c5fd; }}
     .definition-sub {{ color: #94a3b8; font-size: 12px; }}
-    .tab-btn {{
-      background: #252d3d; color: #94a3b8; border: 1px solid #2d3748;
-      padding: 4px 14px; border-radius: 4px; cursor: pointer; font-family: monospace;
-    }}
-    .tab-btn.active {{ background: #3b82f6; color: #fff; border-color: #3b82f6; }}
   </style>
 </head>
 <body>
@@ -556,9 +356,6 @@ def generate_html(from_dt=None, to_dt=None):
   </div>
 
   <div class="card definition">
-    <strong>ストレッチ長</strong><br>
-    permission UI と permission UI の間に Claude が自律実行した tool_use の数。<br>
-    <span class="definition-sub">値が大きいほど、割り込まれるまでに多くの作業を自律的にこなせたことを示す。</span><br><br>
     <strong>mid-session msgs</strong><br>
     セッション内で初回プロンプト以外にユーザーが送信したメッセージ数。コマンド出力・tool_result は除外。<br>
     <span class="definition-sub">Claude の動作を見て方向転換を要求した回数の代理指標。</span><br><br>
@@ -573,29 +370,10 @@ def generate_html(from_dt=None, to_dt=None):
     <span class="definition-sub">一度で完了せず Claude を起動し直した回数。工数感覚と直結する。</span>
   </div>
 
-  <h2>時系列トレンド（avg ストレッチ長）</h2>
+  <h2>PR 別統計</h2>
   <div class="card">
-    <div style="display:flex; gap:8px; margin-bottom:12px">
-      <button class="tab-btn active" id="btn-day" onclick="showTrend('day')">日別</button>
-      <button class="tab-btn" id="btn-hour" onclick="showTrend('hour')">時間別</button>
-    </div>
-    <div id="trend-day">{day_chart}</div>
-    <div id="trend-hour" style="display:none">{hour_chart}</div>
+    {pr_table}
   </div>
-
-  <h2>自律ストレッチ統計（PR 別）</h2>
-  <div class="card">
-    {autonomy_table}
-  </div>
-
-  <script>
-  function showTrend(mode) {{
-    document.getElementById('trend-day').style.display = mode === 'day' ? '' : 'none';
-    document.getElementById('trend-hour').style.display = mode === 'hour' ? '' : 'none';
-    document.getElementById('btn-day').classList.toggle('active', mode === 'day');
-    document.getElementById('btn-hour').classList.toggle('active', mode === 'hour');
-  }}
-  </script>
 </body>
 </html>"""
 
