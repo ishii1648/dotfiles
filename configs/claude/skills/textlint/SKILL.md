@@ -21,13 +21,19 @@ argument-hint: "<file-path>"
 引数でファイルパスが渡された場合はそれを使用する。
 渡されていない場合は直前に Write/Edit したファイルを対象とする。
 
+対象ファイルのパスが以下のいずれかに該当する場合は、lint を実行せず終了する。
+- `.claude/skills/` 配下の `.md` ファイル（パスに `/.claude/skills/` を含む）
+- ファイル名が `CLAUDE.md`
+
+該当した場合は「textlint: スキップ（対象外ファイル: <パス>）」と報告して終了する。
+
 ### 2. リント実行
 
 ```
 mcp__textlint__lintFile(filePath: "<対象ファイルの絶対パス>")
 ```
 
-結果を確認する：
+結果を次のように確認する。
 - エラー・警告が **0件** → 「textlint: 問題なし」と報告して終了
 - エラー・警告が **1件以上** → ステップ 3 へ
 
@@ -39,7 +45,7 @@ mcp__textlint__getLintFixedFileContent(filePath: "<対象ファイルの絶対�
 
 取得した修正後のコンテンツを `Edit` ツールで元ファイルに適用する。
 
-> **注意**: `getLintFixedFileContent` はファイルへの書き込みを行わない。
+> 注意: `getLintFixedFileContent` はファイルへの書き込みを行わない。
 > 必ず `Edit` ツールで手動適用すること。
 
 ### 4. 再リントと終了判定
