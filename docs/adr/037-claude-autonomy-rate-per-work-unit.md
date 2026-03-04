@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+Superseded by [ADR-041](041-claude-human-intervention-metrics-expansion.md)
 
 ## コンテキスト
 

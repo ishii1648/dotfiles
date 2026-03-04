@@ -37,7 +37,7 @@
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
 | ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
 | ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
-| - | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
+| ✔ | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
 | ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
 | ✔ | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
 | ✔ | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
@@ -405,11 +405,13 @@
 
 **コンポーネント**: claude | **ADR**: [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md)
 
+**ステータス**: Superseded by ADR-041 — `perm_count / tool_use_total`（perm_rate）が作業量正規化指標として同等の問題を解決済み。
+
 **受け入れ条件**:
 
-- [ ] permission UI 間の tool_use 数（自律的に動けたストレッチの長さ）が集計できる
-- [ ] PR ごとに中央値・平均値が算出され、ダッシュボードに表示される
-- [ ] 作業量（絶対数）に依存せず、PR 間で自律度を比較できる
+- [x] permission UI 間の tool_use 数（自律的に動けたストレッチの長さ）が集計できる（perm_rate の逆数と等価）
+- [x] PR ごとに中央値・平均値が算出され、ダッシュボードに表示される（ADR-041/042 で実現）
+- [x] 作業量（絶対数）に依存せず、PR 間で自律度を比較できる
 
 ---
 
