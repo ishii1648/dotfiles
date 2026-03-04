@@ -81,25 +81,39 @@ def load_sessions():
     return sessions
 
 
-def load_permission_timestamps_by_session():
-    """permission.log → {session_id: [sorted datetime]} を返す。"""
+_ts_re = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)")
+_sid_re = re.compile(r"session=(\S+)")
+_tool_re = re.compile(r"tool=(\S+)")
+
+
+def load_permission_entries_by_session():
+    """permission.log → {session_id: [{"ts": datetime, "tool": str}, ...]} を返す。"""
     result = defaultdict(list)
     if not os.path.exists(PERMISSION_LOG):
         return result
-    ts_re = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z)")
-    sid_re = re.compile(r"session=(\S+)")
     with open(PERMISSION_LOG) as f:
         for line in f:
-            tm = ts_re.match(line)
-            sm = sid_re.search(line)
+            tm = _ts_re.match(line)
+            sm = _sid_re.search(line)
             if tm and sm:
                 try:
-                    result[sm.group(1)].append(parse_ts(tm.group(1)))
+                    tool_m = _tool_re.search(line)
+                    tool = tool_m.group(1) if tool_m else "unknown"
+                    result[sm.group(1)].append({
+                        "ts": parse_ts(tm.group(1)),
+                        "tool": tool,
+                    })
                 except ValueError:
                     pass
     for sid in result:
-        result[sid].sort()
+        result[sid].sort(key=lambda e: e["ts"])
     return result
+
+
+def load_permission_timestamps_by_session():
+    """permission.log → {session_id: [sorted datetime]} を返す。"""
+    entries = load_permission_entries_by_session()
+    return {sid: [e["ts"] for e in es] for sid, es in entries.items()}
 
 
 def is_human_text_message(entry):
@@ -317,6 +331,25 @@ def aggregate_by_week(from_dt, to_dt):
     )
 
 
+def aggregate_by_tool(from_dt=None, to_dt=None):
+    """tool_name ごとの permission UI 発生件数を返す。"""
+    sessions = load_sessions()
+    entries_by_session = load_permission_entries_by_session()
+    tool_counts = defaultdict(int)
+    for sid, entries in entries_by_session.items():
+        session = sessions.get(sid, {})
+        if is_excluded_session(session):
+            continue
+        for entry in entries:
+            ts = entry["ts"]
+            if from_dt is not None and ts < from_dt:
+                continue
+            if to_dt is not None and ts > to_dt:
+                continue
+            tool_counts[entry["tool"]] += 1
+    return dict(tool_counts)
+
+
 # ── 描画 ───────────────────────────────────────────────────────────────────────
 
 def shorten_pr_url(url):
@@ -529,6 +562,13 @@ def generate_html(from_dt=None, to_dt=None):
     pr_count = len(pr_stats)
     pr_table = generate_pr_table(pr_stats)
 
+    tool_counts = aggregate_by_tool(from_dt, to_dt)
+    sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
+    chart_by_tool = generate_bar_chart(
+        sorted_tools,
+        lambda v: str(int(v)), color="#06b6d4",
+    )
+
     day_stats = aggregate_by_date(from_dt, to_dt)
     week_stats = aggregate_by_week(from_dt, to_dt)
     day_chart = generate_perm_rate_line_chart(day_stats, lambda k: k[5:7] + "/" + k[8:10])
@@ -654,6 +694,11 @@ def generate_html(from_dt=None, to_dt=None):
       <p class="chart-title">AskUserQuestion</p>
       {chart_ask}
     </div>
+  </div>
+
+  <h2>ツール別 permission UI 内訳</h2>
+  <div class="card" style="overflow-x: auto">
+    {chart_by_tool}
   </div>
 
   <h2>PR 別統計（一覧）</h2>

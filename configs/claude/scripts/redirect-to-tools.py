@@ -21,6 +21,7 @@ Redirect rules:
 """
 
 import json
+import os
 import re
 import sys
 
@@ -198,11 +199,26 @@ def check_cd_git_chain(segments: list):
     return None
 
 
+def _write_deny_log(session_id: str, tool_name: str, reason: str) -> None:
+    """deny 決定を ~/.claude/logs/deny.log に記録する（fail-open）。"""
+    try:
+        from datetime import datetime, timezone
+        log_dir = os.path.expanduser("~/.claude/logs")
+        os.makedirs(log_dir, exist_ok=True)
+        ts = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        reason_prefix = reason[:40]
+        with open(os.path.join(log_dir, "deny.log"), "a") as f:
+            f.write(f"{ts} session={session_id} tool={tool_name} reason={reason_prefix}\n")
+    except Exception:
+        pass
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
 
         tool_name = hook_input.get("tool_name", "")
+        session_id = hook_input.get("session_id", "unknown")
         if tool_name != "Bash":
             sys.exit(0)
 
@@ -217,6 +233,7 @@ def main():
         chain_result = check_cd_git_chain(segments)
         if chain_result:
             tool, message = chain_result
+            _write_deny_log(session_id, tool_name, message)
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
@@ -231,11 +248,13 @@ def main():
             result = check_command(segment)
             if result:
                 tool, message = result
+                reason = f"{message} (代わりに {tool} ツールを使ってください)"
+                _write_deny_log(session_id, tool_name, reason)
                 output = {
                     "hookSpecificOutput": {
                         "hookEventName": "PreToolUse",
                         "permissionDecision": "deny",
-                        "permissionDecisionReason": f"{message} (代わりに {tool} ツールを使ってください)",
+                        "permissionDecisionReason": reason,
                     }
                 }
                 print(json.dumps(output, ensure_ascii=False))
