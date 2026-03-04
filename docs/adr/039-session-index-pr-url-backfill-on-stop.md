@@ -54,3 +54,4 @@ ADR-035 案B で検討・却下済み。SessionStart 時点ではバックグラ
 
 - 依存: [ADR-011](011-claude-session-index.md)（session-index の基本設計）
 - 依存: [ADR-035](035-claude-session-index-startup-optimization.md)（SessionStart の `gh pr view` 削除、本 ADR が解決する前提崩れの原因）
+- 部分廃止: [ADR-040](040-session-index-pr-url-backfill-cron-batch.md)（Stop フック else ブランチの backfill ロジックを削除し、launchd cron バッチ（`StartInterval: 3600`、毎時）に移行）
