@@ -43,6 +43,7 @@
 | ✔ | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
 | ✔ | ○ | claude | claude-stats が Permission UI 以外の人の介入を計測できない — mid-session メッセージ・AskUserQuestion・セッション数/PR など介入全般を可視化したい | [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md) |
 | ✔ | ○ | claude | ダッシュボードで perm UI 発生率の改善/悪化トレンドが把握できない — グラフが perm_rate 昇順ソートのため時系列での変化が見えない | [ADR-042](adr/042-perm-rate-time-series-trend.md) |
+| - | ○ | claude | permission UI の内訳（原因ツール・承認/拒否結果・hook起因 vs 通常）が監視できない — 発生回数はログされるが何が原因か追跡できない | [ADR-043](adr/043-permission-ui-breakdown-monitoring.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -474,6 +475,18 @@
 - [x] perm UI 発生率の折れ線グラフが日別・週別タブで切り替えて表示される
 - [x] 各データ点にホバーすると日付（または週）と perm_rate 値が確認できる
 - [x] PR 別統計テーブルは PR 単位のまま維持される（グラフと役割分担）
+
+---
+
+### ADR-043: permission UI 内訳の監視
+
+**コンポーネント**: claude | **ADR**: [ADR-043](adr/043-permission-ui-breakdown-monitoring.md)
+
+**受け入れ条件**:
+
+- [ ] permission UI 発生時に原因ツール名（tool_name）が `permission.log` に記録される
+- [ ] `redirect-to-tools.py` による PreToolUse deny が `permission.log` とは別ログに記録される
+- [ ] ダッシュボードでツール別の permission UI 発生件数の内訳が確認できる
 
 ---
 
