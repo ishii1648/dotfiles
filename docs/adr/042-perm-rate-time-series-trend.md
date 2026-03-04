@@ -6,52 +6,47 @@ Draft
 
 ## コンテキスト
 
-ADR-041 で Permission UI 発生率（perm_count / tool_use_total）を主指標として導入した。しかし現在のダッシュボードでは全グラフが perm_rate 昇順（= 良い順）でソートされており、「直近 PR で介入率が改善しているか/悪化しているか」というトレンドが把握できない。
+ADR-041 で Permission UI 発生率（perm_count / tool_use_total）を主指標として導入した。しかし現在のダッシュボードでは全グラフが perm_rate 昇順（= 良い順）でソートされており、「介入率が改善しているか/悪化しているか」というトレンドが把握できない。
 
-perm_rate を時系列で見るには、PR を **作成時刻順** に並べる必要がある。PR の正確なマージ日時はデータにないが、GitHub の PR 番号は単調増加するため、PR URL から取得できる番号を時系列の近似として利用できる。
+PR 単位でトレンドを見ようとすると、PR の性質差（バグ修正 1 時間 vs 新機能 1 週間）や PR 番号が時系列の近似にすぎない問題がある。一方、**日別・週別で集計すると等間隔な時系列になり、複数 PR が平均化されてノイズが小さくなる**。
 
-ただし PR ごとの性質差（小さいバグ修正 vs 大規模新機能）により隣接する値がばらつくため、折れ線だけでは改善傾向を見誤る。**移動平均線を重ねる**ことでノイズと傾向を分離する。
+ただし PR ごとの詳細確認（どの PR で介入が多かったか）は PR 単位でしか見えない。そのため、**グラフは時系列（日別/週別）でトレンドを把握し、テーブルは PR 単位で詳細を確認する**という役割分担が適切と判断した。
 
 ## 設計案
 
-### PR の時系列ソート
+### データ集計
 
-PR URL の番号（`/pull/(\d+)` から抽出）を昇順に並べる。
+時系列の perm_rate を計算するには、各 tool_use がいつ発生したかのタイムスタンプが必要。
+
+`load_transcript_stats` に `tool_use_times`（timestamp リスト）の収集を復活させ、`_aggregate_by_key` 型の関数で日別・週別に perm_count と tool_use_total を集計する。
 
 ```python
-def pr_number(url):
-    m = re.search(r'/pull/(\d+)', url)
-    return int(m.group(1)) if m else 0
-
-sorted_by_time = sorted(pr_stats.items(), key=lambda x: pr_number(x[0]))
+# 日別集計の戻り値イメージ
+{
+  "2026-02-01": {"perm_count": 3, "tool_use_total": 42, "perm_rate": 7.1},
+  "2026-02-08": {"perm_count": 2, "tool_use_total": 55, "perm_rate": 3.6},
+  ...
+}
 ```
 
-### 折れ線グラフ + 移動平均線（SVG）
+週別は ISO 週（`%Y-W%W`）でキーを作る。
 
-`generate_trend_line_chart` を perm_rate 対応で再実装する。
+### グラフ（折れ線 SVG）
 
-- **X 軸**: PR 番号（ラベルは `owner/repo#NNN` の短縮形）
+- **X 軸**: 日付または週
 - **Y 軸**: perm_rate（%）
-- **青い折れ線**: 各 PR の個別 perm_rate
-- **橙の折れ線**: 直近 `WINDOW = 5` 件の移動平均
-- データが `WINDOW` 件未満の場合は移動平均線を非表示
+- **日別 / 週別** タブで切り替え（既存の `showTrend` パターンを再利用）
+- データ点が 2 未満のグラニュラリティはメッセージを表示して非表示
 
-移動平均の計算:
+### ダッシュボードの構成
 
-```python
-def moving_avg(values, window=5):
-    result = []
-    for i, v in enumerate(values):
-        start = max(0, i - window + 1)
-        result.append(sum(values[start:i+1]) / (i - start + 1))
-    return result
 ```
-
-### ダッシュボードへの配置
-
-- 既存の「メトリクス別グラフ（PR 別、perm UI 発生率 昇順）」の**前**に新セクションを追加
-- セクション名: 「perm UI 発生率 時系列トレンド（PR 番号順）」
-- 既存の棒グラフ群はランキング表示として有用なため残す
+[サマリカード]
+[定義カード]
+[時系列トレンド（日別/週別タブ）]  ← 追加
+[メトリクス別グラフ（PR 別）]      ← 既存（ランキング用途として維持）
+[PR 別統計テーブル]                ← 既存
+```
 
 ## 受け入れ条件
 
