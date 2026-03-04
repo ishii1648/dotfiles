@@ -17,11 +17,11 @@ ADR が 23 件まで増え、以下の運用上の課題が顕在化している
 - **ADR**: 設計に関する意思決定の記録（時系列で蓄積される変更理由のログ）
 - **reference.md**: その時点での dotfiles の設計を示すスナップショット（常に最新の状態を反映）
 
-現状、reference.md の ADR 一覧は手動メンテナンスで ADR-019〜023 のリンクが欠落しており、`create-spec` / `adr-ship` のどちらも reference.md を更新しない。
+現状、reference.md の ADR 一覧は手動メンテナンスで ADR-019〜023 のリンクが欠落しており、`create-adr` / `adr-ship` のどちらも reference.md を更新しない。
 
 これらのルールは `development.md` に書くよりも、Claude Code の skill として提供した方が適切である。理由:
 
-- 主な参照者は Claude Code（`create-spec` / `adr-ship` スキル経由）
+- 主な参照者は Claude Code（`create-adr` / `adr-ship` スキル経由）
 - skill としてトリガー条件を設定でき、ADR 作成・更新時に自動ロードされる
 - `development.md` を開発フローの概要に留められる
 
@@ -63,14 +63,14 @@ ADR が 23 件まで増え、以下の運用上の課題が顕在化している
 - `関連`: 同じ領域の ADR（依存関係はないが文脈が共通）
 
 **6. 矛盾チェックの指針**
-- `create-spec` 時に同じコンポーネントの既存 ADR を確認するステップを追加
+- `create-adr` 時に同じコンポーネントの既存 ADR を確認するステップを追加
 - `依存` で参照される ADR の前提と矛盾しないか確認
 
 **7. reference.md の自動更新**
 - `adr-ship` の完了処理（Step 5）で reference.md の ADR 一覧セクションに新規 ADR のリンクを追記する
 
 **8. 既存スキルとの連携**
-- `create-spec` / `adr-ship` スキルから `adr-reference` skill を参照する
+- `create-adr` / `adr-ship` スキルから `adr-reference` skill を参照する
 - `development.md` は「詳細は `adr-reference` skill を参照」に簡略化
 
 ### 変更が必要なファイル
@@ -78,7 +78,7 @@ ADR が 23 件まで増え、以下の運用上の課題が顕在化している
 | ファイル | リポジトリ | 変更内容 |
 |---------|----------|---------|
 | `.claude/skills/adr-reference/skill.md` | dotfiles | 新規作成（ADR 運用ルール・テンプレート skill） |
-| `.claude/skills/create-spec/skill.md` | dotfiles | `adr-reference` skill への参照を追加 |
+| `.claude/skills/create-adr/skill.md` | dotfiles | `adr-reference` skill への参照を追加 |
 | `.claude/skills/adr-ship/SKILL.md` | dotfiles | Step 5 に reference.md の ADR 一覧更新を追加 |
 | `docs/development.md` | dotfiles | ADR 関連の詳細を skill への参照に置き換え |
 | `docs/reference.md` | dotfiles | ADR 一覧セクションを全 ADR で補完 |

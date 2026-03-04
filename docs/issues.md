@@ -41,6 +41,7 @@
 | ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
 | ✔ | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
 | ✔ | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
+| ✔ | ○ | claude | claude-stats が Permission UI 以外の人の介入を計測できない — mid-session メッセージ・AskUserQuestion・セッション数/PR など介入全般を可視化したい | [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -236,7 +237,7 @@
 - [x] ステータスの種類と遷移ルールが定義されている（Draft / 採用済み / 廃止 / 部分廃止 / 却下）
 - [x] Supersede 時の双方向リンク記載フローが定義されている
 - [x] 関連 ADR フィールド（依存・関連）の記載ルールが定義されている
-- [x] `create-spec` スキルが `adr-reference` skill を参照している
+- [x] `create-adr` スキルが `adr-reference` skill を参照している
 - [x] `development.md` の ADR 関連記述が skill への参照に簡略化されている
 - [x] 既存の ADR（001〜023）が新テンプレートのフォーマットに書き換えられている
 - [x] `adr-ship` の完了処理で `reference.md` の ADR 一覧セクションが自動更新される
@@ -416,7 +417,7 @@
 
 - [x] `adr-reference` skill に `Spike中` ステータスが定義されている
 - [x] `Spike中` から `Draft`（設計確定）への遷移ルールが `adr-reference` skill に記載されている
-- [x] `development.md` に Spike フロー（`create-spec` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
+- [x] `development.md` に Spike フロー（`create-adr` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
 - [x] `adr-ship` skill に `Spike中` ステータスの ADR には適用しないガードが明記されている
 
 ---
@@ -446,6 +447,20 @@
 - [x] macOS では launchd エージェントが `~/Library/LaunchAgents/` に登録され、毎時・ログイン時に実行される
 - [x] `session-index-stop.sh` から backfill ロジック（else ブランチ）が削除されシンプルな形に戻る
 - [x] ADR-039 で作成した `session-index-backfill.py` が削除される
+
+---
+
+### ADR-041: claude-stats の人の介入指標を拡張する
+
+**コンポーネント**: claude | **ADR**: [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md)
+
+**受け入れ条件**:
+
+- [ ] PR に紐づくセッションの mid-session ユーザーメッセージ数（初回プロンプト・コマンド出力除外）が PR ごとに集計されてダッシュボードに表示される
+- [ ] PR ごとの Permission UI 発生率（perm_count / tool_use_total）がダッシュボードに表示される
+- [ ] PR ごとの AskUserQuestion 呼び出し回数がダッシュボードに表示される
+- [ ] PR ごとのセッション数（同一 PR に対して起動した Claude セッションの数）がダッシュボードに表示される
+- [ ] PR に紐づかないセッションはすべての指標から除外される
 
 ---
 

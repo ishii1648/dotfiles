@@ -33,7 +33,7 @@ ADR-025 のステータス定義に `Spike中` を追加し、`development.md` �
 **フロー**:
 
 ```
-create-spec（受け入れ条件に「Spike: 〜を検証する」を明記）
+create-adr（受け入れ条件に「Spike: 〜を検証する」を明記）
 → ADR ステータスを "Spike中" に設定
 → spike/NNN-description ブランチで検証実装
 → 検証結果を ADR の コンテキスト or 設計案 セクションに追記

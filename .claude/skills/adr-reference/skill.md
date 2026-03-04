@@ -9,7 +9,7 @@ version: 0.1.0
 
 # adr-reference
 
-ADR（Architecture Decision Record）の運用ルール・テンプレート・表記規約をまとめたリファレンス skill。`create-spec` / `adr-ship` スキルから参照される。
+ADR（Architecture Decision Record）の運用ルール・テンプレート・表記規約をまとめたリファレンス skill。`create-adr` / `adr-ship` スキルから参照される。
 
 ## ADR と reference.md の役割分担
 
@@ -110,7 +110,7 @@ ADR の決定を変更する場合、新旧両方の ADR を更新する。
 
 ## 矛盾チェックの指針
 
-ADR 作成時（`create-spec`）に以下を確認する:
+ADR 作成時（`create-adr`）に以下を確認する:
 
 1. **同コンポーネントの既存 ADR を確認**: 同じコンポーネントに関する既存 ADR を Grep で検索し、矛盾する決定がないか確認する
 2. **依存 ADR の前提確認**: `依存` で参照する ADR の決定内容を Read で確認し、前提と矛盾しないか確認する

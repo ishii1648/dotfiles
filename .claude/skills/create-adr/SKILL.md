@@ -1,10 +1,10 @@
 ---
-name: create-spec
-description: This skill should be used when the user asks to "create-spec", "課題を追加して", "spec作って", "issueに追加して", or describes a problem/pain point they want to track. Creates an entry in docs/issues.md and a corresponding Draft ADR in docs/adr/.
+name: create-adr
+description: This skill should be used when the user asks to "create-adr", "課題を追加して", "ADR作って", "issueに追加して", or describes a problem/pain point they want to track. Creates an entry in docs/issues.md and a corresponding Draft ADR in docs/adr/.
 version: 0.1.0
 ---
 
-# create-spec
+# create-adr
 
 課題や問題に感じたことを受け取り、`docs/issues.md` へのエントリ追記と `docs/adr/` への初期 ADR 作成を行う。
 
