@@ -42,6 +42,7 @@
 | ✔ | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
 | ✔ | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
 | ✔ | ○ | claude | claude-stats が Permission UI 以外の人の介入を計測できない — mid-session メッセージ・AskUserQuestion・セッション数/PR など介入全般を可視化したい | [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md) |
+| - | ○ | claude | ダッシュボードで perm UI 発生率の改善/悪化トレンドが把握できない — グラフが perm_rate 昇順ソートのため時系列での変化が見えない | [ADR-042](adr/042-perm-rate-time-series-trend.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -461,6 +462,18 @@
 - [x] PR ごとの AskUserQuestion 呼び出し回数がダッシュボードに表示される
 - [x] PR ごとのセッション数（同一 PR に対して起動した Claude セッションの数）がダッシュボードに表示される
 - [x] PR に紐づかないセッションはすべての指標から除外される
+
+---
+
+### ADR-042: perm UI 発生率の時系列トレンドグラフを追加する
+
+**コンポーネント**: claude | **ADR**: [ADR-042](adr/042-perm-rate-time-series-trend.md)
+
+**受け入れ条件**:
+
+- [ ] perm UI 発生率が PR 番号昇順（作成時系列の近似）で並んだ折れ線グラフがダッシュボードに表示される
+- [ ] 同グラフに直近 N 件の移動平均線が重ねて表示される
+- [ ] グラフの各点にホバーすると PR 名と perm_rate 値が確認できる
 
 ---
 
