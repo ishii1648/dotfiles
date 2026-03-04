@@ -168,6 +168,36 @@ def check_command(command_str: str):
     return None
 
 
+def check_cd_git_chain(segments: list):
+    """Detect 'cd <path> && git <cmd>' pattern and suggest 'git -C <path> <cmd>'.
+
+    Returns (tool_name, message) if the pattern is detected, or None otherwise.
+    """
+    for i in range(len(segments) - 1):
+        seg = segments[i]
+        next_seg = segments[i + 1]
+
+        words = seg.split()
+        if not words or words[0] != "cd":
+            continue
+
+        next_words = next_seg.split()
+        if not next_words or next_words[0] != "git":
+            continue
+
+        # cd <path> && git <cmd> detected
+        path = words[1] if len(words) > 1 else "<path>"
+        git_rest = " ".join(next_words[1:]) if len(next_words) > 1 else "<cmd>"
+        suggestion = f"git -C {path} {git_rest}"
+        message = (
+            f"Bash の `cd && git` パターンではなく `git -C` を使用してください。"
+            f" 代替コマンド: `{suggestion}`"
+        )
+        return ("Bash(git -C)", message)
+
+    return None
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
@@ -182,6 +212,21 @@ def main():
             sys.exit(0)
 
         segments = split_chain(command)
+
+        # Check for cd && git chain pattern first
+        chain_result = check_cd_git_chain(segments)
+        if chain_result:
+            tool, message = chain_result
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": message,
+                }
+            }
+            print(json.dumps(output, ensure_ascii=False))
+            sys.exit(0)
+
         for segment in segments:
             result = check_command(segment)
             if result:
