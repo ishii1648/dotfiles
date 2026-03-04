@@ -124,6 +124,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [039-session-index-pr-url-backfill-on-stop.md](adr/039-session-index-pr-url-backfill-on-stop.md)
 - [040-session-index-pr-url-backfill-cron-batch.md](adr/040-session-index-pr-url-backfill-cron-batch.md)
 - [041-claude-human-intervention-metrics-expansion.md](adr/041-claude-human-intervention-metrics-expansion.md)
+- [042-perm-rate-time-series-trend.md](adr/042-perm-rate-time-series-trend.md)
 
 ## Neovim プラグイン一覧
 

@@ -16,6 +16,7 @@ from urllib.parse import urlparse, parse_qs
 PERMISSION_LOG = os.path.expanduser("~/.claude/logs/permission.log")
 SESSION_INDEX = os.path.expanduser("~/.claude/session-index.jsonl")
 PORT = 18765
+JST = timezone(timedelta(hours=9))
 
 # PR を挟まないリポジトリは計測から除外する
 EXCLUDED_REPOS = {"ishii1648/dotfiles"}
@@ -120,14 +121,16 @@ def load_transcript_stats(transcript_path):
 
     Returns:
       {
-        "tool_use_total": int,     # tool_use アイテムの合計数（perm_rate 分母）
-        "mid_session_msgs": int,   # 初回プロンプト以降の人間が打ったメッセージ数
-        "ask_user_question": int,  # AskUserQuestion tool_use 回数
+        "tool_use_total": int,          # tool_use アイテムの合計数（perm_rate 分母）
+        "mid_session_msgs": int,        # 初回プロンプト以降の人間が打ったメッセージ数
+        "ask_user_question": int,       # AskUserQuestion tool_use 回数
+        "tool_use_times": [datetime],   # tool_use が発生した assistant メッセージのタイムスタンプ
       }
     """
     tool_use_total = 0
     mid_session_msgs = 0
     ask_user_question = 0
+    tool_use_times = []
     first_user_seen = False
 
     if not transcript_path or not os.path.exists(transcript_path):
@@ -135,6 +138,7 @@ def load_transcript_stats(transcript_path):
             "tool_use_total": tool_use_total,
             "mid_session_msgs": mid_session_msgs,
             "ask_user_question": ask_user_question,
+            "tool_use_times": tool_use_times,
         }
 
     with open(transcript_path) as f:
@@ -157,6 +161,7 @@ def load_transcript_stats(transcript_path):
                     content = entry.get("message", {}).get("content", [])
                     if not isinstance(content, list):
                         content = []
+                    has_tool_use = False
                     for item in content:
                         if not isinstance(item, dict):
                             continue
@@ -164,6 +169,14 @@ def load_transcript_stats(transcript_path):
                             tool_use_total += 1
                             if item.get("name") == "ask-user-question":
                                 ask_user_question += 1
+                            has_tool_use = True
+                    if has_tool_use:
+                        ts_str = entry.get("timestamp", "")
+                        if ts_str:
+                            try:
+                                tool_use_times.append(parse_ts(ts_str))
+                            except ValueError:
+                                pass
 
             except (json.JSONDecodeError, ValueError, KeyError):
                 pass
@@ -172,6 +185,7 @@ def load_transcript_stats(transcript_path):
         "tool_use_total": tool_use_total,
         "mid_session_msgs": mid_session_msgs,
         "ask_user_question": ask_user_question,
+        "tool_use_times": sorted(tool_use_times),
     }
 
 
@@ -245,6 +259,62 @@ def aggregate(from_dt=None, to_dt=None):
             "session_count": pr_session_count.get(pr_url, 0),
         }
     return pr_stats, unmatched, total
+
+
+def _aggregate_time_series(from_dt, to_dt, key_fn):
+    """日別・週別で perm_count と tool_use_total を集計する共通実装。"""
+    sessions = load_sessions()
+    perm_by_session = load_permission_timestamps_by_session()
+    transcript_cache = {}
+
+    key_perm = defaultdict(int)
+    key_tool_use = defaultdict(int)
+
+    # tool_use をキー別に集計
+    for sid, session in sessions.items():
+        if is_excluded_session(session):
+            continue
+        t = session.get("transcript", "")
+        if t:
+            stats = transcript_cache.setdefault(t, load_transcript_stats(t))
+            for ts in stats["tool_use_times"]:
+                if from_dt <= ts <= to_dt:
+                    key_tool_use[key_fn(ts)] += 1
+
+    # perm をキー別に集計
+    for sid, perm_times in perm_by_session.items():
+        session = sessions.get(sid, {})
+        if is_excluded_session(session):
+            continue
+        for pt in perm_times:
+            if from_dt <= pt <= to_dt:
+                key_perm[key_fn(pt)] += 1
+
+    all_keys = sorted(set(key_perm) | set(key_tool_use))
+    result = {}
+    for k in all_keys:
+        pc = key_perm[k]
+        tu = key_tool_use[k]
+        result[k] = {
+            "perm_count": pc,
+            "tool_use_total": tu,
+            "perm_rate": round(pc / tu * 100, 1) if tu else None,
+        }
+    return result
+
+
+def aggregate_by_date(from_dt, to_dt):
+    return _aggregate_time_series(
+        from_dt, to_dt,
+        lambda ts: ts.astimezone(JST).date().isoformat()
+    )
+
+
+def aggregate_by_week(from_dt, to_dt):
+    return _aggregate_time_series(
+        from_dt, to_dt,
+        lambda ts: ts.astimezone(JST).strftime("%G-W%V")
+    )
 
 
 # ── 描画 ───────────────────────────────────────────────────────────────────────
@@ -326,6 +396,78 @@ def generate_bar_chart(items, format_fn, color="#3b82f6"):
     )
 
 
+def generate_perm_rate_line_chart(stats, short_label_fn):
+    """perm_rate の折れ線グラフ（純粋 SVG）。
+
+    Args:
+        stats: {key: {"perm_rate": float|None, ...}, ...} - キー昇順
+        short_label_fn: key → X軸表示文字列
+    """
+    items = [(k, v["perm_rate"]) for k, v in stats.items() if v["perm_rate"] is not None]
+    if not items:
+        return "<p>データがありません</p>"
+
+    pad_left, pad_right, pad_top, pad_bottom = 65, 60, 20, 60
+    chart_w, chart_h = 600, 200
+    total_w = pad_left + chart_w + pad_right
+    total_h = pad_top + chart_h + pad_bottom
+
+    n = len(items)
+    max_v = max(v for _, v in items)
+    min_v = min(v for _, v in items)
+    v_range = max_v - min_v if max_v != min_v else 1.0
+
+    def px(i):
+        return pad_left + (i / max(n - 1, 1)) * chart_w
+
+    def py(v):
+        return pad_top + chart_h - ((v - min_v) / v_range) * chart_h
+
+    parts = []
+    # 軸
+    parts.append(
+        f'<line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + chart_h}" '
+        f'stroke="#2d3748" stroke-width="1"/>'
+        f'<line x1="{pad_left}" y1="{pad_top + chart_h}" '
+        f'x2="{pad_left + chart_w}" y2="{pad_top + chart_h}" stroke="#2d3748" stroke-width="1"/>'
+    )
+    # Y軸ラベル
+    parts.append(
+        f'<text x="{pad_left - 8}" y="{pad_top + chart_h}" text-anchor="end" '
+        f'font-size="11" fill="#64748b">{min_v:.1f}%</text>'
+    )
+    parts.append(
+        f'<text x="{pad_left - 8}" y="{pad_top + 8}" text-anchor="end" '
+        f'font-size="11" fill="#64748b">{max_v:.1f}%</text>'
+    )
+    # polyline
+    points = " ".join(f"{px(i):.1f},{py(v):.1f}" for i, (_, v) in enumerate(items))
+    parts.append(
+        f'<polyline points="{points}" fill="none" stroke="#ef4444" stroke-width="2"/>'
+    )
+    # データ点
+    for i, (key, v) in enumerate(items):
+        x = px(i)
+        y = py(v)
+        label = short_label_fn(key)
+        parts.append(
+            f'<circle cx="{x:.1f}" cy="{y:.1f}" r="4" fill="#ef4444">'
+            f'<title>{key}: {v:.1f}%</title></circle>'
+        )
+        # X軸ラベル（斜め）
+        parts.append(
+            f'<text x="{x:.1f}" y="{pad_top + chart_h + 14}" text-anchor="end" font-size="11" '
+            f'fill="#94a3b8" transform="rotate(-40 {x:.1f} {pad_top + chart_h + 14})">'
+            f'{label}</text>'
+        )
+
+    inner = "\n  ".join(parts)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_w}" height="{total_h}" '
+        f'style="font-family: monospace; display:block;">\n  {inner}\n</svg>'
+    )
+
+
 def generate_pr_table(pr_stats):
     """PR 別統計テーブルを生成（perm UI 発生率 昇順）。"""
     if not pr_stats:
@@ -387,6 +529,11 @@ def generate_html(from_dt=None, to_dt=None):
     pr_count = len(pr_stats)
     pr_table = generate_pr_table(pr_stats)
 
+    day_stats = aggregate_by_date(from_dt, to_dt)
+    week_stats = aggregate_by_week(from_dt, to_dt)
+    day_chart = generate_perm_rate_line_chart(day_stats, lambda k: k[5:7] + "/" + k[8:10])
+    week_chart = generate_perm_rate_line_chart(week_stats, lambda k: k)
+
     # perm_rate 昇順で PR を固定順序に並べてチャート生成
     sorted_prs = sorted(
         pr_stats.items(),
@@ -445,6 +592,8 @@ def generate_html(from_dt=None, to_dt=None):
     .chart-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
     .chart-card {{ background: #1e2330; padding: 16px 20px; border-radius: 8px; overflow-x: auto; }}
     .chart-title {{ font-size: 0.85rem; color: #94a3b8; margin: 0 0 12px 0; }}
+    .tab-btn {{ background: #252d3d; color: #94a3b8; border: 1px solid #2d3748; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-family: monospace; }}
+    .tab-btn.active {{ background: #3b82f6; color: #fff; border-color: #3b82f6; }}
   </style>
 </head>
 <body>
@@ -471,6 +620,16 @@ def generate_html(from_dt=None, to_dt=None):
     <strong>セッション数</strong><br>
     同一 PR に対して起動した Claude セッションの数。<br>
     <span class="definition-sub">一度で完了せず Claude を起動し直した回数。工数感覚と直結する。</span>
+  </div>
+
+  <h2>perm UI 発生率 時系列トレンド</h2>
+  <div class="card">
+    <div style="display:flex; gap:8px; margin-bottom:12px">
+      <button class="tab-btn active" id="btn-day" onclick="showTrend('day')">日別</button>
+      <button class="tab-btn" id="btn-week" onclick="showTrend('week')">週別</button>
+    </div>
+    <div id="trend-day">{day_chart}</div>
+    <div id="trend-week" style="display:none">{week_chart}</div>
   </div>
 
   <h2>メトリクス別グラフ（PR 別、perm UI 発生率 昇順）</h2>
@@ -501,6 +660,14 @@ def generate_html(from_dt=None, to_dt=None):
   <div class="card">
     {pr_table}
   </div>
+  <script>
+    function showTrend(mode) {{
+      document.getElementById('trend-day').style.display = mode === 'day' ? '' : 'none';
+      document.getElementById('trend-week').style.display = mode === 'week' ? '' : 'none';
+      document.getElementById('btn-day').className = 'tab-btn' + (mode === 'day' ? ' active' : '');
+      document.getElementById('btn-week').className = 'tab-btn' + (mode === 'week' ? ' active' : '');
+    }}
+  </script>
 </body>
 </html>"""
 
