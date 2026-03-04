@@ -556,9 +556,21 @@ def generate_html(from_dt=None, to_dt=None):
   </div>
 
   <div class="card definition">
-    <strong>ストレッチ長とは</strong><br>
+    <strong>ストレッチ長</strong><br>
     permission UI と permission UI の間に Claude が自律実行した tool_use の数。<br>
-    <span class="definition-sub">値が大きいほど、割り込まれるまでに多くの作業を自律的にこなせたことを示す。</span>
+    <span class="definition-sub">値が大きいほど、割り込まれるまでに多くの作業を自律的にこなせたことを示す。</span><br><br>
+    <strong>mid-session msgs</strong><br>
+    セッション内で初回プロンプト以外にユーザーが送信したメッセージ数。コマンド出力・tool_result は除外。<br>
+    <span class="definition-sub">Claude の動作を見て方向転換を要求した回数の代理指標。</span><br><br>
+    <strong>perm UI 発生率</strong><br>
+    permission UI 回数 ÷ tool_use 総数（%）。<br>
+    <span class="definition-sub">作業量に依存しない正規化済み指標。低いほど permission を求めすぎていない。</span><br><br>
+    <strong>AskUserQuestion</strong><br>
+    Claude がユーザーに問い合わせた回数。<br>
+    <span class="definition-sub">仕様の曖昧さや判断をユーザーに委ねた頻度の代理指標。</span><br><br>
+    <strong>セッション数</strong><br>
+    同一 PR に対して起動した Claude セッションの数。<br>
+    <span class="definition-sub">一度で完了せず Claude を起動し直した回数。工数感覚と直結する。</span>
   </div>
 
   <h2>時系列トレンド（avg ストレッチ長）</h2>
