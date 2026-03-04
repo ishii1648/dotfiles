@@ -106,11 +106,45 @@ def load_permission_timestamps_by_session():
     return result
 
 
-def load_transcript_tool_uses(transcript_path):
-    """transcript JSONL → tool_use が含まれる assistant メッセージの timestamp リスト（昇順）。"""
-    timestamps = []
+def is_human_text_message(entry):
+    """type:user エントリが人間が打ったテキストかを判定（コマンド出力・tool_result のみは除外）。"""
+    if entry.get("type") != "user":
+        return False
+    content = entry.get("message", {}).get("content", "")
+    if "<local-command-" in str(content):
+        return False
+    if isinstance(content, list):
+        types = [c.get("type") for c in content if isinstance(c, dict)]
+        if types and all(t == "tool_result" for t in types):
+            return False
+    return True
+
+
+def load_transcript_stats(transcript_path):
+    """transcript JSONL を一回のパスで全指標を収集する。
+
+    Returns:
+      {
+        "tool_use_times": [...],   # assistant msgs with tool_use のタイムスタンプ（stretch 計算用）
+        "tool_use_total": int,     # tool_use アイテムの合計数（perm_rate 分母）
+        "mid_session_msgs": int,   # 初回プロンプト以降の人間が打ったメッセージ数
+        "ask_user_question": int,  # AskUserQuestion tool_use 回数
+      }
+    """
+    tool_use_times = []
+    tool_use_total = 0
+    mid_session_msgs = 0
+    ask_user_question = 0
+    first_user_seen = False
+
     if not transcript_path or not os.path.exists(transcript_path):
-        return timestamps
+        return {
+            "tool_use_times": tool_use_times,
+            "tool_use_total": tool_use_total,
+            "mid_session_msgs": mid_session_msgs,
+            "ask_user_question": ask_user_question,
+        }
+
     with open(transcript_path) as f:
         for line in f:
             line = line.strip()
@@ -118,16 +152,47 @@ def load_transcript_tool_uses(transcript_path):
                 continue
             try:
                 entry = json.loads(line)
-                if entry.get("type") != "assistant":
-                    continue
-                content = entry.get("message", {}).get("content", [])
-                if any(c.get("type") == "tool_use" for c in content):
-                    ts_str = entry.get("timestamp", "")
-                    if ts_str:
-                        timestamps.append(parse_ts(ts_str))
+                entry_type = entry.get("type")
+
+                if entry_type == "user":
+                    if not first_user_seen:
+                        first_user_seen = True
+                    else:
+                        if is_human_text_message(entry):
+                            mid_session_msgs += 1
+
+                elif entry_type == "assistant":
+                    content = entry.get("message", {}).get("content", [])
+                    if not isinstance(content, list):
+                        content = []
+                    has_tool_use = False
+                    for item in content:
+                        if not isinstance(item, dict):
+                            continue
+                        if item.get("type") == "tool_use":
+                            has_tool_use = True
+                            tool_use_total += 1
+                            if item.get("name") == "ask-user-question":
+                                ask_user_question += 1
+                    if has_tool_use:
+                        ts_str = entry.get("timestamp", "")
+                        if ts_str:
+                            tool_use_times.append(parse_ts(ts_str))
+
             except (json.JSONDecodeError, ValueError, KeyError):
                 pass
-    return sorted(timestamps)
+
+    return {
+        "tool_use_times": sorted(tool_use_times),
+        "tool_use_total": tool_use_total,
+        "mid_session_msgs": mid_session_msgs,
+        "ask_user_question": ask_user_question,
+    }
+
+
+def load_transcript_tool_uses(transcript_path):
+    """transcript JSONL → tool_use が含まれる assistant メッセージの timestamp リスト（昇順）。"""
+    return load_transcript_stats(transcript_path)["tool_use_times"]
 
 
 # ── 集計 ───────────────────────────────────────────────────────────────────────
@@ -200,11 +265,38 @@ def aggregate_by_hour(from_dt, to_dt):
     return _aggregate_by_key(from_dt, to_dt, lambda pt: pt.astimezone(JST).strftime("%Y-%m-%d %H"))
 
 
+DUMMY_PR_URL = "https://github.com/org/repo/pull/123"
+
+
 def aggregate(from_dt=None, to_dt=None):
     """PR ごとの permission UI 回数 + 自律ストレッチ統計を集計する。"""
     sessions = load_sessions()
     perm_by_session = load_permission_timestamps_by_session()
 
+    # transcript キャッシュ（重複ロードを防ぐ）
+    transcript_cache = {}
+
+    # Pass 1: 全セッションを走査して新指標を蓄積
+    pr_session_count = defaultdict(int)
+    pr_tool_use_total = defaultdict(int)
+    pr_mid_session = defaultdict(int)
+    pr_ask_user = defaultdict(int)
+
+    for sid, session in sessions.items():
+        if is_excluded_session(session):
+            continue
+        pr_url = session.get("pr_url", "")
+        if not pr_url or pr_url == DUMMY_PR_URL:
+            continue
+        pr_session_count[pr_url] += 1
+        t = session.get("transcript", "")
+        if t:
+            stats = transcript_cache.setdefault(t, load_transcript_stats(t))
+            pr_tool_use_total[pr_url] += stats["tool_use_total"]
+            pr_mid_session[pr_url] += stats["mid_session_msgs"]
+            pr_ask_user[pr_url] += stats["ask_user_question"]
+
+    # Pass 2: permission イベントとストレッチ計算
     unmatched = 0
     pr_perm_counts = defaultdict(int)
     pr_stretches = defaultdict(list)
@@ -222,13 +314,14 @@ def aggregate(from_dt=None, to_dt=None):
         if is_excluded_session(session):
             continue
         pr_url = session.get("pr_url", "")
-        if not pr_url or pr_url == "https://github.com/org/repo/pull/123":
+        if not pr_url or pr_url == DUMMY_PR_URL:
             unmatched += len(perm_times)
             continue
         pr_perm_counts[pr_url] += len(perm_times)
         transcript = session.get("transcript", "")
         if transcript:
-            tool_times = load_transcript_tool_uses(transcript)
+            cached = transcript_cache.get(transcript) or load_transcript_stats(transcript)
+            tool_times = cached["tool_use_times"]
             pr_stretches[pr_url].extend(compute_stretches(tool_times, perm_times))
 
     total = sum(pr_perm_counts.values()) + unmatched
@@ -236,11 +329,18 @@ def aggregate(from_dt=None, to_dt=None):
     pr_stats = {}
     for pr_url in pr_perm_counts:
         stretches = pr_stretches.get(pr_url, [])
+        tool_use_total = pr_tool_use_total.get(pr_url, 0)
+        perm_count = pr_perm_counts[pr_url]
         pr_stats[pr_url] = {
-            "perm_count": pr_perm_counts[pr_url],
+            "perm_count": perm_count,
             "stretches": stretches,
             "avg": round(statistics.mean(stretches), 1) if stretches else None,
             "median": statistics.median(stretches) if stretches else None,
+            "tool_use_total": tool_use_total,
+            "perm_rate": round(perm_count / tool_use_total * 100, 1) if tool_use_total else None,
+            "mid_session_msgs": pr_mid_session.get(pr_url, 0),
+            "ask_user_question": pr_ask_user.get(pr_url, 0),
+            "session_count": pr_session_count.get(pr_url, 0),
         }
     return pr_stats, unmatched, total
 
@@ -351,12 +451,17 @@ def generate_autonomy_table(pr_stats):
         label = shorten_pr_url(url)
         avg = f"{stat['avg']:.1f}" if stat["avg"] is not None else "—"
         med = stat["median"] if stat["median"] is not None else "—"
+        perm_rate = f"{stat['perm_rate']:.1f}%" if stat.get("perm_rate") is not None else "—"
         rows.append(
             f'<tr>'
             f'<td><a href="{url}" target="_blank">{label}</a></td>'
             f'<td style="text-align:right">{stat["perm_count"]}</td>'
             f'<td style="text-align:right">{avg}</td>'
             f'<td style="text-align:right">{med}</td>'
+            f'<td style="text-align:right">{stat.get("session_count", 0)}</td>'
+            f'<td style="text-align:right">{stat.get("mid_session_msgs", 0)}</td>'
+            f'<td style="text-align:right">{perm_rate}</td>'
+            f'<td style="text-align:right">{stat.get("ask_user_question", 0)}</td>'
             f'</tr>'
         )
 
@@ -369,6 +474,10 @@ def generate_autonomy_table(pr_stats):
       <th style="width:110px">permission UI 回数</th>
       <th style="width:110px">avg ストレッチ長</th>
       <th style="width:110px">median ストレッチ長</th>
+      <th style="width:90px">セッション数</th>
+      <th style="width:130px">mid-session msgs</th>
+      <th style="width:120px">perm UI 発生率</th>
+      <th style="width:130px">AskUserQuestion</th>
     </tr>
   </thead>
   <tbody>
@@ -376,6 +485,7 @@ def generate_autonomy_table(pr_stats):
   </tbody>
 </table>
 <p class="note">ストレッチ長 = permission UI と permission UI の間に Claude が自律実行した tool_use 数。大きいほど自律的。</p>
+<p class="note">perm UI 発生率 = permission UI 回数 / tool_use 総数（%）。mid-session msgs = 初回プロンプト以降にユーザーが送信したテキストメッセージ数。</p>
 """
 
 

@@ -123,6 +123,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [038-adr-spike-validation-pattern.md](adr/038-adr-spike-validation-pattern.md)
 - [039-session-index-pr-url-backfill-on-stop.md](adr/039-session-index-pr-url-backfill-on-stop.md)
 - [040-session-index-pr-url-backfill-cron-batch.md](adr/040-session-index-pr-url-backfill-cron-batch.md)
+- [041-claude-human-intervention-metrics-expansion.md](adr/041-claude-human-intervention-metrics-expansion.md)
 
 ## Neovim プラグイン一覧
 
