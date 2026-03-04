@@ -69,11 +69,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh idle"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/session-index-stop.sh",
-            "timeout": 10000
           }
         ]
       }
@@ -126,16 +121,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh running post"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/session-index-post-tool.sh",
-            "timeout": 5000
           }
         ]
       }

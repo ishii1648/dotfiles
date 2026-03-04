@@ -44,6 +44,7 @@
 | ✔ | ○ | claude | claude-stats が Permission UI 以外の人の介入を計測できない — mid-session メッセージ・AskUserQuestion・セッション数/PR など介入全般を可視化したい | [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md) |
 | ✔ | ○ | claude | ダッシュボードで perm UI 発生率の改善/悪化トレンドが把握できない — グラフが perm_rate 昇順ソートのため時系列での変化が見えない | [ADR-042](adr/042-perm-rate-time-series-trend.md) |
 | - | ○ | claude | permission UI の内訳（原因ツール・承認/拒否結果・hook起因 vs 通常）が監視できない — 発生回数はログされるが何が原因か追跡できない | [ADR-043](adr/043-permission-ui-breakdown-monitoring.md) |
+| ✔ | ○ | claude | ADR-040 採用後も hook が他人の PR URL を session-index に混入させる — PostToolUse/Stop hook の正規表現スキャンがバッチの正確な補完を妨害しバグが永続する | [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -487,6 +488,21 @@
 - [ ] permission UI 発生時に原因ツール名（tool_name）が `permission.log` に記録される
 - [ ] `redirect-to-tools.py` による PreToolUse deny が `permission.log` とは別ログに記録される
 - [ ] ダッシュボードでツール別の permission UI 発生件数の内訳が確認できる
+
+---
+
+### ADR-044: ADR-040 採用後に意味を失った PR URL 収集 hook を削除する
+
+**コンポーネント**: claude | **ADR**: [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md)
+
+**受け入れ条件**:
+
+- [x] `session-index-post-tool.sh` が削除される（`git rm`）
+- [x] `configs/claude/settings.json` の PostToolUse/Bash マッチャーから `session-index-post-tool.sh` のエントリが削除される
+- [x] `session-index-stop.sh` が削除される（`git rm`）
+- [x] `configs/claude/settings.json` の Stop hook から `session-index-stop.sh` のエントリが削除される
+- [x] 削除後、`claude-pane-state.sh idle` の Stop hook は引き続き動作する
+- [x] 削除後、`session-index-backfill-batch.py` が `pr_urls` を正確に補完し続ける
 
 ---
 
