@@ -122,6 +122,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [037-claude-autonomy-rate-per-work-unit.md](adr/037-claude-autonomy-rate-per-work-unit.md)
 - [038-adr-spike-validation-pattern.md](adr/038-adr-spike-validation-pattern.md)
 - [039-session-index-pr-url-backfill-on-stop.md](adr/039-session-index-pr-url-backfill-on-stop.md)
+- [040-session-index-pr-url-backfill-cron-batch.md](adr/040-session-index-pr-url-backfill-cron-batch.md)
 
 ## Neovim プラグイン一覧
 

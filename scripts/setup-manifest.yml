@@ -55,6 +55,7 @@ components:
         if_missing: true
 
   claude:
+    setup: configs/claude/setup.sh
     symlinks:
       - link: ~/.claude/CLAUDE.md
         target: configs/claude/CLAUDE.md
