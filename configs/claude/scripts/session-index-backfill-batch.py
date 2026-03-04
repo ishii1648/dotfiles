@@ -50,8 +50,9 @@ for (repo, branch), group_entries in groups.items():
         continue
 
     try:
+        # open/closed/merged すべての状態を検索（マージ済みブランチ削除後も対応）
         result = subprocess.run(
-            ["gh", "pr", "view", branch, "--json", "url", "-q", ".url"],
+            ["gh", "pr", "list", "--head", branch, "--state", "all", "--json", "url", "-q", ".[0].url"],
             cwd=cwd,
             capture_output=True,
             text=True,
