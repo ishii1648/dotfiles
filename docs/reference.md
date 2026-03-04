@@ -127,6 +127,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [042-perm-rate-time-series-trend.md](adr/042-perm-rate-time-series-trend.md)
 - [043-permission-ui-breakdown-monitoring.md](adr/043-permission-ui-breakdown-monitoring.md)
 - [044-remove-obsolete-pr-url-hooks.md](adr/044-remove-obsolete-pr-url-hooks.md)
+- [045-pretooluse-hook-approve-claude-subdir-file-ops.md](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
 
 ## Neovim プラグイン一覧
 

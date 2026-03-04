@@ -45,6 +45,7 @@
 | ✔ | ○ | claude | ダッシュボードで perm UI 発生率の改善/悪化トレンドが把握できない — グラフが perm_rate 昇順ソートのため時系列での変化が見えない | [ADR-042](adr/042-perm-rate-time-series-trend.md) |
 | - | ○ | claude | permission UI の内訳（原因ツール・承認/拒否結果・hook起因 vs 通常）が監視できない — 発生回数はログされるが何が原因か追跡できない | [ADR-043](adr/043-permission-ui-breakdown-monitoring.md) |
 | ✔ | ○ | claude | ADR-040 採用後も hook が他人の PR URL を session-index に混入させる — PostToolUse/Stop hook の正規表現スキャンがバッチの正確な補完を妨害しバグが永続する | [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md) |
+| ✔ | ○ | claude | .claude/ サブディレクトリへのファイル操作で permission UI が発生する — スキル・エージェント定義の Write/Edit が毎回中断され自律作業が妨げられる | [ADR-045](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -515,4 +516,20 @@
 - [ ] テスト追加基準（再発実績・チェーン依存・暗黙の契約・手動検証困難）が `docs/development.md` に記載されている
 - [ ] テストを追加しないケース（一度きりの typo・外部ツールのバグ・UI の見た目）が `docs/development.md` に記載されている
 - [ ] バグ修正時のテスト追加フロー（基準確認 → 修正と同一コミットでテスト追加）が `docs/development.md` に記載されている
+
+---
+
+### ADR-045: PreToolUse hook による .claude/ サブディレクトリへのファイル操作自動承認
+
+**コンポーネント**: claude | **ADR**: [ADR-045](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
+
+**受け入れ条件**:
+
+- [x] `.claude/skills/` 以下のファイルへの Write/Edit が permission UI なしに実行される
+- [x] `.claude/agents/` 以下のファイルへの Write/Edit が permission UI なしに実行される
+- [x] `.claude/commands/` 以下のファイルへの Write/Edit が permission UI なしに実行される
+- [x] `.claude/settings.json` への Write/Edit は通常の permission UI が表示される
+- [x] `.claude/CLAUDE.md` への Write/Edit は通常の permission UI が表示される
+- [x] 通常のプロジェクトファイル（`.claude/` を含まないパス）への Write/Edit は動作が変化しない
+- [x] `approve-safe-file-ops.py` が `approve-safe-commands.py`（Bash 専用）とは別ファイルで管理されている
 
