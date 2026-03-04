@@ -254,6 +254,78 @@ def shorten_pr_url(url):
     return f"{m.group(1)}/{m.group(2)}#{m.group(3)}" if m else url
 
 
+def generate_bar_chart(items, format_fn, color="#3b82f6"):
+    """PR 別棒グラフ（純粋 SVG）。
+
+    Args:
+        items: [(label, value), ...] - value が None のバーはスキップ
+        format_fn: value → 表示文字列
+        color: バーの色
+    """
+    items = [(l, v) for l, v in items if v is not None]
+    if not items:
+        return "<p>データがありません</p>"
+
+    bar_w, bar_gap = 36, 6
+    pad_left, pad_right, pad_top, pad_bottom = 52, 10, 24, 76
+    chart_h = 150
+    n = len(items)
+    chart_w = n * (bar_w + bar_gap) - bar_gap
+    total_w = pad_left + chart_w + pad_right
+    total_h = pad_top + chart_h + pad_bottom
+
+    max_v = max(v for _, v in items)
+    v_range = max_v if max_v != 0 else 1.0
+
+    def bx(i):
+        return pad_left + i * (bar_w + bar_gap)
+
+    def bh(v):
+        return max((v / v_range) * chart_h, 2)
+
+    parts = []
+    parts.append(
+        f'<line x1="{pad_left}" y1="{pad_top}" x2="{pad_left}" y2="{pad_top + chart_h}" '
+        f'stroke="#2d3748" stroke-width="1"/>'
+        f'<line x1="{pad_left}" y1="{pad_top + chart_h}" '
+        f'x2="{total_w - pad_right}" y2="{pad_top + chart_h}" stroke="#2d3748" stroke-width="1"/>'
+    )
+    parts.append(
+        f'<text x="{pad_left - 6}" y="{pad_top + chart_h}" text-anchor="end" '
+        f'font-size="11" fill="#64748b">0</text>'
+    )
+    parts.append(
+        f'<text x="{pad_left - 6}" y="{pad_top + 8}" text-anchor="end" '
+        f'font-size="11" fill="#64748b">{format_fn(max_v)}</text>'
+    )
+
+    for i, (label, v) in enumerate(items):
+        h = bh(v)
+        x = bx(i)
+        y = pad_top + chart_h - h
+        cx = x + bar_w / 2
+        parts.append(
+            f'<rect x="{x}" y="{y:.1f}" width="{bar_w}" height="{h:.1f}" '
+            f'fill="{color}" rx="2" opacity="0.85">'
+            f'<title>{label}: {format_fn(v)}</title></rect>'
+        )
+        parts.append(
+            f'<text x="{cx:.1f}" y="{y - 4:.1f}" text-anchor="middle" '
+            f'font-size="10" fill="#94a3b8">{format_fn(v)}</text>'
+        )
+        parts.append(
+            f'<text x="{cx:.1f}" y="{pad_top + chart_h + 14}" text-anchor="end" font-size="11" '
+            f'fill="#94a3b8" transform="rotate(-40 {cx:.1f} {pad_top + chart_h + 14})">'
+            f'{label}</text>'
+        )
+
+    inner = "\n  ".join(parts)
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{total_w}" height="{total_h}" '
+        f'style="font-family: monospace; display:block;">\n  {inner}\n</svg>'
+    )
+
+
 def generate_pr_table(pr_stats):
     """PR 別統計テーブルを生成（perm UI 発生率 昇順）。"""
     if not pr_stats:
@@ -315,6 +387,34 @@ def generate_html(from_dt=None, to_dt=None):
     pr_count = len(pr_stats)
     pr_table = generate_pr_table(pr_stats)
 
+    # perm_rate 昇順で PR を固定順序に並べてチャート生成
+    sorted_prs = sorted(
+        pr_stats.items(),
+        key=lambda x: x[1]["perm_rate"] if x[1]["perm_rate"] is not None else float("inf"),
+    )
+    labels = [(url, shorten_pr_url(url)) for url, _ in sorted_prs]
+
+    chart_perm_rate = generate_bar_chart(
+        [(lbl, s["perm_rate"]) for (url, lbl), (_, s) in zip(labels, sorted_prs)],
+        lambda v: f"{v:.1f}%", color="#ef4444",
+    )
+    chart_perm_count = generate_bar_chart(
+        [(lbl, s["perm_count"]) for (url, lbl), (_, s) in zip(labels, sorted_prs)],
+        lambda v: str(int(v)), color="#f97316",
+    )
+    chart_sessions = generate_bar_chart(
+        [(lbl, s.get("session_count", 0)) for (url, lbl), (_, s) in zip(labels, sorted_prs)],
+        lambda v: str(int(v)), color="#8b5cf6",
+    )
+    chart_mid = generate_bar_chart(
+        [(lbl, s.get("mid_session_msgs", 0)) for (url, lbl), (_, s) in zip(labels, sorted_prs)],
+        lambda v: str(int(v)), color="#eab308",
+    )
+    chart_ask = generate_bar_chart(
+        [(lbl, s.get("ask_user_question", 0)) for (url, lbl), (_, s) in zip(labels, sorted_prs)],
+        lambda v: str(int(v)), color="#22c55e",
+    )
+
     date_form = f"""<form method="get" style="display:flex; gap:8px; align-items:center; margin-bottom:16px">
   <input type="date" name="from" value="{from_val}" style="background:#252d3d; color:#e2e8f0; border:1px solid #2d3748; padding:4px 8px; border-radius:4px">
   <span>〜</span>
@@ -342,6 +442,9 @@ def generate_html(from_dt=None, to_dt=None):
     .definition {{ border-left: 3px solid #3b82f6; line-height: 1.8; }}
     .definition strong {{ font-size: 1rem; color: #93c5fd; }}
     .definition-sub {{ color: #94a3b8; font-size: 12px; }}
+    .chart-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+    .chart-card {{ background: #1e2330; padding: 16px 20px; border-radius: 8px; overflow-x: auto; }}
+    .chart-title {{ font-size: 0.85rem; color: #94a3b8; margin: 0 0 12px 0; }}
   </style>
 </head>
 <body>
@@ -370,7 +473,31 @@ def generate_html(from_dt=None, to_dt=None):
     <span class="definition-sub">一度で完了せず Claude を起動し直した回数。工数感覚と直結する。</span>
   </div>
 
-  <h2>PR 別統計</h2>
+  <h2>メトリクス別グラフ（PR 別、perm UI 発生率 昇順）</h2>
+  <div class="chart-grid">
+    <div class="chart-card">
+      <p class="chart-title">perm UI 発生率（%）— 低いほど自律的</p>
+      {chart_perm_rate}
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">permission UI 回数</p>
+      {chart_perm_count}
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">セッション数</p>
+      {chart_sessions}
+    </div>
+    <div class="chart-card">
+      <p class="chart-title">mid-session msgs</p>
+      {chart_mid}
+    </div>
+    <div class="chart-card" style="grid-column: 1 / -1">
+      <p class="chart-title">AskUserQuestion</p>
+      {chart_ask}
+    </div>
+  </div>
+
+  <h2>PR 別統計（一覧）</h2>
   <div class="card">
     {pr_table}
   </div>
