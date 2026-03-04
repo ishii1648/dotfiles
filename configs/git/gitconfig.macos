@@ -8,7 +8,7 @@
     cm = commit -m
     amend = commit --amend --no-edit
 [core]
-    editor = nvim
+    editor = vim
     quotepath = false
 [commit]
     gpgsign = true
