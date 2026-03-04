@@ -60,8 +60,10 @@ def is_safe_command_substitution(command: str) -> bool:
     Safe pattern: $(cat <<'EOF'...EOF) or $(cat <<EOF...EOF)
     Returns True if the command contains git commit AND all $()
     substitutions are safe heredoc cat patterns.
+
+    Supports both `git commit` and `git -C <path> commit` forms.
     """
-    if "git commit" not in command:
+    if not re.search(r"\bgit\b.*\bcommit\b", command):
         return False
 
     # Find all $(...) substitutions
