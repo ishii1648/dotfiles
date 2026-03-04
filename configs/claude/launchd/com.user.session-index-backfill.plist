@@ -10,11 +10,8 @@
         <string>-c</string>
         <string>exec python3 ~/.claude/scripts/session-index-backfill-batch.py</string>
     </array>
-    <key>StartCalendarInterval</key>
-    <dict>
-        <key>Minute</key>
-        <integer>0</integer>
-    </dict>
+    <key>StartInterval</key>
+    <integer>3600</integer>
     <key>RunAtLoad</key>
     <true/>
 </dict>
