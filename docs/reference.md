@@ -128,6 +128,8 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [043-permission-ui-breakdown-monitoring.md](adr/043-permission-ui-breakdown-monitoring.md)
 - [044-remove-obsolete-pr-url-hooks.md](adr/044-remove-obsolete-pr-url-hooks.md)
 - [045-pretooluse-hook-approve-claude-subdir-file-ops.md](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
+- [046-session-index-backfill-parallel-execution.md](adr/046-session-index-backfill-parallel-execution.md)
+- [047-pretooluse-hook-approve-claude-subdir-read.md](adr/047-pretooluse-hook-approve-claude-subdir-read.md)
 
 ## Neovim プラグイン一覧
 

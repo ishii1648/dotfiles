@@ -115,6 +115,16 @@
         ]
       },
       {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/approve-safe-file-ops.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
