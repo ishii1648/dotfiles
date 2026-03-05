@@ -130,6 +130,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [045-pretooluse-hook-approve-claude-subdir-file-ops.md](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
 - [046-session-index-backfill-parallel-execution.md](adr/046-session-index-backfill-parallel-execution.md)
 - [047-pretooluse-hook-approve-claude-subdir-read.md](adr/047-pretooluse-hook-approve-claude-subdir-read.md)
+- [048-validate-hooks-script-existence.md](adr/048-validate-hooks-script-existence.md)
 - [049-session-count-excludes-subagent-sessions.md](adr/049-session-count-excludes-subagent-sessions.md)
 
 ## Neovim プラグイン一覧

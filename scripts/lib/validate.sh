@@ -54,7 +54,24 @@ validate_json() {
         fi
     done
 
-    if [[ $missing -eq 0 ]]; then
+    # hooks スクリプト存在チェック（~/.claude/scripts/ 参照のみ対象）
+    if jq -e 'has("hooks")' "$dest" >/dev/null 2>&1; then
+        local hook_errors=0
+        while IFS= read -r cmd; do
+            local script_path
+            script_path=$(echo "$cmd" | awk '{print $1}' | sed "s|~|$HOME|g")
+            if [[ "$script_path" == "$HOME/.claude/scripts/"* ]] && [[ ! -f "$script_path" ]]; then
+                echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook script not found: $cmd"
+                hook_errors=$((hook_errors + 1))
+            fi
+        done < <(jq -r '
+            .hooks // {} | to_entries[] | .value[] | .hooks[] |
+            select(.type == "command") | .command
+        ' "$dest" 2>/dev/null)
+        warn_count=$((warn_count + hook_errors))
+    fi
+
+    if [[ $missing -eq 0 ]] && [[ ${hook_errors:-0} -eq 0 ]]; then
         echo -e "  ${GREEN}$display_name${NC}\t✓ validate OK"
     else
         warn_count=$((warn_count + missing))
