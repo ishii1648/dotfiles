@@ -621,7 +621,7 @@ def generate_html(from_dt=None, to_dt=None):
     pr_count = len(pr_stats)
     pr_table = generate_pr_table(pr_stats)
 
-    tool_counts = aggregate_by_tool(from_dt, to_dt)
+    tool_counts = {k: v for k, v in aggregate_by_tool(from_dt, to_dt).items() if k != "unknown"}
     sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
     chart_by_tool = generate_bar_chart(
         sorted_tools,
