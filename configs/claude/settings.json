@@ -16,7 +16,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/session-index.sh"
+            "command": "~/.claude/claudedog/hooks/session-index.sh"
           }
         ]
       }
@@ -45,7 +45,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/permission-log.sh"
+            "command": "~/.claude/claudedog/hooks/permission-log.sh"
           }
         ]
       },
@@ -88,7 +88,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash ~/.claude/scripts/pretooluse-track.sh"
+            "command": "bash ~/.claude/claudedog/hooks/pretooluse-track.sh"
           }
         ]
       },

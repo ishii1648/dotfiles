@@ -27,8 +27,9 @@ version: 0.1.0
 
 - 番号を3桁にゼロ埋めして `$PWD/docs/adr/NNN-*.md` を Glob で特定する
 - 該当ファイルが存在しない場合はエラーを報告して終了する
-- ADR ファイルの `## ステータス` が `Spike中` の場合は以下のメッセージを表示して終了する：
-  「ADR-NNN は Spike中 ステータスです。spike ブランチでの検証が完了し、ADR ステータスを Draft に戻してから adr-ship を実行してください。」
+- ADR ファイルの `## ステータス` が `Spike中` または `Spike完了` の場合は以下のメッセージを表示して終了する：
+  「ADR-NNN は Spike中/Spike完了 ステータスです。Spike ADR は adr-ship の対象外です。
+  設計を確定させる場合は create-adr で新 ADR を作成してください。」
 
 #### args が空の場合
 

@@ -61,12 +61,14 @@ components:
         target: configs/claude/CLAUDE.md
       - link: ~/.claude/scripts
         target: configs/claude/scripts
+      - link: ~/.claude/claudedog
+        target: claudedog
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
       - link: ~/.claude/skills/textlint
         target: configs/claude/skills/textlint
-      - link: ~/.local/bin/claude-stats
-        target: configs/claude/scripts/claude-stats
+      - link: ~/.local/bin/claudedog
+        target: claudedog/claudedog
     copies:
       - src: configs/claude/settings.json
         dest: ~/.claude/settings.json

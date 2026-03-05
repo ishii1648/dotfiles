@@ -45,7 +45,7 @@ for entry in entries:
     if repo and branch:
         groups[(repo, branch)].append(entry)
 
-update_script = os.path.expanduser("~/.claude/scripts/session-index-update.py")
+update_script = os.path.expanduser("~/.claude/claudedog/batch/session-index-update.py")
 
 print(f"backfill: {len(entries)} エントリ / {len(groups)} グループを処理中...")
 

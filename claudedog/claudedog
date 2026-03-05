@@ -15,7 +15,7 @@ do_start() {
     exit 0
   fi
   mkdir -p "$HOME/.claude/logs"
-  nohup python3 ~/.claude/scripts/permission-ui-server.py \
+  nohup python3 ~/.claude/claudedog/dashboard/server.py \
     >> ~/.claude/logs/permission-ui-server.log 2>&1 &
   echo $! > "$PID_FILE"
   echo "Started (PID: $!) → http://localhost:$PORT"

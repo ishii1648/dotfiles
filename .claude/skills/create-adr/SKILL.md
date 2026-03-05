@@ -41,7 +41,10 @@ version: 0.1.0
 - ファイル名はハイフン区切りの英語（例: `009-fish-tmux-keybind-sharing.md`）
 - 日本語タイトルは英訳する
 
-`adr-reference` skill のテンプレートに従って ADR を作成する。ステータスは `Draft` 固定。
+`adr-reference` skill のテンプレートに従って ADR を作成する。
+
+- ユーザーが「Spike として作成する」「Spike ADR を作る」など Spike を明示した場合: ステータスを `Spike中` に設定する
+- それ以外の場合: ステータスは `Draft` 固定
 
 > **移動操作は削除元と作成先を必ず別行で記載する**
 > | `configs/tmux/tmux.conf` L124 | dotfiles | 削除（prtrack keybind） |
