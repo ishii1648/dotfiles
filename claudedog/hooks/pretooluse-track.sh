@@ -12,7 +12,7 @@ TOOL_NAME=$(echo "$input" | jq -r '.tool_name // "unknown"')
 case "$TOOL_NAME" in
   Bash)
     CMD=$(echo "$input" | jq -r '.tool_input.command // ""' | awk '{print $1}')
-    FP=$(echo "$input" | jq -r '.tool_input.command // ""' | awk '{print $2}')
+    FP=$(echo "$input" | jq -r '.tool_input.command // ""' | awk '{print $NF}')
     if [ -n "$FP" ] && [ -n "$PWD" ] && case "$FP" in "$PWD"/*) true;; *) false;; esac; then
       LOC="internal"
     else

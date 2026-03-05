@@ -54,6 +54,7 @@
 | ✔ | ○ | claude | ダッシュボードのツール別 permission UI 内訳で件数・割合の正確な値が読み取れない — 棒グラフのみで数値テーブルがなく改善施策の優先順位付けが困難 | [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md) |
 | - | ○ | claude | claudedog（旧 claude-stats）の実装が散在し ADR 駆動開発と馴染まない — ディレクトリ隔離と TODO.md + CHANGELOG.md ベースの軽量プロセスへ移行する | [ADR-052](adr/052-claude-stats-directory-isolation.md) |
 | ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
+| ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -660,4 +661,18 @@
 - [x] `setup.sh --dry-run` 時に dotfiles 管理キーの差分が検出された場合 WARN が表示される
 - [x] `scripts/lib/validate.sh` の hooks スクリプト存在チェックが `~/.claude/claudedog/` パスも対象にする
 - [x] `configs/claude/settings.json` の hooks パスを変更後に `setup.sh` を実行すると `~/.claude/settings.json` の hooks が自動更新される
+
+---
+
+### ADR-054: permission-log を PermissionRequest フックに移行する
+
+**コンポーネント**: claude | **ADR**: [ADR-054](adr/054-permission-log-use-permission-request-hook.md)
+
+**受け入れ条件**:
+
+- [x] `permission-log.sh` が `PermissionRequest` フックとして登録されている
+- [x] `Notification (permission_prompt)` フックから `permission-log.sh` が削除されている
+- [x] プロジェクト外 cp（`cp ... /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
+- [x] プロジェクト外 mkdir（`mkdir -p /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
+- [x] 同じコマンドを複数回実行しても安定して記録される（4/4 回記録）
 

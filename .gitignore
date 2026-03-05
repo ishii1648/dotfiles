@@ -18,3 +18,5 @@ configs/fish/fish_variables
 
 # Git worktree
 .worktree/
+
+configs/claude/scripts/__pycache__/
