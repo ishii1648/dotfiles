@@ -169,8 +169,11 @@ def check_command(command_str: str):
     return None
 
 
-def check_cd_git_chain(segments: list):
-    """Detect 'cd <path> && git <cmd>' pattern and suggest 'git -C <path> <cmd>'.
+def check_cd_chain(segments: list):
+    """Detect 'cd <path> && <cmd>' pattern and instruct to avoid it.
+
+    - cd && git  → suggest 'git -C <path> <cmd>'
+    - cd && any  → instruct to use absolute path or run command directly
 
     Returns (tool_name, message) if the pattern is detected, or None otherwise.
     """
@@ -183,18 +186,29 @@ def check_cd_git_chain(segments: list):
             continue
 
         next_words = next_seg.split()
-        if not next_words or next_words[0] != "git":
+        if not next_words:
             continue
 
-        # cd <path> && git <cmd> detected
         path = words[1] if len(words) > 1 else "<path>"
-        git_rest = " ".join(next_words[1:]) if len(next_words) > 1 else "<cmd>"
-        suggestion = f"git -C {path} {git_rest}"
-        message = (
-            f"Bash の `cd && git` パターンではなく `git -C` を使用してください。"
-            f" 代替コマンド: `{suggestion}`"
-        )
-        return ("Bash(git -C)", message)
+        next_cmd = next_words[0]
+
+        if next_cmd == "git":
+            # cd <path> && git <cmd> → git -C <path> <cmd>
+            git_rest = " ".join(next_words[1:]) if len(next_words) > 1 else "<cmd>"
+            suggestion = f"git -C {path} {git_rest}"
+            message = (
+                f"Bash の `cd && git` パターンではなく `git -C` を使用してください。"
+                f" 代替コマンド: `{suggestion}`"
+            )
+            return ("Bash(git -C)", message)
+        else:
+            # cd <path> && <any cmd> → run command with absolute path
+            message = (
+                f"Bash の `cd && {next_cmd}` パターンは使用しないでください。"
+                f" `{next_cmd}` の引数に絶対パス（{path}/...）を直接指定するか、"
+                f" 専用ツール（Glob/Grep/Read/Edit/Write）を使用してください。"
+            )
+            return (f"Bash({next_cmd} with abspath)", message)
 
     return None
 
@@ -229,8 +243,8 @@ def main():
 
         segments = split_chain(command)
 
-        # Check for cd && git chain pattern first
-        chain_result = check_cd_git_chain(segments)
+        # Check for cd && <cmd> chain pattern first
+        chain_result = check_cd_chain(segments)
         if chain_result:
             tool, message = chain_result
             _write_deny_log(session_id, tool_name, message)
