@@ -169,31 +169,27 @@ def check_command(command_str: str):
     return None
 
 
-def check_cd_chain(segments: list):
-    """Detect 'cd <path> && <cmd>' pattern and instruct to avoid it.
+def check_and_chain(segments: list):
+    """Detect any '&&' compound command pattern and instruct to split.
 
-    - cd && git  → suggest 'git -C <path> <cmd>'
-    - cd && any  → instruct to use absolute path or run command directly
+    Special cases:
+    - cd <path> && git <cmd>  → suggest 'git -C <path> <cmd>'
+    - cd <path> && <any cmd>  → instruct to use absolute path
+    - <any> && <any>          → instruct to split into separate Bash calls
 
     Returns (tool_name, message) if the pattern is detected, or None otherwise.
     """
-    for i in range(len(segments) - 1):
-        seg = segments[i]
-        next_seg = segments[i + 1]
+    if len(segments) < 2:
+        return None
 
-        words = seg.split()
-        if not words or words[0] != "cd":
-            continue
-
-        next_words = next_seg.split()
-        if not next_words:
-            continue
-
-        path = words[1] if len(words) > 1 else "<path>"
-        next_cmd = next_words[0]
+    # Check for cd as first segment (special handling)
+    first_words = segments[0].split()
+    if first_words and first_words[0] == "cd":
+        path = first_words[1] if len(first_words) > 1 else "<path>"
+        next_words = segments[1].split()
+        next_cmd = next_words[0] if next_words else ""
 
         if next_cmd == "git":
-            # cd <path> && git <cmd> → git -C <path> <cmd>
             git_rest = " ".join(next_words[1:]) if len(next_words) > 1 else "<cmd>"
             suggestion = f"git -C {path} {git_rest}"
             message = (
@@ -202,7 +198,6 @@ def check_cd_chain(segments: list):
             )
             return ("Bash(git -C)", message)
         else:
-            # cd <path> && <any cmd> → run command with absolute path
             message = (
                 f"Bash の `cd && {next_cmd}` パターンは使用しないでください。"
                 f" `{next_cmd}` の引数に絶対パス（{path}/...）を直接指定するか、"
@@ -210,7 +205,13 @@ def check_cd_chain(segments: list):
             )
             return (f"Bash({next_cmd} with abspath)", message)
 
-    return None
+    # General && pattern: instruct to split into separate Bash calls
+    cmds = " && ".join(seg.strip() for seg in segments)
+    message = (
+        f"`&&` で連結された複合コマンドは使用しないでください。"
+        f" 各コマンドを個別の Bash ツール呼び出しに分割してください: {cmds}"
+    )
+    return ("Bash(compound)", message)
 
 
 def _write_deny_log(session_id: str, tool_name: str, reason: str) -> None:
@@ -243,8 +244,8 @@ def main():
 
         segments = split_chain(command)
 
-        # Check for cd && <cmd> chain pattern first
-        chain_result = check_cd_chain(segments)
+        # Check for && compound command pattern first
+        chain_result = check_and_chain(segments)
         if chain_result:
             tool, message = chain_result
             _write_deny_log(session_id, tool_name, message)
