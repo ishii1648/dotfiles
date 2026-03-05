@@ -51,6 +51,7 @@
 | ✔ | ○ | claude | hooks で参照されるスクリプトが実在しなくても validate が検出できない — if_missing: true コピー後に dotfiles 側で hook を削除しても dest の古いエントリが残り hook error が発生する | [ADR-048](adr/048-validate-hooks-script-existence.md) |
 | ✔ | ○ | claude | claude-stats のセッション数が過大計上される — `file-history-snapshot` のみを含むゴーストセッションが SessionStart hook で記録され同じ PR に紐づくため | [ADR-049](adr/049-session-count-excludes-subagent-sessions.md) |
 | ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-050](adr/050-spike-adr-lifecycle.md) |
+| ✔ | ○ | claude | ダッシュボードのツール別 permission UI 内訳で件数・割合の正確な値が読み取れない — 棒グラフのみで数値テーブルがなく改善施策の優先順位付けが困難 | [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -611,4 +612,16 @@
 - [x] adr-ship が `Spike完了` ステータスの ADR を拒否するよう記述されている
 - [x] create-adr が Spike 指定時に `Spike中` ステータスで ADR を作成するよう記述されている
 - [x] development.md の Spikeフローが `Spike完了` で終了するよう更新されている
+
+---
+
+### ADR-051: ダッシュボードにツール別 permission UI テーブルを追加
+
+**コンポーネント**: claude | **ADR**: [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md)
+
+**受け入れ条件**:
+
+- [x] ダッシュボードのツール別セクションに件数・割合（%）のテーブルが表示される
+- [x] テーブルは件数降順でソートされている
+- [x] 既存の棒グラフは維持されテーブルがその直下に併記される
 

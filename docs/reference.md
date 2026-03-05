@@ -132,6 +132,8 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [047-pretooluse-hook-approve-claude-subdir-read.md](adr/047-pretooluse-hook-approve-claude-subdir-read.md)
 - [048-validate-hooks-script-existence.md](adr/048-validate-hooks-script-existence.md)
 - [049-session-count-excludes-subagent-sessions.md](adr/049-session-count-excludes-subagent-sessions.md)
+- [050-spike-adr-lifecycle.md](adr/050-spike-adr-lifecycle.md)
+- [051-tool-breakdown-table-in-dashboard.md](adr/051-tool-breakdown-table-in-dashboard.md)
 
 ## Neovim プラグイン一覧
 

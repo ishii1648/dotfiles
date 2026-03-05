@@ -525,6 +525,41 @@ def generate_perm_rate_line_chart(stats, short_label_fn):
     )
 
 
+def generate_tool_table(tool_counts):
+    """ツール別 permission UI 件数テーブルを生成（件数降順）。"""
+    if not tool_counts:
+        return "<p>データがありません</p>"
+
+    sorted_tools = sorted(tool_counts.items(), key=lambda x: x[1], reverse=True)
+    total = sum(v for _, v in sorted_tools)
+
+    rows = []
+    for tool, count in sorted_tools:
+        pct = round(count / total * 100, 1) if total else 0
+        rows.append(
+            f'<tr>'
+            f'<td>{tool}</td>'
+            f'<td style="text-align:right">{count}</td>'
+            f'<td style="text-align:right">{pct}%</td>'
+            f'</tr>'
+        )
+
+    rows_html = "\n".join(rows)
+    return f"""
+<table style="width:auto">
+  <thead>
+    <tr>
+      <th>ツール</th>
+      <th style="width:100px">件数</th>
+      <th style="width:100px">割合</th>
+    </tr>
+  </thead>
+  <tbody>
+{rows_html}
+  </tbody>
+</table>"""
+
+
 def generate_pr_table(pr_stats):
     """PR 別統計テーブルを生成（perm UI 発生率 昇順）。"""
     if not pr_stats:
@@ -592,6 +627,7 @@ def generate_html(from_dt=None, to_dt=None):
         sorted_tools,
         lambda v: str(int(v)), color="#06b6d4",
     )
+    table_by_tool = generate_tool_table(tool_counts)
 
     day_stats = aggregate_by_date(from_dt, to_dt)
     week_stats = aggregate_by_week(from_dt, to_dt)
@@ -723,6 +759,7 @@ def generate_html(from_dt=None, to_dt=None):
   <h2>ツール別 permission UI 内訳</h2>
   <div class="card" style="overflow-x: auto">
     {chart_by_tool}
+    {table_by_tool}
   </div>
 
   <h2>PR 別統計（一覧）</h2>
