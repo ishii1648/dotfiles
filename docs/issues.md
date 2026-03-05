@@ -493,7 +493,9 @@
 
 **受け入れ条件**:
 
-- [x] permission UI 発生時に原因ツール名（tool_name）が `permission.log` に記録される
+- [x] `pretooluse-track.sh` が PreToolUse hook（全ツール対象）として動作し、tool_name を `~/.claude/logs/last-tool-{session_id}` に記録する
+- [x] `permission-log.sh` が `last-tool-{session_id}` から tool_name を読み取り `permission.log` に `tool=<tool_name>` として記録する
+- [x] permission.log の `tool=` 値が実際のツール名（Bash, Read, Write 等）になっており `unknown` でない
 - [x] `redirect-to-tools.py` による PreToolUse deny が `permission.log` とは別ログに記録される
 - [x] ダッシュボードでツール別の permission UI 発生件数の内訳が確認できる
 
