@@ -16,8 +16,6 @@ Redirect rules:
   sed / awk   → Edit
   echo (with >) → Write
   for / while → Glob + 個別ツール（ループの代わりに個別ツール呼び出し）
-  python3 -c  → Read/Grep/Edit/jq（インラインスクリプトの代わりに専用ツール）
-  python -c   → Read/Grep/Edit/jq
   python3 <外部パス>.py → Read/Grep/Edit/jq（プロジェクト外スクリプトの代わりに専用ツール）
   python <外部パス>.py  → Read/Grep/Edit/jq
 """
@@ -202,18 +200,6 @@ REDIRECT_RULES = [
         lambda _cmd: True,
         "Glob/個別ツール",
         "Bash の while ループではなく Glob + 個別ツール（Read/Edit/Bash）を使用してください",
-    ),
-    (
-        "python3",
-        lambda cmd: any(a == "-c" for a in cmd.split()[1:]),
-        "Read/Grep/Edit",
-        "Bash の python3 -c インラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
-    ),
-    (
-        "python",
-        lambda cmd: any(a == "-c" for a in cmd.split()[1:]),
-        "Read/Grep/Edit",
-        "Bash の python -c インラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
     ),
     (
         "python3",
