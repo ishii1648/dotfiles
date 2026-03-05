@@ -28,9 +28,49 @@ import sys
 
 # Reuse the same chain-splitting logic as enforce-bash-permissions.py
 def split_chain(command: str) -> list:
-    """Split a chained command into segments on &&, ||, ;."""
-    segments = re.split(r"\s*(?:&&|\|\||;)\s*", command)
-    return [s.strip() for s in segments if s.strip()]
+    """Split a chained command into segments on &&, ||, ; (respects quoted strings)."""
+    segments = []
+    current = []
+    i = 0
+    in_single = False
+    in_double = False
+
+    while i < len(command):
+        c = command[i]
+
+        if c == "'" and not in_double:
+            in_single = not in_single
+            current.append(c)
+        elif c == '"' and not in_single:
+            in_double = not in_double
+            current.append(c)
+        elif not in_single and not in_double:
+            # Check for && or ||
+            if command[i:i+2] in ("&&", "||"):
+                seg = "".join(current).strip()
+                if seg:
+                    segments.append(seg)
+                current = []
+                i += 2
+                continue
+            # Check for ;
+            elif c == ";":
+                seg = "".join(current).strip()
+                if seg:
+                    segments.append(seg)
+                current = []
+            else:
+                current.append(c)
+        else:
+            current.append(c)
+
+        i += 1
+
+    seg = "".join(current).strip()
+    if seg:
+        segments.append(seg)
+
+    return segments
 
 
 def get_first_pipe_command(segment: str) -> str:
