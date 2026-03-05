@@ -8,10 +8,7 @@ TOOL_NAME=$(echo "$input" | jq -r '.tool_name // "unknown"')
 
 # ツールごとにコンテキスト情報を付記
 case "$TOOL_NAME" in
-  Bash)
-    DETAIL=$(echo "$input" | jq -r '.tool_input.command // ""' | awk '{print $1, $2}' | xargs)
-    ;;
-  Read|Write|Edit|Grep)
+  Bash|Read|Write|Edit|Grep)
     FP=$(echo "$input" | jq -r '.tool_input.file_path // .tool_input.path // ""')
     if [ -n "$FP" ] && [ -n "$PWD" ] && case "$FP" in "$PWD"/*) true;; *) false;; esac; then
       DETAIL="internal"
