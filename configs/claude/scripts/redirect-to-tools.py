@@ -18,6 +18,8 @@ Redirect rules:
   for / while → Glob + 個別ツール（ループの代わりに個別ツール呼び出し）
   python3 -c  → Read/Grep/Edit/jq（インラインスクリプトの代わりに専用ツール）
   python -c   → Read/Grep/Edit/jq
+  python3 <外部パス>.py → Read/Grep/Edit/jq（プロジェクト外スクリプトの代わりに専用ツール）
+  python <外部パス>.py  → Read/Grep/Edit/jq
 """
 
 import json
@@ -95,6 +97,28 @@ def extract_base_command(command_str: str) -> str:
             continue
         return word
     return ""
+
+
+def _is_external_script(command_str: str) -> bool:
+    """Check if python is executing a .py file outside the current working directory.
+
+    Returns True for: python3 /tmp/foo.py, python ~/debug.py
+    Returns False for: python3 -m pytest, python3 claudedog/server.py, python3 -c '...'
+    """
+    words = command_str.split()
+    # Skip the python command itself
+    for arg in words[1:]:
+        # Skip flags and their values
+        if arg.startswith("-"):
+            continue
+        # Found a positional argument — check if it's a .py file
+        if arg.endswith(".py"):
+            abs_path = os.path.abspath(os.path.expanduser(arg))
+            cwd = os.getcwd()
+            if not abs_path.startswith(cwd + os.sep) and abs_path != cwd:
+                return True
+        break
+    return False
 
 
 def has_stdout_redirect(command_str: str) -> bool:
@@ -190,6 +214,18 @@ REDIRECT_RULES = [
         lambda cmd: any(a == "-c" for a in cmd.split()[1:]),
         "Read/Grep/Edit",
         "Bash の python -c インラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
+    ),
+    (
+        "python3",
+        _is_external_script,
+        "Read/Grep/Edit",
+        "プロジェクト外の Python スクリプト実行ではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
+    ),
+    (
+        "python",
+        _is_external_script,
+        "Read/Grep/Edit",
+        "プロジェクト外の Python スクリプト実行ではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
     ),
 ]
 
