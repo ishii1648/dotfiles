@@ -75,6 +75,7 @@ def load_sessions():
                 sessions[sid] = {
                     "pr_url": pr_urls[-1] if pr_urls else prev.get("pr_url", ""),
                     "transcript": transcript or prev.get("transcript", ""),
+                    "is_subagent": bool(entry.get("parent_session_id", "")),
                 }
             except json.JSONDecodeError:
                 pass
@@ -224,6 +225,8 @@ def aggregate(from_dt=None, to_dt=None):
 
     for sid, session in sessions.items():
         if is_excluded_session(session):
+            continue
+        if session.get("is_subagent"):
             continue
         pr_url = session.get("pr_url", "")
         if not pr_url or pr_url == DUMMY_PR_URL:
