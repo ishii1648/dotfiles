@@ -31,6 +31,7 @@ except Exception:
     sys.exit(0)
 
 if not entries:
+    print("backfill: 対象エントリなし（全件 pr_urls 補完済み or backfill_checked 済み）")
     sys.exit(0)
 
 # (repo, branch) でグループ化し重複排除
@@ -42,6 +43,8 @@ for entry in entries:
         groups[(repo, branch)].append(entry)
 
 update_script = os.path.expanduser("~/.claude/scripts/session-index-update.py")
+
+print(f"backfill: {len(entries)} エントリ / {len(groups)} グループを処理中...")
 
 
 def fetch_pr_url(repo_branch_entries):
@@ -65,16 +68,22 @@ def fetch_pr_url(repo_branch_entries):
         return group_entries, None
 
 
+found, skipped = 0, 0
+
 with ThreadPoolExecutor(max_workers=8) as executor:
     futures = [executor.submit(fetch_pr_url, item) for item in groups.items()]
     for future in as_completed(futures):
         group_entries, url = future.result()
         if url:
+            found += 1
             for entry in group_entries:
                 session_id = entry.get("session_id", "")
                 if session_id:
                     subprocess.run([sys.executable, update_script, session_id, url])
         else:
+            skipped += 1
             session_ids = [e.get("session_id", "") for e in group_entries if e.get("session_id")]
             if session_ids:
                 subprocess.run([sys.executable, update_script, "--mark-checked"] + session_ids)
+
+print(f"backfill: 完了 — URL取得成功 {found} グループ / backfill_checked 記録 {skipped} グループ")
