@@ -98,7 +98,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/pretooluse-track.sh"
+            "command": "bash ~/.claude/scripts/pretooluse-track.sh"
           }
         ]
       },
