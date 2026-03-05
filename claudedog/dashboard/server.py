@@ -284,10 +284,11 @@ def aggregate(from_dt=None, to_dt=None):
 
     total = sum(pr_perm_counts.values()) + unmatched
 
+    all_pr_urls = set(pr_session_count) | set(pr_perm_counts)
     pr_stats = {}
-    for pr_url in pr_perm_counts:
+    for pr_url in all_pr_urls:
         tool_use_total = pr_tool_use_total.get(pr_url, 0)
-        perm_count = pr_perm_counts[pr_url]
+        perm_count = pr_perm_counts.get(pr_url, 0)
         pr_stats[pr_url] = {
             "perm_count": perm_count,
             "tool_use_total": tool_use_total,
