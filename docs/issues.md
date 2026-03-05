@@ -46,6 +46,7 @@
 | ✔ | ○ | claude | permission UI の内訳（原因ツール・承認/拒否結果・hook起因 vs 通常）が監視できない — 発生回数はログされるが何が原因か追跡できない | [ADR-043](adr/043-permission-ui-breakdown-monitoring.md) |
 | ✔ | ○ | claude | ADR-040 採用後も hook が他人の PR URL を session-index に混入させる — PostToolUse/Stop hook の正規表現スキャンがバッチの正確な補完を妨害しバグが永続する | [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md) |
 | ✔ | ○ | claude | .claude/ サブディレクトリへのファイル操作で permission UI が発生する — スキル・エージェント定義の Write/Edit が毎回中断され自律作業が妨げられる | [ADR-045](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md) |
+| - | ○ | claude | session-index-backfill-batch.py が逐次実行で数分かかる — グループ数 × タイムアウト 8 秒の積が実行時間になり、58 グループで最大 8 分要する | [ADR-046](adr/046-session-index-backfill-parallel-execution.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -534,4 +535,16 @@
 - [x] `.claude/CLAUDE.md` への Write/Edit は通常の permission UI が表示される
 - [x] 通常のプロジェクトファイル（`.claude/` を含まないパス）への Write/Edit は動作が変化しない
 - [x] `approve-safe-file-ops.py` が `approve-safe-commands.py`（Bash 専用）とは別ファイルで管理されている
+
+---
+
+### ADR-046: session-index-backfill-batch.py の並列実行化
+
+**コンポーネント**: claude | **ADR**: [ADR-046](adr/046-session-index-backfill-parallel-execution.md)
+
+**受け入れ条件**:
+
+- [ ] `session-index-backfill-batch.py` が `ThreadPoolExecutor` を使って各グループの `gh pr list` を並列実行できる
+- [ ] 並列実行後もすべての `pr_urls` 補完結果が正確に `session-index.jsonl` に記録される
+- [ ] 58 グループ相当の実行が 30 秒以内に完了する（逐次最悪ケース 8 分から大幅改善）
 
