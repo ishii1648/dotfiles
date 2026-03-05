@@ -49,7 +49,7 @@
 | ✔ | ○ | claude | session-index-backfill-batch.py が逐次実行で数分かかる — グループ数 × タイムアウト 8 秒の積が実行時間になり、58 グループで最大 8 分要する | [ADR-046](adr/046-session-index-backfill-parallel-execution.md) |
 | ✔ | ○ | claude | .claude/ サブディレクトリへの Read 操作で permission UI が発生する — ADR-045 で Write/Edit の hook 不呼び出しが判明したが、Read は通常の permission system を経由する可能性があり検証が必要 | [ADR-047](adr/047-pretooluse-hook-approve-claude-subdir-read.md) |
 | - | ○ | claude | hooks で参照されるスクリプトが実在しなくても validate が検出できない — if_missing: true コピー後に dotfiles 側で hook を削除しても dest の古いエントリが残り hook error が発生する | [ADR-048](adr/048-validate-hooks-script-existence.md) |
-| - | ○ | claude | claude-stats のセッション数が過大計上される — `file-history-snapshot` のみを含むゴーストセッションが SessionStart hook で記録され同じ PR に紐づくため | [ADR-049](adr/049-session-count-excludes-subagent-sessions.md) |
+| ✔ | ○ | claude | claude-stats のセッション数が過大計上される — `file-history-snapshot` のみを含むゴーストセッションが SessionStart hook で記録され同じ PR に紐づくため | [ADR-049](adr/049-session-count-excludes-subagent-sessions.md) |
 | ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-050](adr/050-spike-adr-lifecycle.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
@@ -592,10 +592,9 @@
 
 **受け入れ条件**:
 
-- [ ] Spike: `SessionStart` フック入力 JSON に `parent_session_id` フィールドが存在するかログで確認できる
-- [ ] `session-index.jsonl` の各エントリに `parent_session_id` フィールドが記録される（メインセッションは空文字、サブエージェントは親 session_id）
-- [ ] `permission-ui-server.py` のセッション数集計で `parent_session_id` が存在するエントリが除外される
-- [ ] Task ツールを複数回呼び出したセッションのセッション数が 1 と計上される（サブエージェント分が含まれない）
+- [x] `permission-ui-server.py` の `load_sessions()` が transcript を読み `type: "user"` エントリの有無で `is_ghost` フィールドを設定できる
+- [x] `aggregate()` で `is_ghost: True` のセッションがセッション数カウントから除外される
+- [x] `file-history-snapshot` のみの transcript を持つセッションが PR のセッション数にカウントされないことを `load_sessions()` の `is_ghost` ロジックで確認できる（Grep）
 
 ---
 

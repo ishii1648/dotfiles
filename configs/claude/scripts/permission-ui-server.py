@@ -76,6 +76,7 @@ def load_sessions():
                     "pr_url": pr_urls[-1] if pr_urls else prev.get("pr_url", ""),
                     "transcript": transcript or prev.get("transcript", ""),
                     "is_subagent": bool(entry.get("parent_session_id", "")),
+                    "is_ghost": not has_user_message(transcript or prev.get("transcript", "")),
                 }
             except json.JSONDecodeError:
                 pass
@@ -129,6 +130,24 @@ def is_human_text_message(entry):
         if types and all(t == "tool_result" for t in types):
             return False
     return True
+
+
+def has_user_message(transcript_path):
+    """transcript に type: "user" エントリが存在するか確認する。
+    file-history-snapshot のみのゴーストセッションは False を返す。"""
+    if not transcript_path or not os.path.exists(transcript_path):
+        return False
+    with open(transcript_path) as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                if json.loads(line).get("type") == "user":
+                    return True
+            except json.JSONDecodeError:
+                pass
+    return False
 
 
 def load_transcript_stats(transcript_path):
@@ -227,6 +246,8 @@ def aggregate(from_dt=None, to_dt=None):
         if is_excluded_session(session):
             continue
         if session.get("is_subagent"):
+            continue
+        if session.get("is_ghost"):
             continue
         pr_url = session.get("pr_url", "")
         if not pr_url or pr_url == DUMMY_PR_URL:
