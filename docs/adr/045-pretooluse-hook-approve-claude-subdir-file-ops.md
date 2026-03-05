@@ -2,7 +2,17 @@
 
 ## ステータス
 
-採用済み
+クローズ（Cannot Implement）
+
+## クローズ理由
+
+調査の結果、Claude Code は `.claude/` を含むパスへの Write/Edit を「Claude 自身の設定変更」として通常の permission system（`permissions.allow`、PreToolUse hook）とは独立した特別なチェックで保護している。
+
+- `permissions.allow` のどのパターン（`~/.claude/skills/**`、`**/.claude/skills/**` 等）を追加しても permission UI が消えない
+- PreToolUse hook の `permissionDecision: "allow"` も、`.claude/` パスへの Edit では hook 自体が呼ばれない
+- 永続化設定キー（`allowEditSettings` 等）は存在しない（GitHub Issue #18699 として未実装）
+
+この制限は Claude Code の意図的な安全機能であり、現バージョンでは回避手段がない。
 
 ## 関連 ADR
 
