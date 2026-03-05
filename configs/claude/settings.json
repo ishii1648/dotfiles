@@ -83,16 +83,6 @@
         ]
       }
     ],
-    "PreCompact": [
-      {
-        "hooks": [
-          {
-            "type": "prompt",
-            "prompt": "コンテキスト圧縮が実行されます。圧縮前に handover skill を実行して、現在の作業内容を HANDOVER.md に記録してください。"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
