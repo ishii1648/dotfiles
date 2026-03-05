@@ -62,6 +62,7 @@ ADR（Architecture Decision Record）の運用ルール・テンプレート・�
 |---|---|
 | `Draft` | 検討中。設計案が確定していない |
 | `Spike中` | Draft から派生。設計確定前に検証実装が必要な状態。spike/NNN-description ブランチで作業中 |
+| `Spike完了` | 検証が完了し、知見を ADR に記録済み。設計判断の記録として保持。adr-ship 対象外 |
 | `採用済み` | 有効な意思決定。実装済みまたは実装予定 |
 | `廃止（ADR-YYY で置換）` | 完全に上書きされた。新しい決定は ADR-YYY を参照 |
 | `部分廃止（ADR-YYY で一部変更）` | 一部の決定が上書きされた。残りは引き続き有効 |
@@ -72,10 +73,12 @@ ADR（Architecture Decision Record）の運用ルール・テンプレート・�
 - `Draft` → `採用済み`: 実装完了時（`adr-ship` の Step 5）
 - `Draft` → `却下`: 検討の結果、採用しないと決定した場合
 - `Draft` → `Spike中`: 設計確定前に検証が必要と判断した場合
-- `Spike中` → `Draft`: spike ブランチでの検証完了後、設計を確定した場合
+- `Spike中` → `Spike完了`: 知見まとめ完了後（adr-ship は使わない）
 - `Spike中` → `却下`: 検証の結果、採用しないと決定した場合
 - `採用済み` → `廃止（ADR-YYY で置換）`: 新 ADR が既存の決定を完全に上書きする場合
 - `採用済み` → `部分廃止（ADR-YYY で一部変更）`: 新 ADR が一部の決定のみ上書きする場合
+
+Spike 完了後に設計を確定させる場合は、`create-adr` で新 ADR を作成し、関連 ADR に Spike ADR を記載する。
 
 ## Supersede フロー（双方向リンク）
 

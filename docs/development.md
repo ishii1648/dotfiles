@@ -36,10 +36,11 @@
 2. **ADR ステータスを `Spike中` に設定** — 通常の Draft と区別する
 3. **`spike/NNN-description` ブランチで検証実装** — NNN は ADR 番号
 4. **検証結果を ADR に追記** — コンテキストまたは設計案セクションに記録する
-5. **ADR ステータスを `Draft` に戻し、設計を確定** — Spike コードは main にマージしない
-6. **adr-ship で正式実装** — 通常フローに合流する
+5. **ADR ステータスを `Spike完了` に更新し、知見を記録して終了** — Spike コードは main にマージしない
+6. **設計を確定させる場合は create-adr で新 ADR を作成** — 新 ADR の「関連 ADR」に Spike ADR を記載し、通常フローで実装する
 
 ### ルール
 
-- `adr-ship` は `Spike中` ステータスの ADR には適用しない
+- `adr-ship` は `Spike中` / `Spike完了` ステータスの ADR には適用しない
 - Spike ブランチのコードは検証完了後に捨てる（main にマージしない）
+- `Spike完了` ステータスの ADR は変更しない（知見の記録として保持）
