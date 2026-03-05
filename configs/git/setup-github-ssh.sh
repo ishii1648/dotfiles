@@ -126,11 +126,16 @@ fi
 
 # Step 4: ~/.gitconfig に user.signingkey を設定
 echo -e "  Step 4: user.signingkey"
-if $DRY_RUN; then
-    echo -e "    Would run: git config --global user.signingkey ${SETUP_SIGN_KEY}.pub"
+if [[ "$SETUP_SIGN_KEY" == *.pub ]]; then
+    SIGN_PUBKEY="$SETUP_SIGN_KEY"
 else
-    if git config --global user.signingkey "${SETUP_SIGN_KEY}.pub"; then
-        echo -e "    ${GREEN}✓${NC} user.signingkey=${SETUP_SIGN_KEY}.pub"
+    SIGN_PUBKEY="${SETUP_SIGN_KEY}.pub"
+fi
+if $DRY_RUN; then
+    echo -e "    Would run: git config --global user.signingkey $SIGN_PUBKEY"
+else
+    if git config --global user.signingkey "$SIGN_PUBKEY"; then
+        echo -e "    ${GREEN}✓${NC} user.signingkey=$SIGN_PUBKEY"
     else
         echo -e "    ${RED}FAIL${NC} git config --global user.signingkey failed"
         ((ERRORS++))

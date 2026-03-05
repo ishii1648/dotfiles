@@ -60,7 +60,7 @@ validate_json() {
         while IFS= read -r cmd; do
             local script_path
             script_path=$(echo "$cmd" | awk '{print $1}' | sed "s|~|$HOME|g")
-            if [[ "$script_path" == "$HOME/.claude/scripts/"* ]] && [[ ! -f "$script_path" ]]; then
+            if { [[ "$script_path" == "$HOME/.claude/scripts/"* ]] || [[ "$script_path" == "$HOME/.claude/claudedog/"* ]]; } && [[ ! -f "$script_path" ]]; then
                 echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook script not found: $cmd"
                 hook_errors=$((hook_errors + 1))
             fi

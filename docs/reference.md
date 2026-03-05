@@ -9,7 +9,8 @@
 | Neovim 設定 | `configs/nvim/` | エディタ設定（lazy.nvim） |
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
-| Claude Code スクリプト | `configs/claude/scripts/` | フック・通知・シンボリックリンク検証などの補助スクリプト |
+| Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
+| claudedog | `claudedog/` | Claude Code の人の介入率を追跡・可視化する計測ツール（hook・バッチ・ダッシュボード） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
@@ -134,6 +135,8 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [049-session-count-excludes-subagent-sessions.md](adr/049-session-count-excludes-subagent-sessions.md)
 - [050-spike-adr-lifecycle.md](adr/050-spike-adr-lifecycle.md)
 - [051-tool-breakdown-table-in-dashboard.md](adr/051-tool-breakdown-table-in-dashboard.md)
+- [052-claude-stats-directory-isolation.md](adr/052-claude-stats-directory-isolation.md)
+- [053-settings-json-managed-keys-sync.md](adr/053-settings-json-managed-keys-sync.md)
 
 ## Neovim プラグイン一覧
 

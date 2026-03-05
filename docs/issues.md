@@ -52,6 +52,8 @@
 | ✔ | ○ | claude | claude-stats のセッション数が過大計上される — `file-history-snapshot` のみを含むゴーストセッションが SessionStart hook で記録され同じ PR に紐づくため | [ADR-049](adr/049-session-count-excludes-subagent-sessions.md) |
 | ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-050](adr/050-spike-adr-lifecycle.md) |
 | ✔ | ○ | claude | ダッシュボードのツール別 permission UI 内訳で件数・割合の正確な値が読み取れない — 棒グラフのみで数値テーブルがなく改善施策の優先順位付けが困難 | [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md) |
+| - | ○ | claude | claudedog（旧 claude-stats）の実装が散在し ADR 駆動開発と馴染まない — ディレクトリ隔離と TODO.md + CHANGELOG.md ベースの軽量プロセスへ移行する | [ADR-052](adr/052-claude-stats-directory-isolation.md) |
+| ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -624,4 +626,38 @@
 - [x] ダッシュボードのツール別セクションに件数・割合（%）のテーブルが表示される
 - [x] テーブルは件数降順でソートされている
 - [x] 既存の棒グラフは維持されテーブルがその直下に併記される
+
+---
+
+### ADR-052: claudedog をトップレベルディレクトリに隔離し開発プロセスを分離する
+
+**コンポーネント**: claude | **ADR**: [ADR-052](adr/052-claude-stats-directory-isolation.md)
+
+**受け入れ条件**:
+
+- [ ] `claudedog/hooks/` に hook スクリプトが移動されている: `session-index.sh`, `permission-log.sh`, `pretooluse-track.sh`
+- [ ] `claudedog/batch/` にバッチスクリプトが移動されている: `session-index-update.py`, `session-index-backfill-batch.py`
+- [ ] `claudedog/dashboard/` に UI スクリプトが移動されている: `server.py`, `start.sh`
+- [ ] `claudedog/claudedog` CLI エントリポイントが存在する
+- [ ] `claudedog/TODO.md` が存在する
+- [ ] `claudedog/CHANGELOG.md` が存在する
+- [ ] `configs/claude/scripts/` から上記 claudedog 関連ファイルが削除されている
+- [ ] `configs/claude/settings.json` の hook パスが `claudedog/hooks/` 配下を指している
+- [ ] `docs/development.md` に「claudedog は ADR 不要、TODO.md + CHANGELOG.md で管理」ルールが記載されている
+- [ ] `docs/reference.md` の claudedog 関連記載が新ディレクトリ構成を反映している
+- [ ] `setup.sh --dry-run` が新ディレクトリ構成で正常に完了する
+
+---
+
+### ADR-053: settings.json の dotfiles 管理キーを setup.sh で自動同期する
+
+**コンポーネント**: claude | **ADR**: [ADR-053](adr/053-settings-json-managed-keys-sync.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/setup.sh` が非 dry-run 時に `hooks` と `statusLine` キーをソースからデストへ同期する
+- [x] 同期後もデスト側のローカル固有キー（`env`, `language`, `effortLevel`, `attribution`）が保持される
+- [x] `setup.sh --dry-run` 時に dotfiles 管理キーの差分が検出された場合 WARN が表示される
+- [x] `scripts/lib/validate.sh` の hooks スクリプト存在チェックが `~/.claude/claudedog/` パスも対象にする
+- [x] `configs/claude/settings.json` の hooks パスを変更後に `setup.sh` を実行すると `~/.claude/settings.json` の hooks が自動更新される
 
