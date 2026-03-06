@@ -50,7 +50,7 @@ def parse_ts(ts_str):
 
 def load_sessions():
     """session-index.jsonl → {session_id: {pr_url, transcript}} を返す。
-    同一 session_id の複数エントリは後勝ち（最新のpr_urlを採用）。"""
+    同一 session_id の複数エントリは後勝ち（最新の pr_urls を採用）。"""
     sessions = {}
     if not os.path.exists(SESSION_INDEX):
         return sessions
@@ -65,11 +65,6 @@ def load_sessions():
                 if not sid:
                     continue
                 pr_urls = entry.get("pr_urls", [])
-                if isinstance(pr_urls, str):
-                    pr_urls = [pr_urls] if pr_urls else []
-                pr_url_single = entry.get("pr_url", "")
-                if pr_url_single and pr_url_single not in pr_urls:
-                    pr_urls.append(pr_url_single)
                 transcript = entry.get("transcript", "")
                 prev = sessions.get(sid, {})
                 sessions[sid] = {
@@ -265,6 +260,8 @@ def aggregate(from_dt=None, to_dt=None):
     pr_perm_counts = defaultdict(int)
 
     for sid, perm_times in perm_by_session.items():
+        if sid not in sessions:
+            continue
         if from_dt is not None or to_dt is not None:
             perm_times = [
                 pt for pt in perm_times
@@ -322,7 +319,9 @@ def _aggregate_time_series(from_dt, to_dt, key_fn):
 
     # perm をキー別に集計
     for sid, perm_times in perm_by_session.items():
-        session = sessions.get(sid, {})
+        if sid not in sessions:
+            continue
+        session = sessions[sid]
         if is_excluded_session(session):
             continue
         for pt in perm_times:
@@ -362,7 +361,9 @@ def aggregate_by_tool(from_dt=None, to_dt=None):
     entries_by_session = load_permission_entries_by_session()
     tool_counts = defaultdict(int)
     for sid, entries in entries_by_session.items():
-        session = sessions.get(sid, {})
+        if sid not in sessions:
+            continue
+        session = sessions[sid]
         if is_excluded_session(session):
             continue
         for entry in entries:

@@ -16,6 +16,8 @@ Redirect rules:
   sed / awk   → Edit
   echo (with >) → Write
   for / while → Glob + 個別ツール（ループの代わりに個別ツール呼び出し）
+  python3 -c '...'     → Read/Grep/Edit/jq（インラインスクリプトの代わりに専用ツール）
+  python -c '...'      → Read/Grep/Edit/jq
   python3 <外部パス>.py → Read/Grep/Edit/jq（プロジェクト外スクリプトの代わりに専用ツール）
   python <外部パス>.py  → Read/Grep/Edit/jq
 """
@@ -95,6 +97,16 @@ def extract_base_command(command_str: str) -> str:
             continue
         return word
     return ""
+
+
+def _is_inline_script(command_str: str) -> bool:
+    """Check if python is invoked with -c flag (inline script).
+
+    Returns True for: python3 -c 'print("hello")', python -c "import json; ..."
+    Returns False for: python3 -m pytest, python3 foo.py
+    """
+    words = command_str.split()
+    return "-c" in words[1:]
 
 
 def _is_external_script(command_str: str) -> bool:
@@ -200,6 +212,18 @@ REDIRECT_RULES = [
         lambda _cmd: True,
         "Glob/個別ツール",
         "Bash の while ループではなく Glob + 個別ツール（Read/Edit/Bash）を使用してください",
+    ),
+    (
+        "python3",
+        _is_inline_script,
+        "Read/Grep/Edit/jq",
+        "python -c のインラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
+    ),
+    (
+        "python",
+        _is_inline_script,
+        "Read/Grep/Edit/jq",
+        "python -c のインラインスクリプトではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
     ),
     (
         "python3",

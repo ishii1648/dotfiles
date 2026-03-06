@@ -63,7 +63,7 @@ def fetch_pr_url(repo_branch_entries):
         return group_entries, None, True
     try:
         result = subprocess.run(
-            ["gh", "pr", "list", "--head", branch, "--state", "all", "--json", "url", "-q", ".[0].url"],
+            ["gh", "pr", "list", "--head", branch, "--author", "@me", "--state", "all", "--json", "url", "-q", ".[0].url"],
             cwd=cwd,
             capture_output=True,
             text=True,

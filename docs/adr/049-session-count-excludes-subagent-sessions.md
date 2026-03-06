@@ -8,7 +8,7 @@
 
 ADR-041 で claude-stats に「セッション数/PR」指標を追加した。この指標は「同一 PR に対して Claude を起動し直した回数」を表す工数感覚の代理指標として設計された。
 
-しかし実際の計測では、意図より大きい値が出ることが判明した。例として `C-FO/sre-docs#854` のセッション数が 9 と表示されたが、体感ではそれほど多くなかった。
+しかし実際の計測では、意図より大きい値が出ることが判明した。例として `example-org/docs#854` のセッション数が 9 と表示されたが、体感ではそれほど多くなかった。
 
 ### Spike による原因調査（2026-03-05）
 
@@ -18,7 +18,7 @@ ADR-041 で claude-stats に「セッション数/PR」指標を追加した。�
 
 1. **`SessionStart` は Task サブエージェントでは発火しない** — デバッグログ（`~/.claude/logs/session-index-debug.log`）と session-index.jsonl を確認したところ、`/subagents/` 配下の transcript を持つエントリは存在しなかった。`parent_session_id` もフック入力に含まれなかった。
 
-2. **真の原因: `file-history-snapshot` ゴーストファイル** — `C-FO/sre-docs#854` の 9 セッションを調査した結果、以下の内訳だった:
+2. **真の原因: `file-history-snapshot` ゴーストファイル** — `example-org/docs#854` の 9 セッションを調査した結果、以下の内訳だった:
    - 実セッション（`type: "progress"` / user-assistant メッセージあり）: 4 件
    - ゴーストファイル（`file-history-snapshot` のみ・`sessionId` フィールドなし）: 5 件
 
