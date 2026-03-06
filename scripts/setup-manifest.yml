@@ -65,8 +65,14 @@ components:
         target: claudedog
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
+      - link: ~/.claude/agents
+        target: configs/claude/agents
       - link: ~/.claude/skills/textlint
         target: configs/claude/skills/textlint
+      - link: ~/.claude/skills/retro-pr
+        target: configs/claude/skills/retro-pr
+      - link: ~/.claude/skills/session-index
+        target: configs/claude/skills/session-index
       - link: ~/.local/bin/claudedog
         target: claudedog/claudedog
     copies:
