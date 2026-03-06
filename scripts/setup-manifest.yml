@@ -11,6 +11,7 @@ profiles:
     - claude
     - aqua
     - git
+    - vim
   remote:
     - fish
     - nvim
@@ -18,6 +19,7 @@ profiles:
     - claude
     - aqua
     - git
+    - vim
   linux:
     - fish
     - nvim
@@ -25,6 +27,7 @@ profiles:
     - claude
     - aqua
     - git
+    - vim
 
 components:
   fish:
@@ -81,6 +84,11 @@ components:
     symlinks:
       - link: ~/.config/aquaproj-aqua/aqua.yaml
         target: aqua.yaml
+
+  vim:
+    symlinks:
+      - link: ~/.vimrc
+        target: configs/vim/vimrc
 
   git:
     setup: configs/git/setup-github-ssh.sh
