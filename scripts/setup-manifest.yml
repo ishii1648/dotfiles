@@ -65,8 +65,6 @@ components:
         target: claudedog
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
-      - link: ~/.claude/skills/textlint
-        target: configs/claude/skills/textlint
       - link: ~/.local/bin/claudedog
         target: claudedog/claudedog
     copies:
