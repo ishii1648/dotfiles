@@ -15,5 +15,5 @@ abbr -a rgrep "grep -r"
 abbr -a date gdate
 abbr -a sed gsed
 abbr -a n "nvim ."
-abbr -a cc claude
+abbr -a ccode claude
 

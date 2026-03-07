@@ -7,7 +7,7 @@ const readline = require('readline');
 const { execSync } = require('child_process');
 
 // Constants
-const COMPACTION_THRESHOLD = 200000 * 0.8
+const COMPACTION_THRESHOLD = 150000
 
 // Read JSON from stdin
 let input = '';

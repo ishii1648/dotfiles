@@ -169,5 +169,8 @@
     "command": "~/.claude/statusline.js"
   },
   "language": "日本語",
-  "effortLevel": "medium"
+  "effortLevel": "medium",
+  "permissions": {
+    "defaultMode": "acceptEdits"
+  }
 }
