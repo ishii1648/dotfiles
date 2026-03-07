@@ -18,11 +18,8 @@ if [ -d /home/claude/.ssh-host ]; then
     find /home/claude/.ssh -name "*.pub" -exec chmod 644 {} \;
 fi
 
-# 2. Fix ownership
+# 2. Fix ownership of Docker named volumes (not macOS bind mounts)
 [ -d /home/claude/.local ] && chown -R claude:claude /home/claude/.local
-if [ -d /home/claude/.claude ]; then
-    find /home/claude/.claude -writable -exec chown claude:claude {} +
-fi
 
-# 4. Drop privileges and exec CMD
+# 3. Drop privileges and exec CMD
 exec setpriv --reuid=$CLAUDE_UID --regid=$CLAUDE_GID --init-groups "$@"
