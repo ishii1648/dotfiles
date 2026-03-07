@@ -87,21 +87,26 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
-    // Build status line
-    const ctxBar = coloredBar(percentage, 10);
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${ctxBar}`;
+    // Line 1: 基本情報
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay}`;
     console.log(statusLine);
 
-    // Build rate limit line
+    // Line 2: プログレスバー
+    const ctxBar = `ctx:${coloredBar(percentage, 10)} ${percentage}%`;
+    let line2 = ctxBar;
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
-      if (fiveH != null || sevenD != null) {
-        const fiveBar = fiveH != null ? coloredBar(Math.round(fiveH * 100), 8) : 'N/A';
-        const sevenBar = sevenD != null ? coloredBar(Math.round(sevenD * 100), 8) : 'N/A';
-        console.log(`5h:${fiveBar} 7d:${sevenBar}`);
+      if (fiveH != null) {
+        const pct = Math.round(fiveH * 100);
+        line2 += ` | 5h:${coloredBar(pct, 8)} ${pct}%`;
+      }
+      if (sevenD != null) {
+        const pct = Math.round(sevenD * 100);
+        line2 += ` | 7d:${coloredBar(pct, 8)} ${pct}%`;
       }
     }
+    console.log(line2);
   } catch (error) {
     // Fallback status line on error
     console.log('[Error] 📁 . | 🪙 0 | 0%');
