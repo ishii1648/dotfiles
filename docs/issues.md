@@ -57,7 +57,7 @@
 | ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
 | - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-055](adr/055-hook-scalability-architecture.md) |
 | - | △ | claude | Docker サンドボックスのネットワーク egress が無制限 — deny ルールのバイパス手段が無限に存在するためネットワーク層での制御が必要 | [ADR-056](adr/056-docker-sandbox-network-egress-control.md) |
-| - | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で直接開きたいリポジトリを都度登録する必要がある — worktree を使うリポジトリが少数派のため制御を反転したい | [ADR-057](adr/057-tmw-default-direct-session-instead-of-worktree.md) |
+| ✔ | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で直接開きたいリポジトリを都度登録する必要がある — worktree を使うリポジトリが少数派のため制御を反転したい | [ADR-057](adr/057-tmw-default-direct-session-instead-of-worktree.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -714,8 +714,8 @@
 
 **受け入れ条件**:
 
-- [ ] `tmw_pick` でリポジトリを選択した際、デフォルトでメインリポジトリで直接 tmux セッションが開かれる
-- [ ] `tmw_worktree_repos.conf` に登録されたリポジトリは worktree 作成フローに入る
-- [ ] `tmw_direct_repos.conf` が `tmw_worktree_repos.conf` に改名され、役割が反転している
-- [ ] `tmw_worktree_repos.conf` が存在しない場合もエラーなく動作する（全リポジトリが直接開き）
+- [x] `tmw_pick` でリポジトリを選択した際、デフォルトでメインリポジトリで直接 tmux セッションが開かれる
+- [x] `tmw_worktree_repos.conf` に登録されたリポジトリは worktree 作成フローに入る
+- [x] `tmw_direct_repos.conf` が `tmw_worktree_repos.conf` に改名され、役割が反転している
+- [x] `tmw_worktree_repos.conf` が存在しない場合もエラーなく動作する（全リポジトリが直接開き）
 

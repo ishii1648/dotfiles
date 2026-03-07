@@ -97,7 +97,7 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 |--------|--------|---------|
 | Git | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布。端末固有設定は直接編集 |
 | Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。端末固有設定は直接編集 |
-| Fish (tmw) | `~/.config/fish/conf.d/tmw_direct_repos.conf` | `configs/fish/conf.d/tmw_direct_repos.conf.example` |
+| Fish (tmw) | `~/.config/fish/conf.d/tmw_worktree_repos.conf` | `configs/fish/conf.d/tmw_worktree_repos.conf.example` |
 | Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
 | tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |

@@ -18,22 +18,15 @@ if [ -d /home/claude/.ssh-host ]; then
     find /home/claude/.ssh -name "*.pub" -exec chmod 644 {} \;
 fi
 
-# 2. Fix ownership (before Claude Code install which needs write access)
+# 2. Fix ownership
 [ -d /home/claude/.local ] && chown -R claude:claude /home/claude/.local
-[ -d /home/claude/.claude ] && chown -R claude:claude /home/claude/.claude
-[ -d /home/claude/.config/gh ] && chown -R claude:claude /home/claude/.config/gh
-[ -f /home/claude/.gitconfig ] && chown claude:claude /home/claude/.gitconfig
-
-# 3. Install Claude Code if not present
-if ! su - claude -c "command -v claude" > /dev/null 2>&1; then
-    echo "Installing Claude Code..."
-    su - claude -c "curl -fsSL https://claude.ai/install.sh | bash"
+if [ -d /home/claude/.claude ]; then
+    find /home/claude/.claude -writable -exec chown claude:claude {} +
 fi
-
-# 6. Fix workspace directory ownership
+# 3. Fix workspace directory ownership
 if [ -n "$HOST_WORKSPACE" ] && [ -d "$HOST_WORKSPACE" ]; then
     chown -R claude:claude "$HOST_WORKSPACE"
 fi
 
-# 7. Drop privileges and exec CMD
+# 4. Drop privileges and exec CMD
 exec setpriv --reuid=$CLAUDE_UID --regid=$CLAUDE_GID --init-groups "$@"

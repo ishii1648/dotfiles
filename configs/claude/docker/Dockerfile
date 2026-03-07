@@ -33,6 +33,9 @@ RUN corepack enable && corepack prepare pnpm@latest --activate
 # Non-root user
 RUN useradd -m -s /bin/bash claude
 
+# Install Claude Code system-wide (avoids shadowing by the ~/.local named volume)
+RUN npm install -g @anthropic-ai/claude-code
+
 # macOS host path mount point
 RUN mkdir -p /Users
 

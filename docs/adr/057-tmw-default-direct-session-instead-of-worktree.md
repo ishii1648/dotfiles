@@ -1,7 +1,7 @@
 # ADR-057: tmw_pick のデフォルト動作を worktree 強制から直接セッションに反転する
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 関連: ADR-033（tmux popup リグレッションテスト。tmw 関連動作の e2e テスト対象）

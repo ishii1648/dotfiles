@@ -67,8 +67,8 @@ worktree 配置先: `<リポジトリ>@<worktree名>`（例: `dotfiles@feat-tmux
 
 ### Worktree ピッカー — `tmw_pick`
 
-`tmw_pick` は ghq リポジトリ一覧から fzf で選択し、worktree 名を入力して `gw_add` を呼ぶ。
-`tmw_direct_repos.conf` に記載されたリポジトリ（例: dotfiles）は worktree を作成せず直接セッションを開く。
+`tmw_pick` は ghq リポジトリ一覧から fzf で選択し、デフォルトでメインリポジトリで直接 tmux セッションを開く。
+`tmw_worktree_repos.conf` に記載されたリポジトリのみ worktree 名を入力して `gw_add` を呼ぶ（オプトイン）。
 
 ### セットアップ
 
@@ -137,6 +137,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [051-tool-breakdown-table-in-dashboard.md](adr/051-tool-breakdown-table-in-dashboard.md)
 - [052-claude-stats-directory-isolation.md](adr/052-claude-stats-directory-isolation.md)
 - [053-settings-json-managed-keys-sync.md](adr/053-settings-json-managed-keys-sync.md)
+- [057-tmw-default-direct-session-instead-of-worktree.md](adr/057-tmw-default-direct-session-instead-of-worktree.md)
 
 ## Neovim プラグイン一覧
 
