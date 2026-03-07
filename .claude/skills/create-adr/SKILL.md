@@ -34,7 +34,7 @@ version: 0.1.0
   - `△` = 完全解決は難しいがワークアラウンドあり
   - `×` = アーキテクチャ上の制約で対応不可
 
-**矛盾チェック**（`adr-reference` skill の矛盾チェック指針に従う）:
+**矛盾チェック**（`$PWD/.claude/skills/adr-reference/skill.md` の矛盾チェック指針を Read して参照）:
 - 同コンポーネントの既存 ADR を `$PWD/docs/adr/` から Grep で検索し、矛盾する決定がないか確認する
 - 依存する ADR がある場合、その前提と矛盾しないか確認する
 
@@ -49,7 +49,7 @@ version: 0.1.0
 - ファイル名はハイフン区切りの英語（例: `009-fish-tmux-keybind-sharing.md`）
 - 日本語タイトルは英訳する
 
-`adr-reference` skill のテンプレートに従って ADR を作成する。
+`$PWD/.claude/skills/adr-reference/skill.md` を Read ツールで読み込み、そのテンプレートに従って ADR を作成する。
 
 - ユーザーが「Spike として作成する」「Spike ADR を作る」など Spike を明示した場合: ステータスを `Spike中` に設定する
 - それ以外の場合: ステータスは `Draft` 固定
