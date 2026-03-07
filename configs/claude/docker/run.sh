@@ -21,7 +21,7 @@ MOUNTS=(
     -v "$SCRIPT_DIR/sandbox-settings.json:/home/claude/.claude/settings.json:ro"
     -v "$HOME/.claude/scripts:/home/claude/.claude/scripts:ro"
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
-    -v "$CLAUDE_JSON_COPY:/home/claude/.claude.json:ro"
+    -v "$CLAUDE_JSON_COPY:/home/claude/.claude.json"
 )
 
 # Optional mounts (only if exist on host)
