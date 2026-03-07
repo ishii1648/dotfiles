@@ -21,5 +21,5 @@ fi
 # 2. Fix ownership of Docker named volumes (not macOS bind mounts)
 [ -d /home/claude/.local ] && chown -R claude:claude /home/claude/.local
 
-# 3. Drop privileges and exec CMD
-exec setpriv --reuid=$CLAUDE_UID --regid=$CLAUDE_GID --init-groups "$@"
+# 3. Drop privileges and exec CMD (set HOME explicitly; setpriv does not change env vars)
+exec env HOME=/home/claude setpriv --reuid=$CLAUDE_UID --regid=$CLAUDE_GID --init-groups "$@"
