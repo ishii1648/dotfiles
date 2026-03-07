@@ -302,7 +302,8 @@ async function getRateLimitUsage() {
 
   try {
     const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
-      'Authorization': `Bearer ${token}`
+      'Authorization': `Bearer ${token}`,
+      'anthropic-beta': 'oauth-2025-04-20',
     });
     const data = JSON.parse(responseStr);
     if (data.error) {
