@@ -23,10 +23,6 @@ fi
 if [ -d /home/claude/.claude ]; then
     find /home/claude/.claude -writable -exec chown claude:claude {} +
 fi
-# 3. Fix workspace directory ownership
-if [ -n "$HOST_WORKSPACE" ] && [ -d "$HOST_WORKSPACE" ]; then
-    chown -R claude:claude "$HOST_WORKSPACE"
-fi
 
 # 4. Drop privileges and exec CMD
 exec setpriv --reuid=$CLAUDE_UID --regid=$CLAUDE_GID --init-groups "$@"
