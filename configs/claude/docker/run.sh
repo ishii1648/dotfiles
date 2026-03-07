@@ -49,4 +49,4 @@ DOCKER_CMD=$(printf '%q ' \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
     claude)
-exec ssh -t -o BatchMode=no -F "$COLIMA_SSH_CONFIG" colima "exec $DOCKER_CMD"
+exec ssh -t -o BatchMode=no -F "$COLIMA_SSH_CONFIG" colima "stty -icrnl; exec $DOCKER_CMD"
