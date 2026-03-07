@@ -111,9 +111,12 @@ process.stdin.on('end', async () => {
     }
 
     // Build status line
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m${rateLimitInfo}`;
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
 
     console.log(statusLine);
+    if (rateLimitInfo) {
+      console.log(rateLimitInfo.replace(/^ \| /, ''));
+    }
   } catch (error) {
     // Fallback status line on error
     console.log('[Error] 📁 . | 🪙 0 | 0%');
