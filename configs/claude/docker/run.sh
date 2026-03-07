@@ -48,5 +48,5 @@ DOCKER_CMD=$(printf '%q ' \
     -e "HOST_WORKSPACE=$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
-    claude)
+    bash -c "stty -icrnl && exec claude")
 exec ssh -t -o BatchMode=no -F "$COLIMA_SSH_CONFIG" colima "stty -icrnl; exec $DOCKER_CMD"
