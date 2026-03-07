@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """PreToolUse hook: approve safe file operations on .claude/ subdirectories.
 
-Auto-approves Read operations on .claude/{subdir}/ paths.
+Auto-approves Read/Write/Edit/NotebookEdit operations on .claude/{subdir}/ paths.
 Passes through for .claude/ direct files and non-.claude/ paths.
 Fail-open design: any exception results in sys.exit(0) to fall back
 to the normal permission prompt.
@@ -10,6 +10,8 @@ to the normal permission prompt.
 import json
 import re
 import sys
+
+FILE_OPS_TOOLS = {"Read", "Write", "Edit", "NotebookEdit"}
 
 
 def is_claude_subdir_path(file_path: str) -> bool:
@@ -27,15 +29,21 @@ def is_claude_subdir_path(file_path: str) -> bool:
     return bool(re.search(r"\.claude/[^/]+/", file_path))
 
 
+def get_file_path(tool_name: str, tool_input: dict) -> str:
+    if tool_name == "NotebookEdit":
+        return tool_input.get("notebook_path", "")
+    return tool_input.get("file_path", "")
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
 
         tool_name = hook_input.get("tool_name", "")
-        if tool_name != "Read":
+        if tool_name not in FILE_OPS_TOOLS:
             sys.exit(0)
 
-        file_path = hook_input.get("tool_input", {}).get("file_path", "")
+        file_path = get_file_path(tool_name, hook_input.get("tool_input", {}))
         if not file_path:
             sys.exit(0)
 
