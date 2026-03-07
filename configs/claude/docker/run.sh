@@ -26,16 +26,12 @@ if [ -f "$HOME/.gitconfig" ]; then
     MOUNTS+=(-v "$HOME/.gitconfig:/home/claude/.gitconfig:ro")
 fi
 
-# Start container detached with TTY so /dev/tty is available for claude's TUI
-CONTAINER_ID=$(docker run --rm -dt \
+# Run container interactively
+# entrypoint.sh drops privileges to claude user via setpriv before running claude
+exec docker run --rm -it \
+    -e TERM="${TERM:-xterm-256color}" \
     "${MOUNTS[@]}" \
     -e HOST_WORKSPACE="$PROJECT_DIR" \
+    -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
-    sleep infinity)
-
-# Stop container on exit
-trap "docker stop $CONTAINER_ID > /dev/null" EXIT
-
-# Exec as claude user directly (bypasses setpriv, avoids root privilege issues)
-docker exec -it -e TERM="${TERM:-xterm-256color}" -w "$PROJECT_DIR" --user claude "$CONTAINER_ID" \
     claude --dangerously-skip-permissions
