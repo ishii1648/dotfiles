@@ -8,6 +8,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="${1:-$(pwd)}"
 PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 
+# Snapshot ~/.claude.json to avoid race condition: host Claude may write this file
+# while the container reads it via bind mount, causing invalid JSON errors.
+CLAUDE_JSON_COPY="$HOME/.claude.json.sandbox-copy"
+cp "$HOME/.claude.json" "$CLAUDE_JSON_COPY"
+
 # Compose mount arguments
 MOUNTS=(
     -v "$PROJECT_DIR:$PROJECT_DIR"
@@ -16,7 +21,7 @@ MOUNTS=(
     -v "$SCRIPT_DIR/sandbox-settings.json:/home/claude/.claude/settings.json:ro"
     -v "$HOME/.claude/scripts:/home/claude/.claude/scripts:ro"
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
-    -v "$HOME/.claude.json:/home/claude/.claude.json:ro"
+    -v "$CLAUDE_JSON_COPY:/home/claude/.claude.json:ro"
 )
 
 # Optional mounts (only if exist on host)
@@ -49,4 +54,5 @@ DOCKER_CMD=$(printf '%q ' \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
     claude --dangerously-skip-permissions)
-exec ssh -t -o BatchMode=no -F "$COLIMA_SSH_CONFIG" colima "exec $DOCKER_CMD"
+ssh -t -o BatchMode=no -F "$COLIMA_SSH_CONFIG" colima "exec $DOCKER_CMD"
+rm -f "$CLAUDE_JSON_COPY"
