@@ -32,4 +32,12 @@ if $DRY_RUN; then
 else
     echo "  Running aqua install..."
     aqua install -l
+
+    # docker buildx: aqua バイナリを Docker CLI プラグインとして配置
+    BUILDX_BIN=$(aqua which docker-cli-plugin-docker-buildx 2>/dev/null || true)
+    if [ -n "$BUILDX_BIN" ]; then
+        mkdir -p "$HOME/.docker/cli-plugins"
+        ln -sf "$BUILDX_BIN" "$HOME/.docker/cli-plugins/docker-buildx"
+        echo -e "  ${GREEN}docker-buildx${NC}\tsymlinked to CLI plugins"
+    fi
 fi

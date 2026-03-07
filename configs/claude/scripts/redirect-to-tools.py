@@ -20,6 +20,8 @@ Redirect rules:
   python -c '...'      → Read/Grep/Edit/jq
   python3 <外部パス>.py → Read/Grep/Edit/jq（プロジェクト外スクリプトの代わりに専用ツール）
   python <外部パス>.py  → Read/Grep/Edit/jq
+  mkdir       → Write（ディレクトリ自動作成）
+  cp          → Read + Write
 """
 
 import json
@@ -236,6 +238,18 @@ REDIRECT_RULES = [
         _is_external_script,
         "Read/Grep/Edit",
         "プロジェクト外の Python スクリプト実行ではなく専用ツール（Read/Grep/Edit/jq）を使用してください",
+    ),
+    (
+        "mkdir",
+        lambda _cmd: True,
+        "Write",
+        "Bash の mkdir ではなく Write ツールを使用してください（Write はディレクトリを自動作成します）",
+    ),
+    (
+        "cp",
+        lambda _cmd: True,
+        "Read/Write",
+        "Bash の cp ではなく Read + Write ツールを使用してください",
     ),
 ]
 

@@ -301,22 +301,24 @@ async function getRateLimitUsage() {
 
   let token;
   try {
-    const credJson = execSync('security find-generic-password -s "Claude Code-credentials" -w', {
-      encoding: 'utf8',
-      stdio: ['pipe', 'pipe', 'pipe']
-    }).trim();
-    const cred = JSON.parse(credJson);
-    token = cred.accessToken || cred.access_token;
+    const credPath = path.join(process.env.HOME, '.claude', '.credentials.json');
+    const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    token = cred.claudeAiOauth?.accessToken;
   } catch (e) {
+    process.stderr.write(`[ratelimit] cred read error: ${e.message}\n`);
     return null;
   }
 
-  if (!token) return null;
+  if (!token) {
+    process.stderr.write('[ratelimit] no token found\n');
+    return null;
+  }
 
   try {
     const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
       'Authorization': `Bearer ${token}`
     });
+    process.stderr.write(`[ratelimit] response: ${responseStr.slice(0, 200)}\n`);
     const data = JSON.parse(responseStr);
     const result = {
       fiveHour: data.five_hour?.utilization ?? null,
@@ -325,6 +327,7 @@ async function getRateLimitUsage() {
     fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
     return result;
   } catch (e) {
+    process.stderr.write(`[ratelimit] api error: ${e.message}\n`);
     return null;
   }
 }
