@@ -27,12 +27,20 @@ if [ -f "$HOME/.gitconfig" ]; then
     MOUNTS+=(-v "$HOME/.gitconfig:/home/claude/.gitconfig:ro")
 fi
 
-# Run container interactively
-# entrypoint.sh drops privileges to claude user via setpriv before running claude
-exec docker run --rm -it \
-    -e TERM="${TERM:-xterm-256color}" \
+# Run container interactively via colima ssh to get a proper PTY.
+# Direct docker run over the colima socket relay doesn't propagate raw mode,
+# causing the Claude TUI to freeze. Running docker from inside the VM via
+# colima ssh bypasses the socket relay and gives a correct PTY chain.
+# entrypoint.sh drops privileges to claude user via setpriv before running claude.
+#
+# Serialize all args with printf %q so they survive the SSH shell round-trip
+# (handles paths with spaces, special chars, etc.)
+DOCKER_CMD=$(printf '%q ' \
+    docker run --rm -it \
+    -e "TERM=${TERM:-xterm-256color}" \
     "${MOUNTS[@]}" \
-    -e HOST_WORKSPACE="$PROJECT_DIR" \
+    -e "HOST_WORKSPACE=$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
-    claude
+    claude)
+exec colima ssh -- bash -c "$DOCKER_CMD"
