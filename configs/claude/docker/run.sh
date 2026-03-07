@@ -26,10 +26,16 @@ if [ -f "$HOME/.gitconfig" ]; then
     MOUNTS+=(-v "$HOME/.gitconfig:/home/claude/.gitconfig:ro")
 fi
 
-# Run container
-exec docker run --rm -it \
+# Start container detached (entrypoint.sh runs root-level setup, then keeps alive)
+CONTAINER_ID=$(docker run --rm -d \
     "${MOUNTS[@]}" \
     -e HOST_WORKSPACE="$PROJECT_DIR" \
-    -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
+    sleep infinity)
+
+# Stop container on exit
+trap "docker stop $CONTAINER_ID > /dev/null" EXIT
+
+# Exec as claude user directly (bypasses setpriv, avoids root privilege issues)
+docker exec -it -w "$PROJECT_DIR" --user claude "$CONTAINER_ID" \
     claude --dangerously-skip-permissions
