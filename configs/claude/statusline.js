@@ -87,25 +87,21 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
-    // Line 1: 基本情報
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo}`;
-    console.log(statusLine);
-
-    // Line 2: プログレスバー
-    let line2 = `🪙 ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay})`;
+    // Line 1: 基本情報 + プログレスバー
+    let statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay})`;
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
       if (fiveH != null) {
         const pct = Math.round(fiveH * 100);
-        line2 += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
+        statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
       }
       if (sevenD != null) {
         const pct = Math.round(sevenD * 100);
-        line2 += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
+        statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
       }
     }
-    console.log(line2);
+    console.log(statusLine);
   } catch (error) {
     // Fallback status line on error
     console.log('[Error] 📁 . | 🪙 0 | 0%');
