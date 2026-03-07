@@ -275,7 +275,7 @@ function getPrInfo(cwd) {
 async function getRateLimitUsage() {
   const cacheFile = '/tmp/claude-usage-cache.json';
   const cacheTTL = 360000;     // 成功時: 6分
-  const errorCacheTTL = 60000; // エラー時: 60秒
+  const errorCacheTTL = 360000; // エラー時: 6分（usage API 自体のレートリミット対策）
 
   try {
     if (fs.existsSync(cacheFile)) {
