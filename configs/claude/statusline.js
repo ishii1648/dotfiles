@@ -88,22 +88,21 @@ process.stdin.on('end', async () => {
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
     // Line 1: 基本情報
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay}`;
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo}`;
     console.log(statusLine);
 
     // Line 2: プログレスバー
-    const ctxBar = `ctx:${coloredBar(percentage, 10)} ${percentage}%`;
-    let line2 = ctxBar;
+    let line2 = `🪙 ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay})`;
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
       if (fiveH != null) {
         const pct = Math.round(fiveH * 100);
-        line2 += ` | 5h:${coloredBar(pct, 8)} ${pct}%`;
+        line2 += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
       }
       if (sevenD != null) {
         const pct = Math.round(sevenD * 100);
-        line2 += ` | 7d:${coloredBar(pct, 8)} ${pct}%`;
+        line2 += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
       }
     }
     console.log(line2);
