@@ -2,6 +2,7 @@
 set -e
 
 IMAGE_NAME="claude-code-sandbox"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Project directory: argument or current directory
 PROJECT_DIR="${1:-$(pwd)}"
@@ -12,7 +13,7 @@ MOUNTS=(
     -v "$PROJECT_DIR:$PROJECT_DIR"
     -v "claude-code-local:/home/claude/.local"
     -v "$HOME/.claude:/home/claude/.claude"
-    -v "$HOME/.claude/settings.json:/home/claude/.claude/settings.json:ro"
+    -v "$SCRIPT_DIR/sandbox-settings.json:/home/claude/.claude/settings.json:ro"
     -v "$HOME/.claude/scripts:/home/claude/.claude/scripts:ro"
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
     -v "$HOME/.claude.json:/home/claude/.claude.json:ro"
@@ -34,4 +35,4 @@ exec docker run --rm -it \
     -e HOST_WORKSPACE="$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
-    script -q /dev/null -c "claude --permission-mode bypassPermissions"
+    claude
