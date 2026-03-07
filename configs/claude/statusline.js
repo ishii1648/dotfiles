@@ -305,29 +305,26 @@ async function getRateLimitUsage() {
     const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
     token = cred.claudeAiOauth?.accessToken;
   } catch (e) {
-    process.stderr.write(`[ratelimit] cred read error: ${e.message}\n`);
     return null;
   }
 
-  if (!token) {
-    process.stderr.write('[ratelimit] no token found\n');
-    return null;
-  }
+  if (!token) return null;
 
   try {
     const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
       'Authorization': `Bearer ${token}`
     });
-    process.stderr.write(`[ratelimit] response: ${responseStr.slice(0, 200)}\n`);
     const data = JSON.parse(responseStr);
+    if (data.error) return null;
     const result = {
       fiveHour: data.five_hour?.utilization ?? null,
       sevenDay: data.seven_day?.utilization ?? null,
     };
-    fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
+    if (result.fiveHour != null || result.sevenDay != null) {
+      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
+    }
     return result;
   } catch (e) {
-    process.stderr.write(`[ratelimit] api error: ${e.message}\n`);
     return null;
   }
 }
