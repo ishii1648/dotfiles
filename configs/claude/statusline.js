@@ -62,11 +62,6 @@ process.stdin.on('end', async () => {
     // Format token display
     const tokenDisplay = formatTokenCount(totalTokens);
 
-    // Color coding for percentage
-    let percentageColor = '\x1b[32m'; // Green
-    if (percentage >= 70) percentageColor = '\x1b[33m'; // Yellow
-    if (percentage >= 90) percentageColor = '\x1b[31m'; // Red
-
     // Build git info
     let gitInfo = '';
     if (branch) {
@@ -92,30 +87,20 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
-    // Build rate limit info
-    let rateLimitInfo = '';
-    if (rateLimitUsage) {
-      const colorizeRate = (pct) => {
-        if (pct == null) return null;
-        const pctNum = Math.round(pct * 100);
-        let color = '\x1b[32m'; // green
-        if (pctNum >= 50) color = '\x1b[33m'; // yellow
-        if (pctNum >= 80) color = '\x1b[31m'; // red
-        return `${color}${pctNum}%\x1b[0m`;
-      };
-      const fiveH = colorizeRate(rateLimitUsage.fiveHour);
-      const sevenD = colorizeRate(rateLimitUsage.sevenDay);
-      if (fiveH != null || sevenD != null) {
-        rateLimitInfo = ` | 5h:${fiveH ?? 'N/A'} 7d:${sevenD ?? 'N/A'}`;
-      }
-    }
-
     // Build status line
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
-
+    const ctxBar = coloredBar(percentage, 10);
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${ctxBar}`;
     console.log(statusLine);
-    if (rateLimitInfo) {
-      console.log(rateLimitInfo.replace(/^ \| /, ''));
+
+    // Build rate limit line
+    if (rateLimitUsage) {
+      const fiveH = rateLimitUsage.fiveHour;
+      const sevenD = rateLimitUsage.sevenDay;
+      if (fiveH != null || sevenD != null) {
+        const fiveBar = fiveH != null ? coloredBar(Math.round(fiveH * 100), 8) : 'N/A';
+        const sevenBar = sevenD != null ? coloredBar(Math.round(sevenD * 100), 8) : 'N/A';
+        console.log(`5h:${fiveBar} 7d:${sevenBar}`);
+      }
     }
   } catch (error) {
     // Fallback status line on error
@@ -333,6 +318,15 @@ async function getRateLimitUsage() {
   } catch (e) {
     return null;
   }
+}
+
+function coloredBar(pct, width) {
+  const filled = Math.round(Math.min(100, pct) / 100 * width);
+  const bar = '█'.repeat(filled) + '░'.repeat(width - filled);
+  let color = '\x1b[32m'; // green
+  if (pct >= 50) color = '\x1b[33m'; // yellow
+  if (pct >= 80) color = '\x1b[31m'; // red
+  return `${color}${bar}\x1b[0m`;
 }
 
 function httpsGet(url, headers) {
