@@ -36,6 +36,11 @@ RUN useradd -m -s /bin/bash claude
 # Install Claude Code system-wide (avoids shadowing by the ~/.local named volume)
 RUN npm install -g @anthropic-ai/claude-code
 
+# Create .claude directory with settings.json placeholder so file bind mounts can override it
+RUN mkdir -p /home/claude/.claude && \
+    touch /home/claude/.claude/settings.json && \
+    chown -R claude:claude /home/claude/.claude
+
 # macOS host path mount point
 RUN mkdir -p /Users
 
