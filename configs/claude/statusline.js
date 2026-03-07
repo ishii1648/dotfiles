@@ -286,13 +286,15 @@ function getPrInfo(cwd) {
 
 async function getRateLimitUsage() {
   const cacheFile = '/tmp/claude-usage-cache.json';
-  const cacheTTL = 360000; // 360 seconds
+  const cacheTTL = 360000;     // 成功時: 6分
+  const errorCacheTTL = 60000; // エラー時: 60秒
 
   try {
     if (fs.existsSync(cacheFile)) {
       const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
-      if (Date.now() - cache.timestamp < cacheTTL) {
-        return cache.data;
+      const ttl = cache.error ? errorCacheTTL : cacheTTL;
+      if (Date.now() - cache.timestamp < ttl) {
+        return cache.error ? null : cache.data;
       }
     }
   } catch (e) {
@@ -315,14 +317,15 @@ async function getRateLimitUsage() {
       'Authorization': `Bearer ${token}`
     });
     const data = JSON.parse(responseStr);
-    if (data.error) return null;
+    if (data.error) {
+      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), error: true }));
+      return null;
+    }
     const result = {
       fiveHour: data.five_hour?.utilization ?? null,
       sevenDay: data.seven_day?.utilization ?? null,
     };
-    if (result.fiveHour != null || result.sevenDay != null) {
-      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
-    }
+    fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
     return result;
   } catch (e) {
     return null;
