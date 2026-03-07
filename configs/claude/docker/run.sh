@@ -34,4 +34,4 @@ exec docker run --rm -it \
     -e HOST_WORKSPACE="$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
     "$IMAGE_NAME" \
-    claude --permission-mode bypassPermissions
+    script -q /dev/null -c "claude --permission-mode bypassPermissions"
