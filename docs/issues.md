@@ -55,6 +55,9 @@
 | - | ○ | claude | claudedog（旧 claude-stats）の実装が散在し ADR 駆動開発と馴染まない — ディレクトリ隔離と TODO.md + CHANGELOG.md ベースの軽量プロセスへ移行する | [ADR-052](adr/052-claude-stats-directory-isolation.md) |
 | ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
 | ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
+| - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-055](adr/055-hook-scalability-architecture.md) |
+| - | △ | claude | Docker サンドボックスのネットワーク egress が無制限 — deny ルールのバイパス手段が無限に存在するためネットワーク層での制御が必要 | [ADR-056](adr/056-docker-sandbox-network-egress-control.md) |
+| - | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で直接開きたいリポジトリを都度登録する必要がある — worktree を使うリポジトリが少数派のため制御を反転したい | [ADR-057](adr/057-tmw-default-direct-session-instead-of-worktree.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -675,4 +678,44 @@
 - [x] プロジェクト外 cp（`cp ... /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
 - [x] プロジェクト外 mkdir（`mkdir -p /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
 - [x] 同じコマンドを複数回実行しても安定して記録される（4/4 回記録）
+
+---
+
+### ADR-055: Claude Code フック設計のスケーラビリティ改善
+
+**コンポーネント**: claude | **ADR**: [ADR-055](adr/055-hook-scalability-architecture.md)
+
+**受け入れ条件**:
+
+- [ ] `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 重複 4 エントリが 1 エントリに統合される
+- [ ] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない
+- [ ] settings.json のフック構造設計（案A/案B）が決定され ADR に記録される
+- [ ] 決定した設計方針に基づいてフック追加手順が `docs/development.md` に記載される
+
+---
+
+### ADR-056: Docker サンドボックスのネットワーク egress 制御
+
+**コンポーネント**: claude | **ADR**: [ADR-056](adr/056-docker-sandbox-network-egress-control.md)
+
+**受け入れ条件**:
+
+- [ ] ADR-030 フェーズ 1（Shadow）で Cloudflare Gateway のログから通信先が洗い出される
+- [ ] 必要な通信先の allowlist が ADR-056 に記録される
+- [ ] egress 制御の設計案（案A/B/C）が決定され ADR に記録される
+- [ ] 選択した方式でコンテナからの egress が allowlist 以外ブロックされる
+- [ ] `git push`, `gh pr create`, `npm install` が allowlist 経由で正常に動作する
+
+---
+
+### ADR-057: tmw_pick のデフォルト動作を worktree 強制から直接セッションに反転する
+
+**コンポーネント**: tmux / fish | **ADR**: [ADR-057](adr/057-tmw-default-direct-session-instead-of-worktree.md)
+
+**受け入れ条件**:
+
+- [ ] `tmw_pick` でリポジトリを選択した際、デフォルトでメインリポジトリで直接 tmux セッションが開かれる
+- [ ] `tmw_worktree_repos.conf` に登録されたリポジトリは worktree 作成フローに入る
+- [ ] `tmw_direct_repos.conf` が `tmw_worktree_repos.conf` に改名され、役割が反転している
+- [ ] `tmw_worktree_repos.conf` が存在しない場合もエラーなく動作する（全リポジトリが直接開き）
 
