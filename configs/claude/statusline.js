@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const fs = require('fs');
+const https = require('https');
 const path = require('path');
 const readline = require('readline');
 const { execSync } = require('child_process');
@@ -27,6 +28,7 @@ process.stdin.on('end', async () => {
     const isWorktree = isGitWorktree(cwd);
     const dirtyCount = getDirtyFileCount(cwd);
     const prInfo = getPrInfo(cwd);
+    const rateLimitUsage = await getRateLimitUsage();
     const sessionId = data.session_id;
 
     // Calculate token usage for current session
@@ -90,8 +92,26 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
+    // Build rate limit info
+    let rateLimitInfo = '';
+    if (rateLimitUsage) {
+      const colorizeRate = (pct) => {
+        if (pct == null) return null;
+        const pctNum = Math.round(pct * 100);
+        let color = '\x1b[32m'; // green
+        if (pctNum >= 50) color = '\x1b[33m'; // yellow
+        if (pctNum >= 80) color = '\x1b[31m'; // red
+        return `${color}${pctNum}%\x1b[0m`;
+      };
+      const fiveH = colorizeRate(rateLimitUsage.fiveHour);
+      const sevenD = colorizeRate(rateLimitUsage.sevenDay);
+      if (fiveH != null || sevenD != null) {
+        rateLimitInfo = ` | 5h:${fiveH ?? 'N/A'} 7d:${sevenD ?? 'N/A'}`;
+      }
+    }
+
     // Build status line
-    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m`;
+    const statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${tokenDisplay} | ${percentageColor}${percentage}%\x1b[0m${rateLimitInfo}`;
 
     console.log(statusLine);
   } catch (error) {
@@ -262,4 +282,68 @@ function getPrInfo(cwd) {
   } catch (e) {
     return null;
   }
+}
+
+async function getRateLimitUsage() {
+  const cacheFile = '/tmp/claude-usage-cache.json';
+  const cacheTTL = 360000; // 360 seconds
+
+  try {
+    if (fs.existsSync(cacheFile)) {
+      const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      if (Date.now() - cache.timestamp < cacheTTL) {
+        return cache.data;
+      }
+    }
+  } catch (e) {
+    // cache miss
+  }
+
+  let token;
+  try {
+    const credJson = execSync('security find-generic-password -s "Claude Code-credentials" -w', {
+      encoding: 'utf8',
+      stdio: ['pipe', 'pipe', 'pipe']
+    }).trim();
+    const cred = JSON.parse(credJson);
+    token = cred.accessToken || cred.access_token;
+  } catch (e) {
+    return null;
+  }
+
+  if (!token) return null;
+
+  try {
+    const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
+      'Authorization': `Bearer ${token}`
+    });
+    const data = JSON.parse(responseStr);
+    const result = {
+      fiveHour: data.five_hour?.utilization ?? null,
+      sevenDay: data.seven_day?.utilization ?? null,
+    };
+    fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
+    return result;
+  } catch (e) {
+    return null;
+  }
+}
+
+function httpsGet(url, headers) {
+  return new Promise((resolve, reject) => {
+    const urlObj = new URL(url);
+    const req = https.request({
+      hostname: urlObj.hostname,
+      path: urlObj.pathname,
+      method: 'GET',
+      headers,
+    }, (res) => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => resolve(data));
+    });
+    req.setTimeout(5000, () => req.destroy());
+    req.on('error', reject);
+    req.end();
+  });
 }
