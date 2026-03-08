@@ -93,11 +93,11 @@ process.stdin.on('end', async () => {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
       if (fiveH != null) {
-        const pct = Math.round(fiveH * 100);
+        const pct = Math.round(fiveH);
         statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
       }
       if (sevenD != null) {
-        const pct = Math.round(sevenD * 100);
+        const pct = Math.round(sevenD);
         statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
       }
     }
