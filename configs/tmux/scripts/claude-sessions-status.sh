@@ -9,6 +9,9 @@ cursor=${cursor:-0}
 cursor_mode=$(tmux show -gv @claude_cursor_mode 2>/dev/null)
 cursor_mode=${cursor_mode:-off}
 
+# 現在アクティブなセッション:ウィンドウ
+current=$(tmux display-message -p '#{session_name}:#{window_index}' 2>/dev/null)
+
 # セッション一覧（main/monitor/prtrack を除外）
 sessions=()
 while IFS= read -r s; do
@@ -84,24 +87,41 @@ for i in "${!claude_sessions[@]}"; do
     session="${claude_sessions[$i]}"
     win="${claude_windows[$i]}"
     win_idx="${win%%:*}"
-    win_name="${win#*:}"
     state="${claude_states[$i]}"
     elapsed="${claude_elapseds[$i]}"
 
+    # popup と同形式のバッジ
     case "$state" in
-        running)    [ -n "$elapsed" ] && badge="⚡(${elapsed})" || badge="⚡" ;;
+        running)    [ -n "$elapsed" ] && badge="[running(${elapsed})]" || badge="[running]" ;;
         permission) badge="[perm]" ;;
         ask)        badge="[ask]" ;;
-        idle)       badge="·" ;;
+        idle)       badge="[idle]" ;;
         *)          badge="" ;;
     esac
 
     label="${session}:${win_idx} ${badge}"
 
-    # カーソルモード中はカーソル位置を [ ] でハイライト
-    [ "$cursor_mode" = "on" ] && [ "$i" = "$cursor" ] && label="[${label}]"
+    # カーソルモード中はカーソル位置を ( ) でハイライト
+    [ "$cursor_mode" = "on" ] && [ "$i" = "$cursor" ] && label="(${label})"
 
-    [ -z "$output" ] && output="$label" || output="$output | $label"
+    # アクティブウィンドウ判定
+    is_active=false
+    [ "${session}:${win_idx}" = "$current" ] && is_active=true
+
+    # 色付け（tmux format string）
+    if $is_active; then
+        # アクティブ: Dracula purple 背景
+        colored="#[fg=#282a36,bg=#bd93f9,bold] ${label} #[default]"
+    else
+        case "$state" in
+            running)         colored="#[fg=#bd93f9]${label}#[default]" ;;
+            permission|ask)  colored="#[fg=#ff5555]${label}#[default]" ;;
+            idle)            colored="#[fg=#6272a4]${label}#[default]" ;;
+            *)               colored="${label}" ;;
+        esac
+    fi
+
+    [ -z "$output" ] && output="$colored" || output="${output}#[fg=#44475a] | #[default]${colored}"
 done
 
 echo "$output"
