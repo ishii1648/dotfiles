@@ -73,5 +73,8 @@ keybind = super+seven=text:\x1b[55;9~
 keybind = super+eight=text:\x1b[56;9~
 keybind = super+nine=text:\x1b[57;9~
 
+# Claude セッションナビゲーション (ADR-058): super+c → tmux cursor mode
+keybind = super+c=text:\x1b[99;9~
+
 # ローカル設定（オプション、git管理外）
 config-file = ?local.conf

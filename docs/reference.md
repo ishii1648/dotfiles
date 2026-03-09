@@ -138,6 +138,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [052-claude-stats-directory-isolation.md](adr/052-claude-stats-directory-isolation.md)
 - [053-settings-json-managed-keys-sync.md](adr/053-settings-json-managed-keys-sync.md)
 - [057-tmw-default-direct-session-instead-of-worktree.md](adr/057-tmw-default-direct-session-instead-of-worktree.md)
+- [058-claude-session-always-on-display-ui.md](adr/058-claude-session-always-on-display-ui.md)
 
 ## Neovim プラグイン一覧
 

@@ -56,7 +56,7 @@
 | ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
 | ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
 | - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-055](adr/055-hook-scalability-architecture.md) |
-| - | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-058](adr/058-claude-session-always-on-display-ui.md) |
+| ✔ | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-058](adr/058-claude-session-always-on-display-ui.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -699,17 +699,17 @@
 
 **受け入れ条件**:
 
-- [ ] tmux のすべてのセッションで Claude セッション状態のサマリが常時表示される
-- [ ] サマリには各 Claude セッション名と状態（running/permission/idle）が含まれる
-- [ ] running 状態のセッションには経過時間が表示される
-- [ ] `prefix+1〜9` でカーソルモード不要でインデックス対応セッションに即時切り替わる
-- [ ] `Cmd+c` でカーソルモードが ON になり、ステータスバーのカーソル位置がハイライト表示される
-- [ ] カーソルモード中に `j` でカーソルが次のセッションへ移動し、ステータスバーの表示が更新される
-- [ ] カーソルモード中に `k` でカーソルが前のセッションへ移動し、ステータスバーの表示が更新される
-- [ ] カーソルモード中に `Enter` でカーソル位置のセッションに切り替わり、カーソルモードが OFF になる
-- [ ] カーソルモード中に `Esc` または `q` でカーソルモードが OFF になる
-- [ ] セッション数が増減してカーソルが範囲外になった場合も正常動作する（クランプ）
-- [ ] `configs/tmux/scripts/claude-sessions-status.sh` が存在し、`/tmp/claude-pane-state/` と `@claude_cursor` / `@claude_cursor_mode` を読んでサマリ文字列を出力する
-- [ ] `configs/tmux/tmux.conf` の `status-format[0]` に上記スクリプトが組み込まれている
-- [ ] セッションが存在しない場合に空文字またはデフォルトメッセージが表示され、エラーが出ない
+- [x] tmux のすべてのセッションで Claude セッション状態のサマリが常時表示される
+- [x] サマリには各 Claude セッション名と状態（running/permission/idle）が含まれる
+- [x] running 状態のセッションには経過時間が表示される
+- [x] `prefix+1〜9` でカーソルモード不要でインデックス対応セッションに即時切り替わる
+- [x] `Cmd+c` でカーソルモードが ON になり、ステータスバーのカーソル位置がハイライト表示される
+- [x] カーソルモード中に `j` でカーソルが次のセッションへ移動し、ステータスバーの表示が更新される
+- [x] カーソルモード中に `k` でカーソルが前のセッションへ移動し、ステータスバーの表示が更新される
+- [x] カーソルモード中に `Enter` でカーソル位置のセッションに切り替わり、カーソルモードが OFF になる
+- [x] カーソルモード中に `Esc` または `q` でカーソルモードが OFF になる
+- [x] セッション数が増減してカーソルが範囲外になった場合も正常動作する（クランプ）
+- [x] `configs/tmux/scripts/claude-sessions-status.sh` が存在し、`/tmp/claude-pane-state/` と `@claude_cursor` / `@claude_cursor_mode` を読んでサマリ文字列を出力する
+- [x] `configs/tmux/tmux.conf` の `status-format[0]` に上記スクリプトが組み込まれている
+- [x] セッションが存在しない場合に空文字またはデフォルトメッセージが表示され、エラーが出ない
 

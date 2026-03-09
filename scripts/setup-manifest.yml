@@ -51,6 +51,10 @@ components:
         target: configs/tmux/tmux.conf
       - link: ~/.local/bin/tmux-fzf-url-pr-filter
         target: configs/tmux/tmux-fzf-url-pr-filter
+      - link: ~/.local/bin/claude-sessions-status
+        target: configs/tmux/scripts/claude-sessions-status.sh
+      - link: ~/.local/bin/claude-session-switch
+        target: configs/tmux/scripts/claude-session-switch.sh
     copies:
       - src: configs/tmux/tmux.remote.conf.example
         dest: ~/.tmux.local.conf
