@@ -129,6 +129,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [043-docker-sandbox-network-egress-control.md](adr/043-docker-sandbox-network-egress-control.md)
 - [044-tmw-default-direct-session-instead-of-worktree.md](adr/044-tmw-default-direct-session-instead-of-worktree.md)
 - [045-claude-session-always-on-display-ui.md](adr/045-claude-session-always-on-display-ui.md)
+- [046-statusbar-popup-role-separation.md](adr/046-statusbar-popup-role-separation.md)
 
 ## Neovim プラグイン一覧
 
