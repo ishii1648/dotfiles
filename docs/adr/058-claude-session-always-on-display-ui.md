@@ -59,14 +59,20 @@ dotfiles ⚡(5m) | [api-server] | frontend   | ...
 
 | キー | 動作 |
 |---|---|
-| `prefix+j` | カーソルを次のセッションへ移動 |
-| `prefix+k` | カーソルを前のセッションへ移動 |
-| `prefix+Enter` | カーソル位置のセッションに `switch-client` |
-| `prefix+1〜9` | インデックス直接指定で `switch-client`（カーソルも追従） |
+| `prefix+1〜9` | インデックス直接指定で `switch-client`（カーソル不要） |
+| `Cmd+c` | カーソルモード ON（ステータスバーにカーソルを移す） |
+| `j` / `k` | カーソルモード中：カーソルを次／前のセッションへ移動 |
+| `Enter` | カーソルモード中：カーソル位置のセッションに `switch-client` |
+| `Esc` / `q` | カーソルモード OFF |
+
+**操作の 2 モード設計:**
+- **直接切り替え**: `prefix+1〜9` はカーソルモード不要で即時 `switch-client`。最速の操作経路。
+- **カーソルモード**: `Cmd+c` でステータスバーにフォーカスを移し、`j/k` で候補を選んで `Enter` で切り替え。セッション名を見ながら選びたい場合に使う。
 
 **カーソル状態管理:**
 - tmux グローバル変数 `@claude_cursor`（0-based インデックス）でカーソル位置を保持
-- `prefix+j/k` 実行時に変数を更新し `refresh-client -S` でステータスバーを再描画
+- `@claude_cursor_mode`（`on`/`off`）でモード状態を管理
+- カーソルモード中は `j/k` を通常キーバインドから切り離して専用テーブルにルーティング
 - セッション数の増減で範囲外になった場合はスクリプト側でクランプ
 
 **メリット:**
@@ -78,14 +84,26 @@ dotfiles ⚡(5m) | [api-server] | frontend   | ...
 
 **デメリット:**
 - 横幅制約あり。セッション数が多いと省略表示が必要
-- `prefix+j/k` を Claude ナビゲーション専用に割り当てるため、既存バインドと重複がないか確認が必要
+- `Cmd+c` のカーソルモード起動キーが Ghostty レベルで処理されず tmux に届くか確認が必要
 
 ### 変更が必要なファイル
 
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
-| `configs/tmux/tmux.conf` | dotfiles | `status-format[0]` に Claude セッション集計コマンドを追加、`prefix+j/k/Enter/1〜9` のキーバインドを追加 |
-| `configs/tmux/scripts/claude-sessions-status.sh` | dotfiles | 新規作成（`/tmp/claude-pane-state/` を読んでサマリ文字列を出力、`@claude_cursor` を参照してカーソル位置をハイライト） |
+| `configs/tmux/tmux.conf` | dotfiles | `status-format[0]` に Claude セッション集計コマンドを追加、`prefix+1〜9` / `Cmd+c` / カーソルモード用キーテーブルを追加 |
+| `configs/tmux/scripts/claude-sessions-status.sh` | dotfiles | 新規作成（`/tmp/claude-pane-state/` と `@claude_cursor` / `@claude_cursor_mode` を読んでサマリ文字列を出力） |
+
+### 案D: main セッション window 0 を専用ダッシュボードにする（技術的に不可）
+
+`main` セッションの window 0 に左ペイン（サイドバー）+ 右ペイン（作業）の固定レイアウトを設け、常にここを起点にする。Claude セッションは `switch-client` で切り替える。
+
+**却下理由:**
+
+tmux の `switch-client` は画面全体をセッション単位で入れ替えるため、別セッションに移動した瞬間に window 0 のサイドバーは消える。ウィンドウやペインはセッションに帰属する描画単位であり、セッションをまたいで表示を固定する仕組みは tmux に存在しない。
+
+既存プラグイン（`tmux-sidebar`、`tmux-sidebar-plus`）も同様の制約を持ち、「常時表示」ではなく「トグル表示」に留まる。セッション間の同期も未対応（開発中 TODO として残存）。
+
+ステータスバー以外に「全セッション・全ウィンドウをまたいで常時表示できる領域」は tmux に存在しない。
 
 ## 受け入れ条件
 
