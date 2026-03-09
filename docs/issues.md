@@ -56,6 +56,7 @@
 | ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
 | ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
 | - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-055](adr/055-hook-scalability-architecture.md) |
+| - | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-058](adr/058-claude-session-always-on-display-ui.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -689,4 +690,20 @@
 - [ ] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない
 - [ ] settings.json のフック構造設計（案A/案B）が決定され ADR に記録される
 - [ ] 決定した設計方針に基づいてフック追加手順が `docs/development.md` に記載される
+
+---
+
+### ADR-058: Claude セッション常時俯瞰 UI
+
+**コンポーネント**: tmux / ghostty | **ADR**: [ADR-058](adr/058-claude-session-always-on-display-ui.md)
+
+**受け入れ条件**:
+
+- [ ] tmux のすべてのセッションで Claude セッション状態のサマリが常時表示される
+- [ ] サマリには各 Claude セッション名と状態（running/permission/idle）が含まれる
+- [ ] running 状態のセッションには経過時間が表示される
+- [ ] セッション切り替えは既存の `prefix+s` popup で引き続き行える
+- [ ] `configs/tmux/scripts/claude-sessions-status.sh` が存在し、`/tmp/claude-pane-state/` を読んでサマリ文字列を出力する
+- [ ] `configs/tmux/tmux.conf` の `status-format[0]` に上記スクリプトが組み込まれている
+- [ ] セッションが存在しない場合に空文字またはデフォルトメッセージが表示され、エラーが出ない
 

@@ -5,6 +5,7 @@
 .hyper_plugins/node_modules
 
 .claude/settings.local.json
+.claude/scheduled_tasks.lock
 .gitconfig.local
 terminal-repo.local
 scripts/setup-manifest.local.yml
