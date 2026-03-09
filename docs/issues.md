@@ -45,6 +45,7 @@
 | - | ○ | claude | Docker サンドボックスのネットワーク egress が無制限 — deny ルール単体では根本的な対策にならず、ネットワーク層での制御が必要 | [ADR-043](adr/043-docker-sandbox-network-egress-control.md) |
 | ✔ | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で煩雑 — 大多数のリポジトリはメインで直接開くのが望ましいが、都度 conf に追記が必要 | [ADR-044](adr/044-tmw-default-direct-session-instead-of-worktree.md) |
 | ✔ | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-045](adr/045-claude-session-always-on-display-ui.md) |
+| - | ○ | tmux / fish | statusbar と popup で Claude 状態ロジックが重複し役割が不明確 — stale 検出の不一致・ロジック2重管理が放置されている | [ADR-046](adr/046-statusbar-popup-role-separation.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -542,4 +543,19 @@
 - [x] `configs/tmux/scripts/claude-session-switch.sh` が switch-client と select-window を両方実行する
 - [x] `configs/tmux/tmux.conf` の `status-format[0]` に上記スクリプトが組み込まれている
 - [x] ウィンドウが存在しない場合に空文字またはデフォルトメッセージが表示され、エラーが出ない
+
+---
+
+### ADR-046: statusbar と popup の役割分離
+
+**コンポーネント**: tmux / fish | **ADR**: [ADR-046](adr/046-statusbar-popup-role-separation.md)
+
+**受け入れ条件**:
+
+- [ ] `configs/fish/functions/__tm_claude_state.fish` が削除される（`git rm`）
+- [ ] `configs/fish/functions/__tm_candidates.fish` から `__tm_claude_state` の呼び出しと Claude バッジ追加コードが削除される
+- [ ] `prefix+s` の popup に Claude 状態バッジ（`[running]` / `[perm]` / `[idle]` 等）が表示されなくなる
+- [ ] `configs/tmux/scripts/claude-sessions-status.sh` に stale 検出ロジックが追加される（`pane_current_command` がシェルの場合に state ファイルを削除）
+- [ ] stale 検出により、Claude が終了したペインの状態が statusbar から消える
+- [ ] popup の既存機能（セッション切り替え・削除・ghq からの新規作成）が引き続き動作する
 
