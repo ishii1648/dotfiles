@@ -9,8 +9,8 @@ cursor=${cursor:-0}
 cursor_mode=$(tmux show -gv @claude_cursor_mode 2>/dev/null)
 cursor_mode=${cursor_mode:-off}
 
-# 現在アクティブなセッション:ウィンドウ
-current=$(tmux display-message -p '#{session_name}:#{window_index}' 2>/dev/null)
+# 現在アクティブなセッション:ウィンドウ（status-format から引数で受け取る）
+current="${1}:${2}"
 
 # セッション一覧（main/monitor/prtrack を除外）
 sessions=()
@@ -119,7 +119,8 @@ for i in "${!claude_sessions[@]}"; do
         # アクティブ: セッション名を緑 bold
         colored="${cursor_open}#[fg=#50fa7b,bold]${session}:${win_idx}#[default] #[fg=${badge_color}]${badge}#[default]${cursor_close}"
     else
-        colored="${cursor_open}#[fg=#50fa7b]${session}:${win_idx}#[default] #[fg=${badge_color}]${badge}#[default]${cursor_close}"
+        # 非アクティブ: セッション名はデフォルト色
+        colored="${cursor_open}${session}:${win_idx} #[fg=${badge_color}]${badge}#[default]${cursor_close}"
     fi
 
     [ -z "$output" ] && output="$colored" || output="${output}#[fg=#44475a] | #[default]${colored}"
