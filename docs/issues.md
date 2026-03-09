@@ -702,8 +702,13 @@
 - [ ] tmux のすべてのセッションで Claude セッション状態のサマリが常時表示される
 - [ ] サマリには各 Claude セッション名と状態（running/permission/idle）が含まれる
 - [ ] running 状態のセッションには経過時間が表示される
-- [ ] セッション切り替えは既存の `prefix+s` popup で引き続き行える
-- [ ] `configs/tmux/scripts/claude-sessions-status.sh` が存在し、`/tmp/claude-pane-state/` を読んでサマリ文字列を出力する
+- [ ] カーソル位置のセッションが `[ ]` でハイライト表示される
+- [ ] `prefix+j` でカーソルが次のセッションへ移動し、ステータスバーの表示が更新される
+- [ ] `prefix+k` でカーソルが前のセッションへ移動し、ステータスバーの表示が更新される
+- [ ] `prefix+Enter` でカーソル位置のセッションに切り替わる
+- [ ] `prefix+1〜9` で対応するインデックスのセッションに直接切り替わり、カーソルも追従する
+- [ ] セッション数が増減してカーソルが範囲外になった場合も正常動作する（クランプ）
+- [ ] `configs/tmux/scripts/claude-sessions-status.sh` が存在し、`/tmp/claude-pane-state/` と `@claude_cursor` を読んでサマリ文字列を出力する
 - [ ] `configs/tmux/tmux.conf` の `status-format[0]` に上記スクリプトが組み込まれている
 - [ ] セッションが存在しない場合に空文字またはデフォルトメッセージが表示され、エラーが出ない
 

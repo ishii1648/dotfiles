@@ -48,30 +48,44 @@ ADR-007 で確立したフック駆動の状態検知（`/tmp/claude-pane-state/
 
 ### 案C: tmux status-format[0] をセッション一覧に使う（採用）
 
-現在 `status-format[0]` は `fill=#21222c` の装飾的な空行として使われている。ここに `#()` シェルコマンドを埋め込み、`/tmp/claude-pane-state/` を集計したサマリを常時表示する。
+現在 `status-format[0]` は `fill=#21222c` の装飾的な空行として使われている。ここに `#()` シェルコマンドを埋め込み、`/tmp/claude-pane-state/` を集計したサマリを常時表示する。また、表示エリアと操作を統合し、ステータスバー上で直接ナビゲーションできるようにする。
 
 ```
-dotfiles ⚡(5m) | api-server  | frontend   | ...
+dotfiles ⚡(5m) | [api-server] | frontend   | ...
+                  ↑ カーソル位置をハイライト（[ ] で囲む）
 ```
 
-操作（セッション切り替え）は引き続き `prefix+s` の popup で行う。
+**操作方式:**
+
+| キー | 動作 |
+|---|---|
+| `prefix+j` | カーソルを次のセッションへ移動 |
+| `prefix+k` | カーソルを前のセッションへ移動 |
+| `prefix+Enter` | カーソル位置のセッションに `switch-client` |
+| `prefix+1〜9` | インデックス直接指定で `switch-client`（カーソルも追従） |
+
+**カーソル状態管理:**
+- tmux グローバル変数 `@claude_cursor`（0-based インデックス）でカーソル位置を保持
+- `prefix+j/k` 実行時に変数を更新し `refresh-client -S` でステータスバーを再描画
+- セッション数の増減で範囲外になった場合はスクリプト側でクランプ
 
 **メリット:**
-- 変更量が最小（tmux.conf 数行 + 集計スクリプト 1 本）
+- 変更量が小さい（tmux.conf 数行 + 集計スクリプト 1 本）
 - 全セッションどこにいても常時見える（tmux のステータスバーはセッション全体に表示）
 - ADR-007 のフック精度をそのまま活用できる
-- 現行のウィンドウレイアウト・キーバインドを一切壊さない
+- 現行のウィンドウレイアウトを壊さない
+- 表示と操作が同じ UI 要素に統合され、常時表示エリアをナビゲーションにも活用できる
 
 **デメリット:**
-- セッション一覧への直接クリック/キー操作はない（ナビゲーションは popup 経由）
 - 横幅制約あり。セッション数が多いと省略表示が必要
+- `prefix+j/k` を Claude ナビゲーション専用に割り当てるため、既存バインドと重複がないか確認が必要
 
 ### 変更が必要なファイル
 
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
-| `configs/tmux/tmux.conf` | dotfiles | `status-format[0]` に Claude セッション集計コマンドを追加 |
-| `configs/tmux/scripts/claude-sessions-status.sh` | dotfiles | 新規作成（`/tmp/claude-pane-state/` を読んでサマリ文字列を出力） |
+| `configs/tmux/tmux.conf` | dotfiles | `status-format[0]` に Claude セッション集計コマンドを追加、`prefix+j/k/Enter/1〜9` のキーバインドを追加 |
+| `configs/tmux/scripts/claude-sessions-status.sh` | dotfiles | 新規作成（`/tmp/claude-pane-state/` を読んでサマリ文字列を出力、`@claude_cursor` を参照してカーソル位置をハイライト） |
 
 ## 受け入れ条件
 
