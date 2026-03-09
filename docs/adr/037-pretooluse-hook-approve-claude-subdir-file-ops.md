@@ -1,4 +1,4 @@
-# ADR-045: PreToolUse hook による .claude/ サブディレクトリへのファイル操作自動承認
+# ADR-037: PreToolUse hook による .claude/ サブディレクトリへのファイル操作自動承認
 
 ## ステータス
 
@@ -74,4 +74,4 @@ file_path に .claude/ が含まれる
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-045 セクション）
+→ [issues.md](../issues.md)（ADR-037 セクション）

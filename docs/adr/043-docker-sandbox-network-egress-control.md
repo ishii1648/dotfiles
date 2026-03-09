@@ -1,4 +1,4 @@
-# ADR-056: Docker サンドボックスのネットワーク egress 制御
+# ADR-043: Docker サンドボックスのネットワーク egress 制御
 
 ## ステータス
 Draft
@@ -53,4 +53,4 @@ Docker ネットワークと forward proxy（squid 等）を組み合わせ、�
 | `configs/claude/docker/Dockerfile` | dotfiles | 必要パッケージ追加（iptables 等） |
 
 ## 受け入れ条件
-→ [issues.md](../issues.md)（ADR-056 セクション）
+→ [issues.md](../issues.md)（ADR-043 セクション）

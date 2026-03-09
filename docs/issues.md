@@ -13,7 +13,6 @@
 | - | × | ~~tmux / ghostty~~ | ~~tmux セッション内外でペイン移動のキーバインドを共有できない — Ghostty は条件分岐付きキーバインドに非対応~~ | ~~[ADR-005](adr/005-tmux-pane-keybind-sharing.md)~~ |
 | - | △ | tmux / claude | Claude permission ask 発生時にセッション移動が必要 — 内容閲覧と allow/deny 選択だけならセッション移動なしで対応したい | [ADR-009](adr/009-claude-permission-ask-inline-response.md) |
 | ✔ | ○ | tmux / fish / ghostty | 設定変更時に既存機能が壊れる — キーバインドチェーン・関数依存・symlink など変更の影響範囲が広くリグレッションを手動確認している | [ADR-010](adr/010-dotfiles-regression-testing.md) |
-| ✔ | ○ | claude | Claude セッションを PR ベースで追跡できない — セッション開始・終了・ツール出力から PR URL を自動収集して JSONL に蓄積したい | [ADR-011](adr/011-claude-session-index.md) |
 | ✔ | ○ | fish / tmux / ghostty | 端末固有の設定が dotfiles に混入している — 会社 PC 専用の関数・スクリプトが dotfiles に含まれており、リポジトリの共有性・再利用性が損なわれている | [ADR-012](adr/012-fish-function-symlink-per-repo.md) |
 | - | ○ | claude | permission ask で Claude の自律的な作業が中断される — 代替可能な Bash コマンドを生成するたびに承認ダイアログが発生し、観測・対応サイクルが手動になっている | [ADR-013](adr/013-claude-permission-ask-auto-block.md) [ADR-014](adr/014-claude-redirect-rules-auto-expansion.md) |
 | ✔ | ○ | claude | Claude Code の settings.json が端末間で再現できない — hooks・permissions 等の共通設定が git 管理されておらず、新端末セットアップ時に手動コピーが必要 | [ADR-015](adr/015-claude-settings-json-base-local-merge.md) |
@@ -35,28 +34,17 @@
 | ✔ | ○ | 複合 | setup.sh が 500 行超で保守・テストが困難 — 関数群が 1 ファイルに密集しユニットテスト不可、機能追加時の衝突リスクが高い | [ADR-032](adr/032-setup-sh-modularization.md) |
 | ✔ | ○ | tmux | tmux popup 内でバグが多発するがテストがない — $TMUX 変数ネスティング・switch-client 失敗・ソケット管理等の壊れやすいパターンが未検証 | [ADR-033](adr/033-tmux-popup-regression-testing.md) |
 | - | ○ | 複合 | e2e テストの追加基準が未定義 — すべてのエラーにテストを書くのは非限定的で、追加判断の運用ポリシーが必要 | [ADR-034](adr/034-e2e-test-addition-policy.md) |
-| ✔ | ○ | claude | Claude Code 起動に 2〜5 秒かかる — SessionStart フックの `gh pr view` がネットワーク API を毎回呼び出しているため | [ADR-035](adr/035-claude-session-index-startup-optimization.md) |
-| ✔ | ○ | claude | permission UI が何回表示されたか計測できない — Approve 操作は transcript に記録されず、PreToolUse hook で代替計測できるか不明 | [ADR-036](adr/036-claude-permission-ui-count-via-hook.md) |
-| ✔ | ○ | claude | permission UI 回数の絶対数では自律度を評価できない — 作業量が多いほど自然に増えるため、作業量で正規化した指標が必要 | [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md) |
-| ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-038](adr/038-adr-spike-validation-pattern.md) |
-| ✔ | ○ | claude | session-index の pr_urls が空になる — ADR-035 で SessionStart の gh pr view を削除した結果、既存 PR があっても Bash ツールで URL を出力しない限り補完されない | [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md) |
-| ✔ | ○ | claude | Stop フック backfill は過去セッション分を拾えない — ADR-039 の Stop フック方式は現セッション終了時のみ動作し、過去分や複数セッションの重複 API 呼び出しが解消されない | [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md) |
-| ✔ | ○ | claude | claude-stats が Permission UI 以外の人の介入を計測できない — mid-session メッセージ・AskUserQuestion・セッション数/PR など介入全般を可視化したい | [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md) |
-| ✔ | ○ | claude | ダッシュボードで perm UI 発生率の改善/悪化トレンドが把握できない — グラフが perm_rate 昇順ソートのため時系列での変化が見えない | [ADR-042](adr/042-perm-rate-time-series-trend.md) |
-| ✔ | ○ | claude | permission UI の内訳（原因ツール・承認/拒否結果・hook起因 vs 通常）が監視できない — 発生回数はログされるが何が原因か追跡できない | [ADR-043](adr/043-permission-ui-breakdown-monitoring.md) |
-| ✔ | ○ | claude | ADR-040 採用後も hook が他人の PR URL を session-index に混入させる — PostToolUse/Stop hook の正規表現スキャンがバッチの正確な補完を妨害しバグが永続する | [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md) |
-| ✔ | ○ | claude | .claude/ サブディレクトリへのファイル操作で permission UI が発生する — スキル・エージェント定義の Write/Edit が毎回中断され自律作業が妨げられる | [ADR-045](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md) |
-| ✔ | ○ | claude | session-index-backfill-batch.py が逐次実行で数分かかる — グループ数 × タイムアウト 8 秒の積が実行時間になり、58 グループで最大 8 分要する | [ADR-046](adr/046-session-index-backfill-parallel-execution.md) |
-| ✔ | ○ | claude | .claude/ サブディレクトリへの Read 操作で permission UI が発生する — ADR-045 で Write/Edit の hook 不呼び出しが判明したが、Read は通常の permission system を経由する可能性があり検証が必要 | [ADR-047](adr/047-pretooluse-hook-approve-claude-subdir-read.md) |
-| ✔ | ○ | claude | hooks で参照されるスクリプトが実在しなくても validate が検出できない — if_missing: true コピー後に dotfiles 側で hook を削除しても dest の古いエントリが残り hook error が発生する | [ADR-048](adr/048-validate-hooks-script-existence.md) |
-| ✔ | ○ | claude | claude-stats のセッション数が過大計上される — `file-history-snapshot` のみを含むゴーストセッションが SessionStart hook で記録され同じ PR に紐づくため | [ADR-049](adr/049-session-count-excludes-subagent-sessions.md) |
-| ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-050](adr/050-spike-adr-lifecycle.md) |
-| ✔ | ○ | claude | ダッシュボードのツール別 permission UI 内訳で件数・割合の正確な値が読み取れない — 棒グラフのみで数値テーブルがなく改善施策の優先順位付けが困難 | [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md) |
-| - | ○ | claude | claudedog（旧 claude-stats）の実装が散在し ADR 駆動開発と馴染まない — ディレクトリ隔離と TODO.md + CHANGELOG.md ベースの軽量プロセスへ移行する | [ADR-052](adr/052-claude-stats-directory-isolation.md) |
-| ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-053](adr/053-settings-json-managed-keys-sync.md) |
-| ✔ | ○ | claude | permission-log の Notification (permission_prompt) が不安定に発火する — PermissionRequest フックへの移行で安定化を図る | [ADR-054](adr/054-permission-log-use-permission-request-hook.md) |
-| - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-055](adr/055-hook-scalability-architecture.md) |
-| ✔ | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-058](adr/058-claude-session-always-on-display-ui.md) |
+| ✔ | ○ | claude | ADR 確定前に検証が必要なケースに運用が対応していない — 設計議論だけでは判断できない場合の Spike パターンが未定義 | [ADR-035](adr/035-adr-spike-validation-pattern.md) |
+| ✔ | ○ | claude | ADR-040 採用後も hook が他人の PR URL を session-index に混入させる — PostToolUse/Stop hook の正規表現スキャンがバッチの正確な補完を妨害しバグが永続する | [ADR-036](adr/036-remove-obsolete-pr-url-hooks.md) |
+| ✔ | ○ | claude | .claude/ サブディレクトリへのファイル操作で permission UI が発生する — スキル・エージェント定義の Write/Edit が毎回中断され自律作業が妨げられる | [ADR-037](adr/037-pretooluse-hook-approve-claude-subdir-file-ops.md) |
+| ✔ | ○ | claude | .claude/ サブディレクトリへの Read 操作で permission UI が発生する — ADR-037 で Write/Edit の hook 不呼び出しが判明したが、Read は通常の permission system を経由する可能性があり検証が必要 | [ADR-038](adr/038-pretooluse-hook-approve-claude-subdir-read.md) |
+| ✔ | ○ | claude | hooks で参照されるスクリプトが実在しなくても validate が検出できない — if_missing: true コピー後に dotfiles 側で hook を削除しても dest の古いエントリが残り hook error が発生する | [ADR-039](adr/039-validate-hooks-script-existence.md) |
+| ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-040](adr/040-spike-adr-lifecycle.md) |
+| ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-041](adr/041-settings-json-managed-keys-sync.md) |
+| - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-042](adr/042-hook-scalability-architecture.md) |
+| - | ○ | claude | Docker サンドボックスのネットワーク egress が無制限 — deny ルール単体では根本的な対策にならず、ネットワーク層での制御が必要 | [ADR-043](adr/043-docker-sandbox-network-egress-control.md) |
+| ✔ | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で煩雑 — 大多数のリポジトリはメインで直接開くのが望ましいが、都度 conf に追記が必要 | [ADR-044](adr/044-tmw-default-direct-session-instead-of-worktree.md) |
+| ✔ | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-045](adr/045-claude-session-always-on-display-ui.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -384,144 +372,6 @@
 
 ---
 
-### ADR-035: Claude Code 起動時の session-index.sh ネットワーク呼び出し最適化
-
-**コンポーネント**: claude | **ADR**: [ADR-035](adr/035-claude-session-index-startup-optimization.md)
-
-**受け入れ条件**:
-
-- [x] `configs/claude/scripts/session-index.sh` から `gh pr view` の呼び出しが削除されている
-- [x] セッション開始後に `gh pr` コマンドを実行した際、PostToolUse フックが PR URL を JSONL に記録できる
-- [x] PR URL なしで記録されたレコードが Stop フックにより PR URL で補完される
-- [x] Claude Code の起動時間（SessionStart フック完了まで）が体感で 2 秒以内になる
-
----
-
-### ADR-036: Notification hook による permission UI 表示回数の計測
-
-**コンポーネント**: claude | **ADR**: [ADR-036](adr/036-claude-permission-ui-count-via-hook.md)
-
-**受け入れ条件**:
-
-- [x] `Notification: permission_prompt` hook が permission UI 表示時に発火することが確認されている
-- [x] `permission-log.sh` が `Notification: permission_prompt` hook として登録され、セッションIDとタイムスタンプをログに記録できる
-- [x] `~/.claude/logs/permission.log` に permission UI 表示が記録される
-- [x] transcript の `[Request interrupted by user for tool use]` と合算せずとも、ログのみで permission UI 表示回数（Approve + Deny 合算）が集計できる
-- [x] `permission-ui-server.py` が port 18765 で起動し、`http://localhost:18765` でグラフが表示される
-- [x] session-index.jsonl と permission.log を結合して PR ごとの permission UI 表示回数が棒グラフで確認できる
-
----
-
-### ADR-037: 作業量で正規化した Claude 自律度指標の導入
-
-**コンポーネント**: claude | **ADR**: [ADR-037](adr/037-claude-autonomy-rate-per-work-unit.md)
-
-**ステータス**: Superseded by ADR-041 — `perm_count / tool_use_total`（perm_rate）が作業量正規化指標として同等の問題を解決済み。
-
-**受け入れ条件**:
-
-- [x] permission UI 間の tool_use 数（自律的に動けたストレッチの長さ）が集計できる（perm_rate の逆数と等価）
-- [x] PR ごとに中央値・平均値が算出され、ダッシュボードに表示される（ADR-041/042 で実現）
-- [x] 作業量（絶対数）に依存せず、PR 間で自律度を比較できる
-
----
-
-### ADR-038: ADR 確定前検証（Spike）パターンの導入
-
-**コンポーネント**: claude | **ADR**: [ADR-038](adr/038-adr-spike-validation-pattern.md)
-
-**受け入れ条件**:
-
-- [x] `adr-reference` skill に `Spike中` ステータスが定義されている
-- [x] `Spike中` から `Draft`（設計確定）への遷移ルールが `adr-reference` skill に記載されている
-- [x] `development.md` に Spike フロー（`create-adr` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
-- [x] `adr-ship` skill に `Spike中` ステータスの ADR には適用しないガードが明記されている
-
----
-
-### ADR-039: Stop フックで既存 PR URL を補完する
-
-**コンポーネント**: claude | **ADR**: [ADR-039](adr/039-session-index-pr-url-backfill-on-stop.md)
-
-**受け入れ条件**:
-
-- [x] 既存 PR があるブランチのセッション終了後、`session-index.jsonl` の対象レコードの `pr_urls` に PR URL が記録される
-- [x] セッション中に `gh pr view` 等の Bash コマンドを実行しなかった場合でも `pr_urls` が補完される
-- [x] `pr_urls` が既に埋まっている場合は `gh pr view` を実行しない（余分な API 呼び出しを避ける）
-- [x] Stop フックのタイムアウト（10 秒）内に補完処理が完了する
-
----
-
-### ADR-040: session-index pr_urls バックフィルを cron バッチ方式に移行する
-
-**コンポーネント**: claude | **ADR**: [ADR-040](adr/040-session-index-pr-url-backfill-cron-batch.md)
-
-**受け入れ条件**:
-
-- [x] `session-index.jsonl` の `pr_urls` が空の全エントリが定期的に `gh pr view` で補完される
-- [x] ADR-039 採用以前に記録された過去セッション分の `pr_urls` も補完される
-- [x] 同一 branch の複数セッションに対して `gh pr view` は 1 回のみ呼ばれる
-- [x] macOS では launchd エージェントが `~/Library/LaunchAgents/` に登録され、毎時・ログイン時に実行される
-- [x] `session-index-stop.sh` から backfill ロジック（else ブランチ）が削除されシンプルな形に戻る
-- [x] ADR-039 で作成した `session-index-backfill.py` が削除される
-
----
-
-### ADR-041: claude-stats の人の介入指標を拡張する
-
-**コンポーネント**: claude | **ADR**: [ADR-041](adr/041-claude-human-intervention-metrics-expansion.md)
-
-**受け入れ条件**:
-
-- [x] PR に紐づくセッションの mid-session ユーザーメッセージ数（初回プロンプト・コマンド出力除外）が PR ごとに集計されてダッシュボードに表示される
-- [x] PR ごとの Permission UI 発生率（perm_count / tool_use_total）がダッシュボードに表示される
-- [x] PR ごとの AskUserQuestion 呼び出し回数がダッシュボードに表示される
-- [x] PR ごとのセッション数（同一 PR に対して起動した Claude セッションの数）がダッシュボードに表示される
-- [x] PR に紐づかないセッションはすべての指標から除外される
-
----
-
-### ADR-042: perm UI 発生率の時系列トレンドグラフを追加する
-
-**コンポーネント**: claude | **ADR**: [ADR-042](adr/042-perm-rate-time-series-trend.md)
-
-**受け入れ条件**:
-
-- [x] perm UI 発生率の折れ線グラフが日別・週別タブで切り替えて表示される
-- [x] 各データ点にホバーすると日付（または週）と perm_rate 値が確認できる
-- [x] PR 別統計テーブルは PR 単位のまま維持される（グラフと役割分担）
-
----
-
-### ADR-043: permission UI 内訳の監視
-
-**コンポーネント**: claude | **ADR**: [ADR-043](adr/043-permission-ui-breakdown-monitoring.md)
-
-**受け入れ条件**:
-
-- [x] `pretooluse-track.sh` が PreToolUse hook（全ツール対象）として動作し、tool_name を `~/.claude/logs/last-tool-{session_id}` に記録する
-- [x] `permission-log.sh` が `last-tool-{session_id}` から tool_name を読み取り `permission.log` に `tool=<tool_name>` として記録する
-- [x] permission.log の `tool=` 値が実際のツール名（Bash, Read, Write 等）になっており `unknown` でない
-- [x] `redirect-to-tools.py` による PreToolUse deny が `permission.log` とは別ログに記録される
-- [x] ダッシュボードでツール別の permission UI 発生件数の内訳が確認できる
-
----
-
-### ADR-044: ADR-040 採用後に意味を失った PR URL 収集 hook を削除する
-
-**コンポーネント**: claude | **ADR**: [ADR-044](adr/044-remove-obsolete-pr-url-hooks.md)
-
-**受け入れ条件**:
-
-- [x] `session-index-post-tool.sh` が削除される（`git rm`）
-- [x] `configs/claude/settings.json` の PostToolUse/Bash マッチャーから `session-index-post-tool.sh` のエントリが削除される
-- [x] `session-index-stop.sh` が削除される（`git rm`）
-- [x] `configs/claude/settings.json` の Stop hook から `session-index-stop.sh` のエントリが削除される
-- [x] 削除後、`claude-pane-state.sh idle` の Stop hook は引き続き動作する
-- [x] 削除後、`session-index-backfill-batch.py` が `pr_urls` を正確に補完し続ける
-
----
-
 ### ADR-034: e2e テストの追加基準と運用ポリシー
 
 **コンポーネント**: 複合 | **ADR**: [ADR-034](adr/034-e2e-test-addition-policy.md)
@@ -534,9 +384,37 @@
 
 ---
 
-### ADR-045: PreToolUse hook による .claude/ サブディレクトリへのファイル操作自動承認
+### ADR-035: ADR 確定前検証（Spike）パターンの導入
 
-**コンポーネント**: claude | **ADR**: [ADR-045](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
+**コンポーネント**: claude | **ADR**: [ADR-035](adr/035-adr-spike-validation-pattern.md)
+
+**受け入れ条件**:
+
+- [x] `adr-reference` skill に `Spike中` ステータスが定義されている
+- [x] `Spike中` から `Draft`（設計確定）への遷移ルールが `adr-reference` skill に記載されている
+- [x] `development.md` に Spike フロー（`create-adr` → Spike実装 → 検証 → Draft 復帰 → `adr-ship`）が記述されている
+- [x] `adr-ship` skill に `Spike中` ステータスの ADR には適用しないガードが明記されている
+
+---
+
+### ADR-036: ADR-040 採用後に意味を失った PR URL 収集 hook を削除する
+
+**コンポーネント**: claude | **ADR**: [ADR-036](adr/036-remove-obsolete-pr-url-hooks.md)
+
+**受け入れ条件**:
+
+- [x] `session-index-post-tool.sh` が削除される（`git rm`）
+- [x] `configs/claude/settings.json` の PostToolUse/Bash マッチャーから `session-index-post-tool.sh` のエントリが削除される
+- [x] `session-index-stop.sh` が削除される（`git rm`）
+- [x] `configs/claude/settings.json` の Stop hook から `session-index-stop.sh` のエントリが削除される
+- [x] 削除後、`claude-pane-state.sh idle` の Stop hook は引き続き動作する
+- [x] 削除後、`session-index-backfill-batch.py` が `pr_urls` を正確に補完し続ける
+
+---
+
+### ADR-037: PreToolUse hook による .claude/ サブディレクトリへのファイル操作自動承認
+
+**コンポーネント**: claude | **ADR**: [ADR-037](adr/037-pretooluse-hook-approve-claude-subdir-file-ops.md)
 
 **受け入れ条件**:
 
@@ -550,24 +428,9 @@
 
 ---
 
-### ADR-046: session-index-backfill-batch.py の並列実行化
+### ADR-038: PreToolUse hook による .claude/ サブディレクトリへの Read 操作自動承認
 
-**コンポーネント**: claude | **ADR**: [ADR-046](adr/046-session-index-backfill-parallel-execution.md)
-
-**受け入れ条件**:
-
-- [x] `session-index-backfill-batch.py` が `ThreadPoolExecutor` を使って各グループの `gh pr list` を並列実行できる
-- [x] 並列実行後もすべての `pr_urls` 補完結果が正確に `session-index.jsonl` に記録される
-- [x] 58 グループ相当の実行が 30 秒以内に完了する（逐次最悪ケース 8 分から大幅改善）
-- [x] PR URL が取得できなかったエントリに `backfill_checked: true` が記録される
-- [x] 既に `backfill_checked: true` のエントリはバッチ実行時にスキップされ API 呼び出しが発生しない
-- [x] 新規エントリ（`backfill_checked` フィールドなし）は引き続き処理対象になる
-
----
-
-### ADR-047: PreToolUse hook による .claude/ サブディレクトリへの Read 操作自動承認
-
-**コンポーネント**: claude | **ADR**: [ADR-047](adr/047-pretooluse-hook-approve-claude-subdir-read.md)
+**コンポーネント**: claude | **ADR**: [ADR-038](adr/038-pretooluse-hook-approve-claude-subdir-read.md)
 
 **受け入れ条件**:
 
@@ -581,9 +444,9 @@
 
 ---
 
-### ADR-048: setup validate でフックスクリプトの存在チェックを追加する
+### ADR-039: setup validate でフックスクリプトの存在チェックを追加する
 
-**コンポーネント**: claude | **ADR**: [ADR-048](adr/048-validate-hooks-script-existence.md)
+**コンポーネント**: claude | **ADR**: [ADR-039](adr/039-validate-hooks-script-existence.md)
 
 **受け入れ条件**:
 
@@ -594,21 +457,9 @@
 
 ---
 
-### ADR-049: セッション数計測からサブエージェントセッションを除外する
+### ADR-040: Spike ADR ライフサイクルの明文化
 
-**コンポーネント**: claude | **ADR**: [ADR-049](adr/049-session-count-excludes-subagent-sessions.md)
-
-**受け入れ条件**:
-
-- [x] `permission-ui-server.py` の `load_sessions()` が transcript を読み `type: "user"` エントリの有無で `is_ghost` フィールドを設定できる
-- [x] `aggregate()` で `is_ghost: True` のセッションがセッション数カウントから除外される
-- [x] `file-history-snapshot` のみの transcript を持つセッションが PR のセッション数にカウントされないことを `load_sessions()` の `is_ghost` ロジックで確認できる（Grep）
-
----
-
-### ADR-050: Spike ADR ライフサイクルの明文化
-
-**コンポーネント**: claude | **ADR**: [ADR-050](adr/050-spike-adr-lifecycle.md)
+**コンポーネント**: claude | **ADR**: [ADR-040](adr/040-spike-adr-lifecycle.md)
 
 **受け入れ条件**:
 
@@ -620,41 +471,9 @@
 
 ---
 
-### ADR-051: ダッシュボードにツール別 permission UI テーブルを追加
+### ADR-041: settings.json の dotfiles 管理キーを setup.sh で自動同期する
 
-**コンポーネント**: claude | **ADR**: [ADR-051](adr/051-tool-breakdown-table-in-dashboard.md)
-
-**受け入れ条件**:
-
-- [x] ダッシュボードのツール別セクションに件数・割合（%）のテーブルが表示される
-- [x] テーブルは件数降順でソートされている
-- [x] 既存の棒グラフは維持されテーブルがその直下に併記される
-
----
-
-### ADR-052: claudedog をトップレベルディレクトリに隔離し開発プロセスを分離する
-
-**コンポーネント**: claude | **ADR**: [ADR-052](adr/052-claude-stats-directory-isolation.md)
-
-**受け入れ条件**:
-
-- [ ] `claudedog/hooks/` に hook スクリプトが移動されている: `session-index.sh`, `permission-log.sh`, `pretooluse-track.sh`
-- [ ] `claudedog/batch/` にバッチスクリプトが移動されている: `session-index-update.py`, `session-index-backfill-batch.py`
-- [ ] `claudedog/dashboard/` に UI スクリプトが移動されている: `server.py`, `start.sh`
-- [ ] `claudedog/claudedog` CLI エントリポイントが存在する
-- [ ] `claudedog/TODO.md` が存在する
-- [ ] `claudedog/CHANGELOG.md` が存在する
-- [ ] `configs/claude/scripts/` から上記 claudedog 関連ファイルが削除されている
-- [ ] `configs/claude/settings.json` の hook パスが `claudedog/hooks/` 配下を指している
-- [ ] `docs/development.md` に「claudedog は ADR 不要、TODO.md + CHANGELOG.md で管理」ルールが記載されている
-- [ ] `docs/reference.md` の claudedog 関連記載が新ディレクトリ構成を反映している
-- [ ] `setup.sh --dry-run` が新ディレクトリ構成で正常に完了する
-
----
-
-### ADR-053: settings.json の dotfiles 管理キーを setup.sh で自動同期する
-
-**コンポーネント**: claude | **ADR**: [ADR-053](adr/053-settings-json-managed-keys-sync.md)
+**コンポーネント**: claude | **ADR**: [ADR-041](adr/041-settings-json-managed-keys-sync.md)
 
 **受け入れ条件**:
 
@@ -666,23 +485,9 @@
 
 ---
 
-### ADR-054: permission-log を PermissionRequest フックに移行する
+### ADR-042: Claude Code フック設計のスケーラビリティ改善
 
-**コンポーネント**: claude | **ADR**: [ADR-054](adr/054-permission-log-use-permission-request-hook.md)
-
-**受け入れ条件**:
-
-- [x] `permission-log.sh` が `PermissionRequest` フックとして登録されている
-- [x] `Notification (permission_prompt)` フックから `permission-log.sh` が削除されている
-- [x] プロジェクト外 cp（`cp ... /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
-- [x] プロジェクト外 mkdir（`mkdir -p /tmp/...`）で permission UI が表示された際に `permission.log` に記録される
-- [x] 同じコマンドを複数回実行しても安定して記録される（4/4 回記録）
-
----
-
-### ADR-055: Claude Code フック設計のスケーラビリティ改善
-
-**コンポーネント**: claude | **ADR**: [ADR-055](adr/055-hook-scalability-architecture.md)
+**コンポーネント**: claude | **ADR**: [ADR-042](adr/042-hook-scalability-architecture.md)
 
 **受け入れ条件**:
 
@@ -693,9 +498,32 @@
 
 ---
 
-### ADR-058: Claude セッション常時俯瞰 UI
+### ADR-043: Docker サンドボックスのネットワーク egress 制御
 
-**コンポーネント**: tmux / ghostty | **ADR**: [ADR-058](adr/058-claude-session-always-on-display-ui.md)
+**コンポーネント**: claude | **ADR**: [ADR-043](adr/043-docker-sandbox-network-egress-control.md)
+
+**受け入れ条件**:
+
+- [ ] ネットワーク egress 制御方式（iptables allowlist / proxy / --network=none）が ADR に決定・記録されている
+- [ ] 選択した方式が `configs/claude/docker/` に実装されている
+
+---
+
+### ADR-044: tmw_pick のデフォルト動作反転
+
+**コンポーネント**: tmux / fish | **ADR**: [ADR-044](adr/044-tmw-default-direct-session-instead-of-worktree.md)
+
+**受け入れ条件**:
+
+- [x] `tmw_pick` がデフォルトでメインリポジトリで直接 tmux セッションを開く
+- [x] `tmw_worktree_repos.conf` に登録したリポジトリのみ worktree 作成フローになる
+- [x] `tmw_direct_repos.conf` が廃止され `tmw_worktree_repos.conf` に改名されている
+
+---
+
+### ADR-045: Claude セッション常時俯瞰 UI
+
+**コンポーネント**: tmux / ghostty | **ADR**: [ADR-045](adr/045-claude-session-always-on-display-ui.md)
 
 **受け入れ条件**:
 

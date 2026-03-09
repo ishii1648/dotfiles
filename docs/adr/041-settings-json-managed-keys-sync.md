@@ -1,4 +1,4 @@
-# ADR-053: settings.json の dotfiles 管理キーを setup.sh で自動同期する
+# ADR-041: settings.json の dotfiles 管理キーを setup.sh で自動同期する
 
 ## ステータス
 採用済み
@@ -76,4 +76,4 @@ validate_json を拡張し、差分検出時に非 dry-run なら自動修正す
 | `scripts/lib/validate.sh` | dotfiles | hooks スクリプト存在チェックの対象パスに `~/.claude/claudedog/` を追加 |
 
 ## 受け入れ条件
-> [issues.md](../issues.md)（ADR-053 セクション）
+> [issues.md](../issues.md)（ADR-041 セクション）

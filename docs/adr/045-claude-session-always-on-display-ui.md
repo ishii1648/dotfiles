@@ -1,4 +1,4 @@
-# ADR-058: Claude セッション常時俯瞰 UI の方式選択
+# ADR-045: Claude セッション常時俯瞰 UI の方式選択
 
 ## ステータス
 
@@ -107,4 +107,4 @@ tmux の `switch-client` は画面全体をセッション単位で入れ替え�
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-058 セクション）
+→ [issues.md](../issues.md)（ADR-045 セクション）

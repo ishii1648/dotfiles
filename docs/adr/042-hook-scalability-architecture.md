@@ -1,4 +1,4 @@
-# ADR-055: Claude Code フック設計のスケーラビリティ改善
+# ADR-042: Claude Code フック設計のスケーラビリティ改善
 
 ## ステータス
 Draft
@@ -7,9 +7,9 @@ Draft
 - 関連: ADR-006（PreToolUse hook Bash 権限の基盤）
 - 関連: ADR-008（redirect-to-tools の基盤）
 - 関連: ADR-017（approve-safe-commands の基盤）
-- 関連: ADR-045（approve-safe-file-ops の基盤）
-- 関連: ADR-047（approve-safe-file-ops Read 対応）
-- 関連: ADR-048（hook スクリプト存在チェック）
+- 関連: ADR-037（approve-safe-file-ops の基盤）
+- 関連: ADR-038（approve-safe-file-ops Read 対応）
+- 関連: ADR-039（hook スクリプト存在チェック）
 - 関連: ADR-052（claudedog hooks の分離。本 ADR は configs/claude/scripts/ 側が対象）
 
 ## コンテキスト
@@ -109,4 +109,4 @@ configs/claude/scripts/
 案A・案B の変更内容は設計確定後に追記する。
 
 ## 受け入れ条件
-→ [issues.md](../issues.md)（ADR-055 セクション）
+→ [issues.md](../issues.md)（ADR-042 セクション）

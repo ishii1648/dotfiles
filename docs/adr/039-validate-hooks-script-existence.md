@@ -1,4 +1,4 @@
-# ADR-048: setup validate でフックスクリプトの存在チェックを追加する
+# ADR-039: setup validate でフックスクリプトの存在チェックを追加する
 
 ## ステータス
 
@@ -7,7 +7,7 @@
 ## 関連 ADR
 
 - 依存: [ADR-027](027-config-copy-validate-pattern.md) — copy + validate 方式の基本設計
-- 関連: [ADR-044](044-remove-obsolete-pr-url-hooks.md) — 廃止 hook の削除（本 ADR の問題の発端）
+- 関連: [ADR-036](036-remove-obsolete-pr-url-hooks.md) — 廃止 hook の削除（本 ADR の問題の発端）
 
 ## コンテキスト
 
@@ -76,4 +76,4 @@ done
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-048 セクション）
+→ [issues.md](../issues.md)（ADR-039 セクション）

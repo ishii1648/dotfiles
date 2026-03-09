@@ -1,14 +1,14 @@
-# ADR-050: Spike ADR ライフサイクルの明文化
+# ADR-040: Spike ADR ライフサイクルの明文化
 
 ## ステータス
 採用済み
 
 ## 関連 ADR
-- 依存: ADR-038（Spike パターン導入の基盤）
+- 依存: ADR-035（Spike パターン導入の基盤）
 - 依存: ADR-025（ADR 運用ルール・ステータス定義の基盤）
 
 ## コンテキスト
-ADR-038 で Spike パターンを導入したが、Spike 完了後のフロー（`Spike中 → Draft → adr-ship`）に
+ADR-035 で Spike パターンを導入したが、Spike 完了後のフロー（`Spike中 → Draft → adr-ship`）に
 構造的欠陥があった。Draft に戻した時点で Spike 由来の痕跡が消え、adr-ship が
 Spike ADR を通常 ADR と同様に「採用済み」に処理してしまうケースが発生した。
 
@@ -29,4 +29,4 @@ Spike 完了後の ADR を「採用済み」にするのは意味的に誤りで
 | `docs/development.md` | dotfiles | Spikeフロー修正 |
 
 ## 受け入れ条件
-→ [issues.md](../issues.md)（ADR-050 セクション）
+→ [issues.md](../issues.md)（ADR-040 セクション）

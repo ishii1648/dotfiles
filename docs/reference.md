@@ -10,13 +10,13 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
-| claudedog | `claudedog/` | Claude Code の人の介入率を追跡・可視化する計測ツール（hook・バッチ・ダッシュボード） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
 
 | コンポーネント | 管理場所 |
 |---|---|
+| claudedog | `ishii1648/claudedog` — Claude Code の人の介入率を追跡・可視化する計測ツール |
 | Claude Code skills | 別リポジトリ |
 
 ## ツールスタック
@@ -96,7 +96,6 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [008-pretooluse-hook-redirect-to-tools.md](adr/008-pretooluse-hook-redirect-to-tools.md)
 - [009-claude-permission-ask-inline-response.md](adr/009-claude-permission-ask-inline-response.md)
 - [010-dotfiles-regression-testing.md](adr/010-dotfiles-regression-testing.md)
-- [011-claude-session-index.md](adr/011-claude-session-index.md)
 - [012-fish-function-symlink-per-repo.md](adr/012-fish-function-symlink-per-repo.md)
 - [013-claude-permission-ask-auto-block.md](adr/013-claude-permission-ask-auto-block.md)
 - [014-claude-redirect-rules-auto-expansion.md](adr/014-claude-redirect-rules-auto-expansion.md)
@@ -118,27 +117,18 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [031-setup-interactive-mode.md](adr/031-setup-interactive-mode.md)
 - [032-setup-sh-modularization.md](adr/032-setup-sh-modularization.md)
 - [033-tmux-popup-regression-testing.md](adr/033-tmux-popup-regression-testing.md)
-- [035-claude-session-index-startup-optimization.md](adr/035-claude-session-index-startup-optimization.md)
-- [036-claude-permission-ui-count-via-hook.md](adr/036-claude-permission-ui-count-via-hook.md)
-- [037-claude-autonomy-rate-per-work-unit.md](adr/037-claude-autonomy-rate-per-work-unit.md)
-- [038-adr-spike-validation-pattern.md](adr/038-adr-spike-validation-pattern.md)
-- [039-session-index-pr-url-backfill-on-stop.md](adr/039-session-index-pr-url-backfill-on-stop.md)
-- [040-session-index-pr-url-backfill-cron-batch.md](adr/040-session-index-pr-url-backfill-cron-batch.md)
-- [041-claude-human-intervention-metrics-expansion.md](adr/041-claude-human-intervention-metrics-expansion.md)
-- [042-perm-rate-time-series-trend.md](adr/042-perm-rate-time-series-trend.md)
-- [043-permission-ui-breakdown-monitoring.md](adr/043-permission-ui-breakdown-monitoring.md)
-- [044-remove-obsolete-pr-url-hooks.md](adr/044-remove-obsolete-pr-url-hooks.md)
-- [045-pretooluse-hook-approve-claude-subdir-file-ops.md](adr/045-pretooluse-hook-approve-claude-subdir-file-ops.md)
-- [046-session-index-backfill-parallel-execution.md](adr/046-session-index-backfill-parallel-execution.md)
-- [047-pretooluse-hook-approve-claude-subdir-read.md](adr/047-pretooluse-hook-approve-claude-subdir-read.md)
-- [048-validate-hooks-script-existence.md](adr/048-validate-hooks-script-existence.md)
-- [049-session-count-excludes-subagent-sessions.md](adr/049-session-count-excludes-subagent-sessions.md)
-- [050-spike-adr-lifecycle.md](adr/050-spike-adr-lifecycle.md)
-- [051-tool-breakdown-table-in-dashboard.md](adr/051-tool-breakdown-table-in-dashboard.md)
-- [052-claude-stats-directory-isolation.md](adr/052-claude-stats-directory-isolation.md)
-- [053-settings-json-managed-keys-sync.md](adr/053-settings-json-managed-keys-sync.md)
-- [057-tmw-default-direct-session-instead-of-worktree.md](adr/057-tmw-default-direct-session-instead-of-worktree.md)
-- [058-claude-session-always-on-display-ui.md](adr/058-claude-session-always-on-display-ui.md)
+- [034-e2e-test-addition-policy.md](adr/034-e2e-test-addition-policy.md)
+- [035-adr-spike-validation-pattern.md](adr/035-adr-spike-validation-pattern.md)
+- [036-remove-obsolete-pr-url-hooks.md](adr/036-remove-obsolete-pr-url-hooks.md)
+- [037-pretooluse-hook-approve-claude-subdir-file-ops.md](adr/037-pretooluse-hook-approve-claude-subdir-file-ops.md)
+- [038-pretooluse-hook-approve-claude-subdir-read.md](adr/038-pretooluse-hook-approve-claude-subdir-read.md)
+- [039-validate-hooks-script-existence.md](adr/039-validate-hooks-script-existence.md)
+- [040-spike-adr-lifecycle.md](adr/040-spike-adr-lifecycle.md)
+- [041-settings-json-managed-keys-sync.md](adr/041-settings-json-managed-keys-sync.md)
+- [042-hook-scalability-architecture.md](adr/042-hook-scalability-architecture.md)
+- [043-docker-sandbox-network-egress-control.md](adr/043-docker-sandbox-network-egress-control.md)
+- [044-tmw-default-direct-session-instead-of-worktree.md](adr/044-tmw-default-direct-session-instead-of-worktree.md)
+- [045-claude-session-always-on-display-ui.md](adr/045-claude-session-always-on-display-ui.md)
 
 ## Neovim プラグイン一覧
 

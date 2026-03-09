@@ -1,4 +1,4 @@
-# ADR-038: ADR 確定前検証（Spike）パターンの導入
+# ADR-035: ADR 確定前検証（Spike）パターンの導入
 
 ## ステータス
 
@@ -67,4 +67,4 @@ create-adr（受け入れ条件に「Spike: 〜を検証する」を明記）
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-038 セクション）
+→ [issues.md](../issues.md)（ADR-035 セクション）

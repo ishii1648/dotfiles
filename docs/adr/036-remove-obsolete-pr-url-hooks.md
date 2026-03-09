@@ -1,4 +1,4 @@
-# ADR-044: ADR-040 採用後に意味を失った PR URL 収集 hook を削除する
+# ADR-036: ADR-040 採用後に意味を失った PR URL 収集 hook を削除する
 
 ## ステータス
 
@@ -75,7 +75,7 @@ Stop hook のエントリ（`settings.json`）も `session-index-stop.sh` 用に
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-044 セクション）
+→ [issues.md](../issues.md)（ADR-036 セクション）
 
 ## 関連 ADR
 

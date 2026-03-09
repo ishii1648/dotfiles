@@ -1,4 +1,4 @@
-# ADR-047: PreToolUse hook による .claude/ サブディレクトリへの Read 操作自動承認
+# ADR-038: PreToolUse hook による .claude/ サブディレクトリへの Read 操作自動承認
 
 ## ステータス
 
@@ -7,7 +7,7 @@
 ## 関連 ADR
 
 - [ADR-017](017-pretooluse-hook-approve-safe-commands.md) — approve 専用 PreToolUse hook の設計原則
-- [ADR-045](045-pretooluse-hook-approve-claude-subdir-file-ops.md) — Write/Edit/NotebookEdit の自動承認（Cannot Implement でクローズ）
+- [ADR-037](037-pretooluse-hook-approve-claude-subdir-file-ops.md) — Write/Edit/NotebookEdit の自動承認（Cannot Implement でクローズ）
 
 ## コンテキスト
 
@@ -66,4 +66,4 @@ file_path に .claude/ が含まれる
 
 ## 受け入れ条件
 
-→ [issues.md](../issues.md)（ADR-047 セクション）
+→ [issues.md](../issues.md)（ADR-038 セクション）
