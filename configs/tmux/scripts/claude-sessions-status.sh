@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Claude セッション状態をステータスバー用にフォーマットして出力する
+# Claude ウィンドウ状態をステータスバー用にフォーマットして出力する（ウィンドウ単位）
 # /tmp/claude-pane-state/ の状態ファイルと tmux グローバル変数を読み取る
 
 STATE_DIR=/tmp/claude-pane-state
@@ -15,59 +15,63 @@ while IFS= read -r s; do
     sessions+=("$s")
 done < <(tmux list-sessions -F '#{session_name}' 2>/dev/null | grep -vE '^(main|monitor|prtrack)$')
 
-# 各セッションの最良 Claude 状態を収集
+# ウィンドウ単位で Claude 状態を収集
 claude_sessions=()
+claude_windows=()
 claude_states=()
 claude_elapseds=()
 
 for session in "${sessions[@]}"; do
-    best_priority=0
-    best_state=""
-    best_elapsed=""
+    while IFS=: read -r win_idx win_name; do
+        best_priority=0
+        best_state=""
+        best_elapsed=""
 
-    while IFS= read -r pane_id; do
-        pane_num="${pane_id#%}"
-        state_file="$STATE_DIR/pane_$pane_num"
-        [ -f "$state_file" ] || continue
+        while IFS= read -r pane_id; do
+            pane_num="${pane_id#%}"
+            state_file="$STATE_DIR/pane_$pane_num"
+            [ -f "$state_file" ] || continue
 
-        state=$(tr -d '[:space:]' < "$state_file")
-        case "$state" in
-            permission) priority=4 ;;
-            ask)        priority=3 ;;
-            running)    priority=2 ;;
-            idle)       priority=1 ;;
-            *)          continue ;;
-        esac
+            state=$(tr -d '[:space:]' < "$state_file")
+            case "$state" in
+                permission) priority=4 ;;
+                ask)        priority=3 ;;
+                running)    priority=2 ;;
+                idle)       priority=1 ;;
+                *)          continue ;;
+            esac
 
-        if [ "$priority" -gt "$best_priority" ]; then
-            best_priority=$priority
-            best_state="$state"
-            best_elapsed=""
-            if [ "$state" = "running" ]; then
-                started_file="$STATE_DIR/pane_${pane_num}_started"
-                if [ -f "$started_file" ]; then
-                    started_ts=$(tr -d '[:space:]' < "$started_file")
-                    if [ -n "$started_ts" ]; then
-                        now=$(date +%s)
-                        elapsed_min=$(( (now - started_ts) / 60 ))
-                        [ "$elapsed_min" -ge 1 ] && best_elapsed="${elapsed_min}m"
+            if [ "$priority" -gt "$best_priority" ]; then
+                best_priority=$priority
+                best_state="$state"
+                best_elapsed=""
+                if [ "$state" = "running" ]; then
+                    started_file="$STATE_DIR/pane_${pane_num}_started"
+                    if [ -f "$started_file" ]; then
+                        started_ts=$(tr -d '[:space:]' < "$started_file")
+                        if [ -n "$started_ts" ]; then
+                            now=$(date +%s)
+                            elapsed_min=$(( (now - started_ts) / 60 ))
+                            [ "$elapsed_min" -ge 1 ] && best_elapsed="${elapsed_min}m"
+                        fi
                     fi
                 fi
             fi
-        fi
-    done < <(tmux list-panes -s -t "$session" -F '#{pane_id}' 2>/dev/null)
+        done < <(tmux list-panes -t "${session}:${win_idx}" -F '#{pane_id}' 2>/dev/null)
 
-    [ -z "$best_state" ] && continue
+        [ -z "$best_state" ] && continue
 
-    claude_sessions+=("$session")
-    claude_states+=("$best_state")
-    claude_elapseds+=("$best_elapsed")
+        claude_sessions+=("$session")
+        claude_windows+=("${win_idx}:${win_name}")
+        claude_states+=("$best_state")
+        claude_elapseds+=("$best_elapsed")
+    done < <(tmux list-windows -t "$session" -F '#{window_index}:#{window_name}' 2>/dev/null)
 done
 
-# Claude セッションが存在しない場合は空文字で終了
+# Claude ウィンドウが存在しない場合は空文字で終了
 [ "${#claude_sessions[@]}" -eq 0 ] && echo "" && exit 0
 
-# カーソルをクランプ（セッション数の増減で範囲外になった場合）
+# カーソルをクランプ（ウィンドウ数の増減で範囲外になった場合）
 total="${#claude_sessions[@]}"
 if [ "$cursor" -ge "$total" ]; then
     cursor=$((total - 1))
@@ -78,6 +82,9 @@ fi
 output=""
 for i in "${!claude_sessions[@]}"; do
     session="${claude_sessions[$i]}"
+    win="${claude_windows[$i]}"
+    win_idx="${win%%:*}"
+    win_name="${win#*:}"
     state="${claude_states[$i]}"
     elapsed="${claude_elapseds[$i]}"
 
@@ -89,7 +96,7 @@ for i in "${!claude_sessions[@]}"; do
         *)          badge="" ;;
     esac
 
-    label="${session} ${badge}"
+    label="${session}:${win_idx} ${badge}"
 
     # カーソルモード中はカーソル位置を [ ] でハイライト
     [ "$cursor_mode" = "on" ] && [ "$i" = "$cursor" ] && label="[${label}]"
