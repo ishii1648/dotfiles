@@ -13,6 +13,9 @@ PROJECT_DIR="$(cd "$PROJECT_DIR" && pwd)"
 CLAUDE_JSON_COPY="$HOME/.claude.json.sandbox-copy"
 cp "$HOME/.claude.json" "$CLAUDE_JSON_COPY"
 
+# Ensure pane state directory exists on host so the bind mount works
+mkdir -p /tmp/claude-pane-state
+
 # Compose mount arguments
 MOUNTS=(
     -v "$PROJECT_DIR:$PROJECT_DIR"
@@ -22,6 +25,7 @@ MOUNTS=(
     -v "$HOME/.claude/scripts:/home/claude/.claude/scripts:ro"
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
     -v "$CLAUDE_JSON_COPY:/home/claude/.claude.json"
+    -v "/tmp/claude-pane-state:/tmp/claude-pane-state"
 )
 
 # Optional mounts (only if exist on host)
@@ -49,6 +53,7 @@ COLIMA_SSH_CONFIG="$HOME/.colima/ssh_config"
 DOCKER_CMD=$(printf '%q ' \
     docker run --rm -it \
     -e "TERM=${TERM:-xterm-256color}" \
+    -e "TMUX_PANE=${TMUX_PANE:-}" \
     "${MOUNTS[@]}" \
     -e "HOST_WORKSPACE=$PROJECT_DIR" \
     -w "$PROJECT_DIR" \
