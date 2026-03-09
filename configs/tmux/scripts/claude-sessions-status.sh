@@ -116,8 +116,8 @@ for i in "${!claude_sessions[@]}"; do
     esac
 
     if $is_active; then
-        # アクティブ: セッション名を purple 背景 bold、バッジは状態色
-        colored="${cursor_open}#[fg=#282a36,bg=#bd93f9,bold] ${session}:${win_idx} #[default]#[fg=${badge_color}]${badge}#[default]${cursor_close}"
+        # アクティブ: セッション名を緑 bold
+        colored="${cursor_open}#[fg=#50fa7b,bold]${session}:${win_idx}#[default] #[fg=${badge_color}]${badge}#[default]${cursor_close}"
     else
         colored="${cursor_open}#[fg=#50fa7b]${session}:${win_idx}#[default] #[fg=${badge_color}]${badge}#[default]${cursor_close}"
     fi
