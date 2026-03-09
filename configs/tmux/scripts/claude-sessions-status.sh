@@ -99,26 +99,27 @@ for i in "${!claude_sessions[@]}"; do
         *)          badge="" ;;
     esac
 
-    label="${session}:${win_idx} ${badge}"
-
-    # カーソルモード中はカーソル位置を ( ) でハイライト
-    [ "$cursor_mode" = "on" ] && [ "$i" = "$cursor" ] && label="(${label})"
-
     # アクティブウィンドウ判定
     is_active=false
     [ "${session}:${win_idx}" = "$current" ] && is_active=true
 
-    # 色付け（tmux format string）
+    # カーソルモード中はカーソル位置を ( ) でハイライト
+    cursor_open=""; cursor_close=""
+    [ "$cursor_mode" = "on" ] && [ "$i" = "$cursor" ] && cursor_open="(" && cursor_close=")"
+
+    # セッション名（常に緑）・バッジ（状態別色）を分けて色付け
+    case "$state" in
+        running)        badge_color="#bd93f9" ;;  # purple（popup と同じ）
+        permission|ask) badge_color="#ff5555" ;;  # red（popup と同じ）
+        idle)           badge_color="#6272a4" ;;  # dim
+        *)              badge_color="#f8f8f2" ;;
+    esac
+
     if $is_active; then
-        # アクティブ: Dracula purple 背景
-        colored="#[fg=#282a36,bg=#bd93f9,bold] ${label} #[default]"
+        # アクティブ: セッション名を purple 背景 bold、バッジは状態色
+        colored="${cursor_open}#[fg=#282a36,bg=#bd93f9,bold] ${session}:${win_idx} #[default]#[fg=${badge_color}]${badge}#[default]${cursor_close}"
     else
-        case "$state" in
-            running)         colored="#[fg=#bd93f9]${label}#[default]" ;;
-            permission|ask)  colored="#[fg=#ff5555]${label}#[default]" ;;
-            idle)            colored="#[fg=#6272a4]${label}#[default]" ;;
-            *)               colored="${label}" ;;
-        esac
+        colored="${cursor_open}#[fg=#50fa7b]${session}:${win_idx}#[default] #[fg=${badge_color}]${badge}#[default]${cursor_close}"
     fi
 
     [ -z "$output" ] && output="$colored" || output="${output}#[fg=#44475a] | #[default]${colored}"
