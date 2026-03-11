@@ -4,6 +4,11 @@
 
 set -euo pipefail
 
+# 再発火防止: 一度 block したらセッション内では再度 block しない
+# Stop hook が block → Claude が対応 → 再度 Stop → 再 block のループを防止する
+LOCK_DIR="${TMPDIR:-/tmp}"
+LOCK_FILE="${LOCK_DIR}/claude-tf-workflow-check-${CLAUDE_SESSION_ID:-unknown}.lock"
+
 FEEDBACK_MESSAGE="terraform workflowが完了していません。以下を実行してください：
 
 terraform-validate スキルを使って validate / plan / tflint を実行してください：
@@ -14,6 +19,12 @@ terraform-validate スキルを使って validate / plan / tflint を実行し�
 # フィードバックを返して終了する関数
 feedback() {
   local reason="$1"
+  # 既に block 済みならスキップ（ループ防止）
+  if [ -f "$LOCK_FILE" ]; then
+    exit 0
+  fi
+  # lock ファイルを作成して再発火を防止
+  touch "$LOCK_FILE"
   if command -v jq &>/dev/null; then
     jq -n --arg reason "$reason" '{"decision":"block","reason":$reason}'
   else
@@ -75,5 +86,6 @@ if grep -qE "^(Error|ERROR)" ".outputs/terraform/tflint-result.txt" 2>/dev/null;
 ${FEEDBACK_MESSAGE}"
 fi
 
-# 全チェック通過
+# 全チェック通過: lock ファイルを削除して次回チェックを有効化
+rm -f "$LOCK_FILE"
 exit 0
