@@ -291,8 +291,20 @@ async function getRateLimitUsage() {
 
   let token;
   try {
-    const credPath = path.join(process.env.HOME, '.claude', '.credentials.json');
-    const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    let cred;
+    if (process.platform === 'darwin') {
+      // macOS: Keychain から読み出し
+      const raw = execSync('security find-generic-password -s "Claude Code-credentials" -w', {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 3000
+      }).trim();
+      cred = JSON.parse(raw);
+    } else {
+      // Linux: credentials.json から読む
+      const credPath = path.join(process.env.HOME, '.claude', '.credentials.json');
+      cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+    }
     token = cred.claudeAiOauth?.accessToken;
   } catch (e) {
     return null;
