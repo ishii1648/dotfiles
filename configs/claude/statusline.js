@@ -92,6 +92,7 @@ process.stdin.on('end', async () => {
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
+      const monthly = rateLimitUsage.monthly;
       if (fiveH != null) {
         const pct = Math.round(fiveH);
         statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
@@ -99,6 +100,10 @@ process.stdin.on('end', async () => {
       if (sevenD != null) {
         const pct = Math.round(sevenD);
         statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
+      }
+      if (monthly != null) {
+        const pct = Math.round(monthly);
+        statusLine += ` | 🗓 ${coloredBar(pct, 8)} ${pct}%`;
       }
     }
     console.log(statusLine);
@@ -325,6 +330,7 @@ async function getRateLimitUsage() {
     const result = {
       fiveHour: data.five_hour?.utilization ?? null,
       sevenDay: data.seven_day?.utilization ?? null,
+      monthly: data.extra_usage?.is_enabled ? (data.extra_usage?.utilization ?? null) : null,
     };
     fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
     return result;
