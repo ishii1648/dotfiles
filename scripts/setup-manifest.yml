@@ -44,6 +44,8 @@ components:
         target: configs/ghostty/config
       - link: ~/.local/bin/ghostty-tmux-init
         target: configs/ghostty/ghostty-tmux-init.sh
+      - link: ~/.local/bin/claude-session-monitor
+        target: configs/ghostty/scripts/claude-session-monitor.sh
 
   tmux:
     symlinks:

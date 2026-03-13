@@ -46,6 +46,7 @@
 | ✔ | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で煩雑 — 大多数のリポジトリはメインで直接開くのが望ましいが、都度 conf に追記が必要 | [ADR-044](adr/044-tmw-default-direct-session-instead-of-worktree.md) |
 | - | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-045](adr/045-claude-session-always-on-display-ui.md) |
 | ✔ | ○ | tmux / fish | ADR-045 で追加した Claude セッション statusbar 表示が過剰 — 常時表示の恩恵1点に対し表示・操作領域の増加コストが大きく、popup で充分 | [ADR-046](adr/046-statusbar-popup-role-separation.md) |
+| - | △ | ghostty / tmux | Ghostty AppleScript で Claude セッション常時俯瞰サイドバーを実現できるか未検証 — tmux レイヤー内では switch-client で消えるが Ghostty レベルの分割なら不変なはず | [ADR-047](adr/047-ghostty-applescript-claude-sidebar.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -559,4 +560,19 @@
 - [x] `configs/tmux/scripts/claude-sessions-status.sh` が削除される（`git rm`）
 - [x] `configs/tmux/scripts/claude-session-switch.sh` が削除される（`git rm`）
 - [x] `prefix+s` の popup（Claude 状態バッジ付き）が引き続き動作する
+
+---
+
+### ADR-047: Ghostty AppleScript による Claude セッションサイドバー
+
+**コンポーネント**: ghostty / tmux | **ADR**: [ADR-047](adr/047-ghostty-applescript-claude-sidebar.md)
+
+**受け入れ条件**:
+
+- [ ] `ghostty-tmux-init.sh` から `osascript` を呼び出すとGhosttyウィンドウが左右に分割される
+- [ ] 左ペインで `claude-session-monitor.sh` が起動し、`/tmp/claude-pane-state/` の状態が表示される
+- [ ] 右ペインで `tmux new-session -A -s main` が正常に起動する
+- [ ] `tmux switch-client` で別セッションに切り替えても左ペインの表示が消えない
+- [ ] Ghostty 再起動時（`window-save-state = always`）に左ペインが二重生成されない
+- [ ] 分割後のフォーカスが右ペイン（tmux側）になっている
 
