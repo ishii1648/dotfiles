@@ -26,13 +26,9 @@
 - 仕様は実装後に更新してよい（後追いOK）
 - 「なぜこうしたか」だけ書く。実装手順は仕様に書かない
 
-### claudedog の開発プロセス（例外）
+### claudedog（別リポジトリに移行済み）
 
-`claudedog/` ディレクトリ内の変更は ADR を作成しない。代わりに以下で管理する:
-
-- **事前**: `claudedog/TODO.md` に「やりたいこと + 完了条件」を箇条書き
-- **事後**: 完了したら `claudedog/CHANGELOG.md` に記録して TODO から削除
-- **意思決定の追跡**: git log + CHANGELOG で十分。ADR は不要
+claudedog は別リポジトリ（`ishii1648/claudedog`）に分離済み。開発プロセスは当該リポジトリの README.md を参照。
 
 ## 設計検証が必要な場合（Spike パターン）
 
