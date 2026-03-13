@@ -1,5 +1,4 @@
 # Claude Code ガイドライン
-- SubAgentを使ってできるだけ並列化して進めて
 - ユーザが意見を求めた場合、忖度せず批判的に検討したうえで回答すること
 
 ## 人間への確認を最小化
@@ -36,3 +35,11 @@
 ## 調査結果のまとめ
 - 調査結果をまとめる際に表を使う場合はmarkdownを使うこと
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
+
+## AWS 認証トークン自動更新
+ツール実行結果に以下のいずれかが含まれている場合、ユーザーへの確認なしに即座に `aws-saml-login` スキルを実行して認証を更新し、失敗したオペレーションを自動的に再試行する。
+- `ExpiredToken`
+- `ExpiredTokenException`
+- `The security token included in the request is expired`
+- `Token has expired`
+- `AuthFailure`
