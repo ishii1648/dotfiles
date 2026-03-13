@@ -72,10 +72,11 @@ end tell
 
 **左ペインにも tmux が起動し、statusbar が二重表示になった。**
 
-- `split ... with configuration conf` の `command` プロパティは Ghostty config の `command = ~/.local/bin/ghostty-tmux-init` に**上書きされる**。
-  左ペインも `ghostty-tmux-init.sh` → tmux を起動したため、監視スクリプトは動かなかった。
-- Ghostty config に `command =` が設定されている場合、全ての新規 split に適用される。
-  AppleScript の `surface configuration.command` はこれを Override しない（少なくとも 1.3 では）。
+原因は未特定。以下のいずれかの可能性がある：
+
+- `~/.local/bin/claude-session-monitor` の symlink が `setup.sh` 未実行のため存在しておらず、コマンドが見つからず Ghostty config の `command =` に fallback した
+- AppleScript の `surface configuration.command` プロパティが `split` には効かず、`new window` / `new tab` にのみ有効
+- Ghostty config の `command =` が全 split に適用されており、`surface configuration.command` は常に無視される
 
 ### 残る可能性
 
