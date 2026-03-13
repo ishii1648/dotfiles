@@ -12,6 +12,7 @@ scripts/setup-manifest.local.yml
 
 # Fish shell
 configs/fish/fish_variables
+configs/fish/conf.d/tmw_worktree_repos.conf
 
 
 # Claude output
