@@ -140,6 +140,6 @@
   "language": "日本語",
   "effortLevel": "medium",
   "permissions": {
-    "defaultMode": "acceptEdits"
+    "defaultMode": "auto"
   }
 }
