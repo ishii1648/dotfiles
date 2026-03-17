@@ -133,6 +133,53 @@ def _is_external_script(command_str: str) -> bool:
     return False
 
 
+def has_command_substitution(command: str) -> bool:
+    """コマンド置換 $() またはバッククォートを検出する。
+
+    クォート内の $() も検出対象とする（シェルは "" 内の $() を展開するため）。
+    シングルクォート内は展開されないためスキップする。
+    $((...)) 算術展開は除外（安全なため）。
+    git commit の heredoc パターンは approve-safe-commands.py で許可済みのため除外。
+    """
+    # git commit の heredoc パターンは除外
+    if re.search(r"\bgit\b.*\bcommit\b", command) and re.search(r"\$\(\s*cat\s+<<", command):
+        return False
+
+    in_single = False
+    i = 0
+    while i < len(command):
+        c = command[i]
+
+        if c == "'" and not in_single:
+            in_single = True
+            i += 1
+            continue
+        elif c == "'" and in_single:
+            in_single = False
+            i += 1
+            continue
+
+        if in_single:
+            i += 1
+            continue
+
+        # バッククォートによるコマンド置換を検出
+        if c == "`":
+            return True
+
+        # $( を検出（$((...)) 算術展開は除外）
+        if c == "$" and i + 1 < len(command) and command[i + 1] == "(":
+            if i + 2 < len(command) and command[i + 2] == "(":
+                # $((...)) 算術展開 — スキップ
+                i += 3
+                continue
+            return True
+
+        i += 1
+
+    return False
+
+
 def has_stdout_redirect(command_str: str) -> bool:
     """Check if the command has a stdout file redirect.
 
@@ -340,6 +387,24 @@ def main():
         tool_input = hook_input.get("tool_input", {})
         command = tool_input.get("command", "")
         if not command:
+            sys.exit(0)
+
+        # $() コマンド置換チェック（split_chain の前に実行）
+        if has_command_substitution(command):
+            reason = (
+                "$() コマンド置換を含む Bash コマンドは使用しないでください。"
+                " $() の結果を変数に格納する Bash 呼び出しと、"
+                "その変数を使う Bash 呼び出しに分割してください。"
+            )
+            _write_deny_log(session_id, tool_name, reason)
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
+                }
+            }
+            print(json.dumps(output, ensure_ascii=False))
             sys.exit(0)
 
         segments = split_chain(command)
