@@ -15,6 +15,10 @@ Approve rules:
   1. git commit with $(cat <<'EOF'...EOF) or $(cat <<EOF...EOF)
   2. Commands where all quoted dash-prefixed strings are dash-only
      separators (e.g. "---", '--')
+  3. Read-only git commands (log, diff, show, branch, status, shortlog,
+     rev-list, rev-parse, describe, tag -l, stash list) optionally piped
+     to head/tail/wc/sort/uniq/grep
+  4. Safe writes to /tmp/ using printf/echo (no chaining operators)
 """
 
 import json
@@ -101,6 +105,149 @@ def is_safe_command_substitution(command: str) -> bool:
     return True
 
 
+def _split_on_pipes(command: str) -> list:
+    """Split command on pipe '|' characters, respecting quoted strings."""
+    segments = []
+    current = []
+    in_single = False
+    in_double = False
+    i = 0
+    while i < len(command):
+        c = command[i]
+        if c == "'" and not in_double:
+            in_single = not in_single
+            current.append(c)
+        elif c == '"' and not in_single:
+            in_double = not in_double
+            current.append(c)
+        elif c == "|" and not in_single and not in_double:
+            seg = "".join(current).strip()
+            if seg:
+                segments.append(seg)
+            current = []
+        else:
+            current.append(c)
+        i += 1
+    seg = "".join(current).strip()
+    if seg:
+        segments.append(seg)
+    return segments
+
+
+def is_safe_readonly_git(command: str) -> bool:
+    """Check if the command is a read-only git command, optionally piped.
+
+    Approves patterns like:
+        git log --oneline
+        git -C /path/to/repo log --all --format="%h %s" | head -30
+        git diff main..feature 2>/dev/null | grep foo
+        git show HEAD:file.txt | wc -l
+
+    The command must start with 'git' and use a read-only subcommand.
+    Only safe pipe targets (head, tail, wc, sort, uniq, grep) are allowed.
+    """
+    # Strip trailing redirects like 2>/dev/null before pipe analysis
+    stripped = re.sub(r"\d*>/dev/null\s*", "", command).strip()
+
+    # Split on pipes (outside of quotes)
+    pipe_segments = _split_on_pipes(stripped)
+    if not pipe_segments:
+        return False
+
+    first = pipe_segments[0]
+
+    # Must start with 'git' — use shlex to handle quoted args
+    import shlex
+    try:
+        words = shlex.split(first)
+    except ValueError:
+        return False
+    if not words or words[0] != "git":
+        return False
+
+    # Find the git subcommand (skip -C <path> and other global flags)
+    safe_subcommands = {
+        "log", "diff", "show", "branch", "status", "shortlog",
+        "rev-list", "rev-parse", "describe", "tag", "stash",
+        "ls-files", "ls-tree", "cat-file", "name-rev", "merge-base",
+        "reflog", "blame", "whatchanged",
+    }
+    found_subcommand = False
+    i = 1
+    while i < len(words):
+        w = words[i]
+        if w.startswith("-"):
+            # Global flag; skip its value if it takes one (-C <path>)
+            if w in ("-C", "-c", "--git-dir", "--work-tree"):
+                i += 2
+                continue
+            i += 1
+            continue
+        # First non-flag word is the subcommand
+        if w in safe_subcommands:
+            found_subcommand = True
+        break
+
+    if not found_subcommand:
+        return False
+
+    # Validate pipe targets (if any)
+    safe_pipe_commands = {"head", "tail", "wc", "sort", "uniq", "grep", "rg"}
+    for seg in pipe_segments[1:]:
+        seg_words = seg.split()
+        if not seg_words:
+            return False
+        if seg_words[0] not in safe_pipe_commands:
+            return False
+
+    return True
+
+
+def is_safe_tmp_write(command: str) -> bool:
+    """Check if the command is a safe write to /tmp/.
+
+    Approves patterns like:
+        printf '...' > /tmp/commit-msg.txt
+        printf '...' | tee /tmp/commit-msg.txt
+        echo '...' > /tmp/foo.txt
+
+    Only approves when the command uses printf/echo (content-producing
+    commands) and writes exclusively to /tmp/.  Does not approve if
+    the command contains additional shell operators like ;, &&, ||
+    that could chain arbitrary commands.
+    """
+    # Reject commands with chaining operators (;, &&, ||) outside quotes
+    # to prevent smuggling dangerous commands
+    in_single = False
+    in_double = False
+    for i, c in enumerate(command):
+        if c == "'" and not in_double:
+            in_single = not in_single
+        elif c == '"' and not in_single:
+            in_double = not in_double
+        elif not in_single and not in_double:
+            if c == ';':
+                return False
+            if c in ('&', '|') and i + 1 < len(command):
+                next_c = command[i + 1]
+                if c == '&' and next_c == '&':
+                    return False
+                if c == '|' and next_c == '|':
+                    return False
+
+    stripped = command.strip()
+
+    # Pattern 1: printf/echo ... > /tmp/...
+    if re.match(r'^(?:printf|echo)\s+.*>\s*/tmp/', stripped):
+        return True
+
+    # Pattern 2: printf/echo ... | tee /tmp/...
+    if re.match(r'^(?:printf|echo)\s+.*\|\s*tee\s+/tmp/', stripped):
+        return True
+
+    return False
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
@@ -114,7 +261,7 @@ def main():
         if not command:
             sys.exit(0)
 
-        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command):
+        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command) or is_safe_readonly_git(command) or is_safe_tmp_write(command):
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
