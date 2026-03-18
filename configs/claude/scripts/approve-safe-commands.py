@@ -19,6 +19,7 @@ Approve rules:
      rev-list, rev-parse, describe, tag -l, stash list) optionally piped
      to head/tail/wc/sort/uniq/grep
   4. Safe writes to /tmp/ using printf/echo (no chaining operators)
+  5. Read-only gh api commands optionally piped to jq/head/tail/wc/sort/uniq/grep
 """
 
 import json
@@ -248,6 +249,54 @@ def is_safe_tmp_write(command: str) -> bool:
     return False
 
 
+def is_safe_readonly_gh_api(command: str) -> bool:
+    """Check if the command is a read-only gh api command, optionally piped.
+
+    Approves patterns like:
+        gh api repos/owner/repo/pulls
+        gh api repos/owner/repo/pulls/123/reviews --paginate 2>/dev/null | jq -r '...'
+        gh api /repos/owner/repo/issues --paginate | jq '.[] | .title'
+
+    Only approves GET requests (no -X POST/PUT/PATCH/DELETE).
+    Only safe pipe targets (jq, head, tail, wc, sort, uniq, grep) are allowed.
+    """
+    # Strip trailing redirects like 2>/dev/null before pipe analysis
+    stripped = re.sub(r"\d*>/dev/null\s*", "", command).strip()
+
+    # Split on pipes (outside of quotes)
+    pipe_segments = _split_on_pipes(stripped)
+    if not pipe_segments:
+        return False
+
+    first = pipe_segments[0]
+
+    import shlex
+    try:
+        words = shlex.split(first)
+    except ValueError:
+        return False
+    if len(words) < 3 or words[0] != "gh" or words[1] != "api":
+        return False
+
+    # Reject mutating methods and data-sending flags
+    # -f/--field/-F/--raw-field implicitly switch to POST
+    blocked_flags = {"-X", "--method", "--input", "-f", "--field", "-F", "--raw-field"}
+    for w in words:
+        if w in blocked_flags:
+            return False
+
+    # Validate pipe targets (if any)
+    safe_pipe_commands = {"jq", "head", "tail", "wc", "sort", "uniq", "grep", "rg"}
+    for seg in pipe_segments[1:]:
+        seg_words = seg.split()
+        if not seg_words:
+            return False
+        if seg_words[0] not in safe_pipe_commands:
+            return False
+
+    return True
+
+
 def main():
     try:
         hook_input = json.load(sys.stdin)
@@ -261,7 +310,7 @@ def main():
         if not command:
             sys.exit(0)
 
-        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command) or is_safe_readonly_git(command) or is_safe_tmp_write(command):
+        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command) or is_safe_readonly_git(command) or is_safe_tmp_write(command) or is_safe_readonly_gh_api(command):
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",
