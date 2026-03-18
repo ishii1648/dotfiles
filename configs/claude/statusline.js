@@ -7,7 +7,9 @@ const readline = require('readline');
 const { execSync } = require('child_process');
 
 // Constants
-const COMPACTION_THRESHOLD = 150000
+// モデルIDに "[1m]" が含まれる場合は 1M context モデル
+const COMPACTION_THRESHOLD_DEFAULT = 150000;
+const COMPACTION_THRESHOLD_1M = 950000;
 
 // Read JSON from stdin
 let input = '';
@@ -18,6 +20,8 @@ process.stdin.on('end', async () => {
 
     // Extract values
     const model = data.model?.display_name || 'Unknown';
+    const modelId = data.model?.id || '';
+    const compactionThreshold = modelId.includes('[1m]') ? COMPACTION_THRESHOLD_1M : COMPACTION_THRESHOLD_DEFAULT;
     const effortLevel = getEffortLevel();
     const cwd = data.workspace?.current_dir || data.cwd || '.';
 
@@ -57,7 +61,7 @@ process.stdin.on('end', async () => {
     }
 
     // Calculate percentage
-    const percentage = Math.min(100, Math.round((totalTokens / COMPACTION_THRESHOLD) * 100));
+    const percentage = Math.min(100, Math.round((totalTokens / compactionThreshold) * 100));
 
     // Format token display
     const tokenDisplay = formatTokenCount(totalTokens);
