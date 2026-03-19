@@ -130,6 +130,8 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [044-tmw-default-direct-session-instead-of-worktree.md](adr/044-tmw-default-direct-session-instead-of-worktree.md)
 - [045-claude-session-always-on-display-ui.md](adr/045-claude-session-always-on-display-ui.md)
 - [046-statusbar-popup-role-separation.md](adr/046-statusbar-popup-role-separation.md)
+- [047-ghostty-applescript-claude-sidebar.md](adr/047-ghostty-applescript-claude-sidebar.md)
+- [048-claude-autocompact-threshold-override.md](adr/048-claude-autocompact-threshold-override.md)
 
 ## Neovim プラグイン一覧
 

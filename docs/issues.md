@@ -47,6 +47,7 @@
 | - | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-045](adr/045-claude-session-always-on-display-ui.md) |
 | ✔ | ○ | tmux / fish | ADR-045 で追加した Claude セッション statusbar 表示が過剰 — 常時表示の恩恵1点に対し表示・操作領域の増加コストが大きく、popup で充分 | [ADR-046](adr/046-statusbar-popup-role-separation.md) |
 | - | △ | ghostty / tmux | Ghostty AppleScript で Claude セッション常時俯瞰サイドバーを実現できるか未検証 — tmux レイヤー内では switch-client で消えるが Ghostty レベルの分割なら不変なはず | [ADR-047](adr/047-ghostty-applescript-claude-sidebar.md) |
+| ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -575,4 +576,15 @@
 - [ ] `tmux switch-client` で別セッションに切り替えても左ペインの表示が消えない
 - [ ] Ghostty 再起動時（`window-save-state = always`）に左ペインが二重生成されない
 - [ ] 分割後のフォーカスが右ペイン（tmux側）になっている
+
+---
+
+### ADR-048: 1M context モデルの auto-compaction 閾値を 50% に設定する
+
+**コンポーネント**: claude | **ADR**: [ADR-048](adr/048-claude-autocompact-threshold-override.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/settings.json` の `env` に `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE: "50"` が設定されている
+- [x] ADR-041 の managed keys sync により `~/.claude/settings.json` に `CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` が伝播される
 
