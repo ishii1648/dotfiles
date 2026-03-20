@@ -25,10 +25,6 @@
 ## 実装完了時の自動Git操作
 未コミット変更があり feature/fix/docs/chore ブランチ上にいる場合、`git-ship` skill を自動実行する（$PWD 配下であることを確認してから）。PRが未作成なら commit→push→Draft PR作成、作成済みなら commit→push のみ。
 
-## スキル作成・検証
-- スキルを新規作成する際は `plugin-dev:skill-development` スキルを使用する
-- スキル作成・更新後の品質検証には `plugin-dev:skill-reviewer` エージェント（Task ツール経由）を使用する
-
 ## textlint 自動チェック
 `.md` ファイルを Write または Edit ツールで変更した後は、`textlint` スキルを自動実行すること。ただし、スキル・サブエージェント・forked コンテキスト内では実行しない。
 
@@ -37,10 +33,3 @@
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
 - ただし、プロジェクト CLAUDE.md で調査ドキュメントの出力先が指定されている場合はそちらに従う
 
-## AWS 認証トークン自動更新
-ツール実行結果に以下のいずれかが含まれている場合、ユーザーへの確認なしに即座に `aws-saml-login` スキルを実行して認証を更新し、失敗したオペレーションを自動的に再試行する。
-- `ExpiredToken`
-- `ExpiredTokenException`
-- `The security token included in the request is expired`
-- `Token has expired`
-- `AuthFailure`
