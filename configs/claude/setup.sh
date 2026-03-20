@@ -5,7 +5,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DRY_RUN="${DRY_RUN:-false}"
 
 # --- dotfiles 管理キーの同期 ---
+# SYNC_KEYS: source の値で全置換するキー
 SYNC_KEYS=("hooks" "statusLine")
+# MERGE_KEYS: source のキーを dest にマージするキー（dest 固有のキーは保持）
+MERGE_KEYS=("env")
 SYNC_SRC="$SCRIPT_DIR/settings.json"
 SYNC_DEST="$HOME/.claude/settings.json"
 
@@ -20,8 +23,16 @@ if [[ -f "$SYNC_DEST" ]]; then
                 has_diff=true
             fi
         done
+        for key in "${MERGE_KEYS[@]}"; do
+            missing=$(jq -r --arg k "$key" --slurpfile dest "$SYNC_DEST" \
+                '.[$k] // {} | to_entries[] | select($dest[0][$k][.key] == null) | .key' "$SYNC_SRC")
+            if [[ -n "$missing" ]]; then
+                echo "  managed-keys merge: WARN: key '$key' missing entries: $missing"
+                has_diff=true
+            fi
+        done
         if [[ "$has_diff" == "false" ]]; then
-            echo "  managed-keys sync: ✓ OK (hooks, statusLine)"
+            echo "  managed-keys sync: ✓ OK"
         fi
     else
         tmp=$(mktemp)
@@ -35,10 +46,17 @@ if [[ -f "$SYNC_DEST" ]]; then
                 changed=true
             fi
         done
+        for key in "${MERGE_KEYS[@]}"; do
+            merged=$(jq -s --arg k "$key" '.[0][$k] as $src | .[1] | .[$k] = ((.[$k] // {}) * $src)' "$SYNC_SRC" "$tmp")
+            if [[ "$(jq -c --arg k "$key" '.[$k]' "$tmp")" != "$(echo "$merged" | jq -c --arg k "$key" '.[$k]')" ]]; then
+                echo "$merged" > "$tmp.new" && mv "$tmp.new" "$tmp"
+                changed=true
+            fi
+        done
         if [[ "$changed" == "true" ]]; then
             cp "$SYNC_DEST" "${SYNC_DEST}.bk"
             mv "$tmp" "$SYNC_DEST"
-            echo "  managed-keys sync: updated (hooks, statusLine) [backup: ${SYNC_DEST}.bk]"
+            echo "  managed-keys sync: updated [backup: ${SYNC_DEST}.bk]"
         else
             rm -f "$tmp"
             echo "  managed-keys sync: ✓ no changes"
