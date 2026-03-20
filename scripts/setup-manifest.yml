@@ -2,6 +2,11 @@
 # dotfiles の理想状態を宣言的に定義する
 # scripts/setup.sh がこのファイルを読んで検証・適用する
 
+# profiles 間の共通コンポーネントを YAML アンカーで common 化することを検討したが断念。
+# 理由: yaml.safe_load はアンカーを解決してから JSON 変換するため remote/linux への *common
+# 適用は可能だが、full のように共通リストに ghostty を追加する場合は
+# "- *common" がネストリストになり jq でのパースが壊れる。
+# _anchors トップキー案も検討したが full の差分が解消されず可読性向上が限定的なため見送り。
 profiles:
   full:
     - fish
