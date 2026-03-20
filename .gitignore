@@ -21,5 +21,5 @@ configs/fish/conf.d/tmw_worktree_repos.conf
 # Git worktree
 .worktree/
 
-configs/claude/scripts/__pycache__/
+__pycache__/
 
