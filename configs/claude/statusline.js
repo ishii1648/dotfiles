@@ -32,7 +32,8 @@ process.stdin.on('end', async () => {
     const isWorktree = isGitWorktree(cwd);
     const dirtyCount = getDirtyFileCount(cwd);
     const prInfo = getPrInfo(cwd);
-    const rateLimitUsage = await getRateLimitUsage();
+    const stdinRateLimits = parseStdinRateLimits(data.rate_limits);
+    const rateLimitUsage = stdinRateLimits || await getRateLimitUsage();
     const sessionId = data.session_id;
 
     // Calculate token usage for current session
@@ -99,11 +100,13 @@ process.stdin.on('end', async () => {
       const monthly = rateLimitUsage.monthly;
       if (fiveH != null) {
         const pct = Math.round(fiveH);
-        statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%`;
+        const resetInfo = rateLimitUsage.fiveHourResetsAt ? ` ${formatTimeRemaining(rateLimitUsage.fiveHourResetsAt)}` : '';
+        statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
       }
       if (sevenD != null) {
         const pct = Math.round(sevenD);
-        statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%`;
+        const resetInfo = rateLimitUsage.sevenDayResetsAt ? ` ${formatTimeRemaining(rateLimitUsage.sevenDayResetsAt)}` : '';
+        statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
       }
       if (monthly != null) {
         const pct = Math.round(monthly);
@@ -279,6 +282,30 @@ function getPrInfo(cwd) {
   } catch (e) {
     return null;
   }
+}
+
+function parseStdinRateLimits(rateLimits) {
+  if (!rateLimits) return null;
+  const fiveHour = rateLimits.five_hour;
+  const sevenDay = rateLimits.seven_day;
+  if (fiveHour == null && sevenDay == null) return null;
+  return {
+    fiveHour: fiveHour?.used_percentage ?? null,
+    fiveHourResetsAt: fiveHour?.resets_at ?? null,
+    sevenDay: sevenDay?.used_percentage ?? null,
+    sevenDayResetsAt: sevenDay?.resets_at ?? null,
+    monthly: null,
+  };
+}
+
+function formatTimeRemaining(resetsAt) {
+  if (!resetsAt) return '';
+  const diffMs = new Date(resetsAt) - new Date();
+  if (diffMs <= 0) return '';
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  if (hours > 0) return `${hours}h${minutes}m`;
+  return `${minutes}m`;
 }
 
 async function getRateLimitUsage() {
