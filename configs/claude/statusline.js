@@ -21,7 +21,10 @@ process.stdin.on('end', async () => {
     // Extract values
     const model = data.model?.display_name || 'Unknown';
     const modelId = data.model?.id || '';
+    const maxContext = modelId.includes('[1m]') ? 1000000 : 200000;
+    const autocompactPct = parseInt(process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE || '0');
     const compactionThreshold = modelId.includes('[1m]') ? COMPACTION_THRESHOLD_1M : COMPACTION_THRESHOLD_DEFAULT;
+    const displayThreshold = autocompactPct > 0 ? Math.round(maxContext * autocompactPct / 100) : compactionThreshold;
     const effortLevel = getEffortLevel();
     const cwd = data.workspace?.current_dir || data.cwd || '.';
 
@@ -66,6 +69,7 @@ process.stdin.on('end', async () => {
 
     // Format token display
     const tokenDisplay = formatTokenCount(totalTokens);
+    const thresholdDisplay = formatTokenCount(displayThreshold);
 
     // Build git info
     let gitInfo = '';
@@ -93,7 +97,7 @@ process.stdin.on('end', async () => {
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
     // Line 1: 基本情報 + プログレスバー
-    let statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | 🪙 ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay})`;
+    let statusLine = `[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | ctx ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay}/${thresholdDisplay})`;
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
@@ -101,22 +105,22 @@ process.stdin.on('end', async () => {
       if (fiveH != null) {
         const pct = Math.round(fiveH);
         const resetInfo = rateLimitUsage.fiveHourResetsAt ? ` ${formatTimeRemaining(rateLimitUsage.fiveHourResetsAt)}` : '';
-        statusLine += ` | ⏱ ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
+        statusLine += ` | 5h ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
       }
       if (sevenD != null) {
         const pct = Math.round(sevenD);
         const resetInfo = rateLimitUsage.sevenDayResetsAt ? ` ${formatTimeRemaining(rateLimitUsage.sevenDayResetsAt)}` : '';
-        statusLine += ` | 📅 ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
+        statusLine += ` | 7d ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
       }
       if (monthly != null) {
         const pct = Math.round(monthly);
-        statusLine += ` | 🗓 ${coloredBar(pct, 8)} ${pct}%`;
+        statusLine += ` | mo ${coloredBar(pct, 8)} ${pct}%`;
       }
     }
     console.log(statusLine);
   } catch (error) {
     // Fallback status line on error
-    console.log('[Error] 📁 . | 🪙 0 | 0%');
+    console.log('[Error] 📁 . | ctx 0 | 0%');
   }
 });
 
@@ -166,9 +170,9 @@ async function calculateTokensFromTranscript(filePath) {
 
 function formatTokenCount(tokens) {
   if (tokens >= 1000000) {
-    return `${(tokens / 1000000).toFixed(1)}M`;
+    return `${Math.floor(tokens / 1000000)}M`;
   } else if (tokens >= 1000) {
-    return `${(tokens / 1000).toFixed(1)}K`;
+    return `${Math.floor(tokens / 1000)}k`;
   }
   return tokens.toString();
 }
