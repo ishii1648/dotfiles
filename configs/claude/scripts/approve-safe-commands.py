@@ -18,8 +18,7 @@ Approve rules:
   3. Read-only git commands (log, diff, show, branch, status, shortlog,
      rev-list, rev-parse, describe, tag -l, stash list) optionally piped
      to head/tail/wc/sort/uniq/grep
-  4. Safe writes to /tmp/ using printf/echo (no chaining operators)
-  5. Read-only gh api commands optionally piped to jq/head/tail/wc/sort/uniq/grep
+  4. Read-only gh api commands optionally piped to jq/head/tail/wc/sort/uniq/grep
 """
 
 import json
@@ -204,51 +203,6 @@ def is_safe_readonly_git(command: str) -> bool:
     return True
 
 
-def is_safe_tmp_write(command: str) -> bool:
-    """Check if the command is a safe write to /tmp/.
-
-    Approves patterns like:
-        printf '...' > /tmp/commit-msg.txt
-        printf '...' | tee /tmp/commit-msg.txt
-        echo '...' > /tmp/foo.txt
-
-    Only approves when the command uses printf/echo (content-producing
-    commands) and writes exclusively to /tmp/.  Does not approve if
-    the command contains additional shell operators like ;, &&, ||
-    that could chain arbitrary commands.
-    """
-    # Reject commands with chaining operators (;, &&, ||) outside quotes
-    # to prevent smuggling dangerous commands
-    in_single = False
-    in_double = False
-    for i, c in enumerate(command):
-        if c == "'" and not in_double:
-            in_single = not in_single
-        elif c == '"' and not in_single:
-            in_double = not in_double
-        elif not in_single and not in_double:
-            if c == ';':
-                return False
-            if c in ('&', '|') and i + 1 < len(command):
-                next_c = command[i + 1]
-                if c == '&' and next_c == '&':
-                    return False
-                if c == '|' and next_c == '|':
-                    return False
-
-    stripped = command.strip()
-
-    # Pattern 1: printf/echo ... > /tmp/...
-    if re.match(r'^(?:printf|echo)\s+.*>\s*/tmp/', stripped):
-        return True
-
-    # Pattern 2: printf/echo ... | tee /tmp/...
-    if re.match(r'^(?:printf|echo)\s+.*\|\s*tee\s+/tmp/', stripped):
-        return True
-
-    return False
-
-
 def is_safe_readonly_gh_api(command: str) -> bool:
     """Check if the command is a read-only gh api command, optionally piped.
 
@@ -310,7 +264,7 @@ def main():
         if not command:
             sys.exit(0)
 
-        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command) or is_safe_readonly_git(command) or is_safe_tmp_write(command) or is_safe_readonly_gh_api(command):
+        if is_safe_command_substitution(command) or has_only_dash_separators_in_quotes(command) or is_safe_readonly_git(command) or is_safe_readonly_gh_api(command):
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",

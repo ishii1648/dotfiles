@@ -15,6 +15,37 @@ _mod.__name__ = "redirect_to_tools"
 _spec.loader.exec_module(_mod)
 
 has_command_substitution = _mod.has_command_substitution
+writes_to_tmp = _mod.writes_to_tmp
+
+
+class TestWritesToTmp(unittest.TestCase):
+    """/tmp/ 書き込みの検出。"""
+
+    def test_redirect_to_tmp(self):
+        self.assertTrue(writes_to_tmp("gh pr view 123 --json body -q '.body' > /tmp/pr-body.txt"))
+
+    def test_redirect_append_to_tmp(self):
+        self.assertTrue(writes_to_tmp("echo 'data' >> /tmp/log.txt"))
+
+    def test_tee_to_tmp(self):
+        self.assertTrue(writes_to_tmp("echo 'data' | tee /tmp/output.txt"))
+
+    def test_printf_to_tmp(self):
+        self.assertTrue(writes_to_tmp("printf 'hello' > /tmp/msg.txt"))
+
+    def test_redirect_to_project_dir(self):
+        """プロジェクト内への出力は許可。"""
+        self.assertFalse(writes_to_tmp("echo 'data' > .outputs/claude/result.txt"))
+
+    def test_no_redirect(self):
+        self.assertFalse(writes_to_tmp("ls -la /tmp"))
+
+    def test_tmp_in_read_path(self):
+        """読み取りのみの /tmp/ パスは許可。"""
+        self.assertFalse(writes_to_tmp("cat /tmp/foo.txt"))
+
+    def test_redirect_to_other_path(self):
+        self.assertFalse(writes_to_tmp("echo 'data' > /var/log/app.log"))
 
 
 class TestCommandSubstitutionBasic(unittest.TestCase):

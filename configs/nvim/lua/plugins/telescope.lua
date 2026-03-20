@@ -20,7 +20,8 @@ return {
             "bash",
             "-c",
             "fd --type f --strip-cwd-prefix --hidden; "
-              .. "fd --type f --hidden --no-ignore-vcs . .outputs/claude 2>/dev/null || true",
+              .. "fd --type f --hidden --no-ignore-vcs . .outputs/claude 2>/dev/null || true; "
+              .. "fd --type f --hidden --no-ignore-vcs . tickets 2>/dev/null || true",
           },
         },
       },

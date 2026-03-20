@@ -22,6 +22,7 @@ Redirect rules:
   python <外部パス>.py  → Read/Grep/Edit/jq
   mkdir       → Write（ディレクトリ自動作成）
   cp          → Read + Write
+  > /tmp/...  → .outputs/claude/ に出力（プロジェクト内に出力を集約）
 """
 
 import json
@@ -178,6 +179,19 @@ def has_command_substitution(command: str) -> bool:
         i += 1
 
     return False
+
+
+def writes_to_tmp(command_str: str) -> bool:
+    """Check if the command writes to /tmp/ via redirect or tee.
+
+    Matches patterns like:
+        gh pr view 123 --json body -q '.body' > /tmp/pr-body.txt
+        printf 'hello' > /tmp/msg.txt
+        echo 'data' | tee /tmp/output.txt
+    """
+    return bool(re.search(r">\s*/tmp/", command_str)) or bool(
+        re.search(r"\btee\s+/tmp/", command_str)
+    )
 
 
 def has_stdout_redirect(command_str: str) -> bool:
@@ -395,6 +409,23 @@ def main():
                 "$() コマンド置換を含む Bash コマンドは使用しないでください。"
                 " $() の結果を変数に格納する Bash 呼び出しと、"
                 "その変数を使う Bash 呼び出しに分割してください。"
+            )
+            _write_deny_log(session_id, tool_name, reason)
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
+                }
+            }
+            print(json.dumps(output, ensure_ascii=False))
+            sys.exit(0)
+
+        # /tmp/ 書き込みチェック（split_chain の前にコマンド全体で検出）
+        if writes_to_tmp(command):
+            reason = (
+                "/tmp/ への書き込みではなく .outputs/claude/ に出力してください。"
+                " 例: > .outputs/claude/pr-body.txt"
             )
             _write_deny_log(session_id, tool_name, reason)
             output = {
