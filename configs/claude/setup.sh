@@ -36,8 +36,9 @@ if [[ -f "$SYNC_DEST" ]]; then
             fi
         done
         if [[ "$changed" == "true" ]]; then
+            cp "$SYNC_DEST" "${SYNC_DEST}.bk"
             mv "$tmp" "$SYNC_DEST"
-            echo "  managed-keys sync: updated (hooks, statusLine)"
+            echo "  managed-keys sync: updated (hooks, statusLine) [backup: ${SYNC_DEST}.bk]"
         else
             rm -f "$tmp"
             echo "  managed-keys sync: ✓ no changes"
@@ -71,6 +72,9 @@ if [[ "$DRY_RUN" == "true" ]]; then
 fi
 
 mkdir -p "$LAUNCH_AGENTS_DIR"
+if [[ -f "$PLIST_DEST" ]]; then
+    cp "$PLIST_DEST" "${PLIST_DEST}.bk"
+fi
 cp "$PLIST_SRC" "$PLIST_DEST"
 launchctl load "$PLIST_DEST"
 echo "  launchd agent: installed ($PLIST_DEST)"
