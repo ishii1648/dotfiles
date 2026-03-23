@@ -30,8 +30,15 @@ echo "$stdin_content" | grep -oE '#[0-9]+' | sort -u | while read -r match; do
     fi
 done
 
-# ステータスバーにのみ表示されている PR にも対応するため gh pr view で現在の PR を取得
-pr_output=$(cd "$pane_path" && gh pr view --json number,url -q '"\(.number) \(.url)"' 2>/dev/null)
+# ステータスバーにのみ表示されている PR にも対応するため PR 情報を取得
+# statusline.js が書くキャッシュを優先（ネットワーク遅延を回避）
+cache_key=$(echo -n "$pane_path" | md5)
+cache_file="/tmp/gh-pr-${cache_key}"
+if [ -f "$cache_file" ]; then
+    pr_output=$(cat "$cache_file")
+else
+    pr_output=$(cd "$pane_path" && gh pr view --json number,url -q '"\(.number) \(.url)"' 2>/dev/null)
+fi
 if [ -n "$pr_output" ]; then
     pr_num=$(echo "$pr_output" | cut -d' ' -f1)
     pr_url=$(echo "$pr_output" | cut -d' ' -f2)

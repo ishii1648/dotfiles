@@ -5,6 +5,7 @@ const https = require('https');
 const path = require('path');
 const readline = require('readline');
 const { execSync } = require('child_process');
+const crypto = require('crypto');
 
 // Constants
 // モデルIDに "[1m]" が含まれる場合は 1M context モデル
@@ -35,6 +36,16 @@ process.stdin.on('end', async () => {
     const isWorktree = isGitWorktree(cwd);
     const dirtyCount = getDirtyFileCount(cwd);
     const prInfo = getPrInfo(cwd);
+    // tmux-fzf-url フィルター用キャッシュ（gh pr view のネットワーク遅延を回避）
+    try {
+      const hash = crypto.createHash('md5').update(cwd).digest('hex');
+      const prCacheFile = `/tmp/gh-pr-${hash}`;
+      if (prInfo) {
+        fs.writeFileSync(prCacheFile, `${prInfo.number} ${prInfo.url}`);
+      } else if (fs.existsSync(prCacheFile)) {
+        fs.unlinkSync(prCacheFile);
+      }
+    } catch (e) {}
     const stdinRateLimits = parseStdinRateLimits(data.rate_limits);
     const rateLimitUsage = stdinRateLimits || await getRateLimitUsage();
     const sessionId = data.session_id;
