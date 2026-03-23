@@ -16,7 +16,11 @@ github_base=$(echo "$remote_url" | sed -E 's#git@github\.com:(.+)(\.git)?$#https
 branch=$(git -C "$pane_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "-")
 pane_cmd=$(tmux display-message -p '#{pane_current_command}' 2>/dev/null)
 
-grep -oE '#[0-9]+' | sort -u | while read -r match; do
+# stdin を変数に保持（2回使用するため）
+stdin_content=$(cat)
+
+# ペイン内容の #NNN パターンを処理
+echo "$stdin_content" | grep -oE '#[0-9]+' | sort -u | while read -r match; do
     num=${match#\#}
     # Claude Code セッションの場合のみブランチ名を表示
     if [[ "$pane_cmd" == "claude" ]]; then
@@ -25,3 +29,18 @@ grep -oE '#[0-9]+' | sort -u | while read -r match; do
         echo -e "\033[36m${github_base}/pull/${num}\033[0m"
     fi
 done
+
+# ステータスバーにのみ表示されている PR にも対応するため gh pr view で現在の PR を取得
+pr_output=$(cd "$pane_path" && gh pr view --json number,url -q '"\(.number) \(.url)"' 2>/dev/null)
+if [ -n "$pr_output" ]; then
+    pr_num=$(echo "$pr_output" | cut -d' ' -f1)
+    pr_url=$(echo "$pr_output" | cut -d' ' -f2)
+    # ペイン内容で既に出力済みの場合は重複しない
+    if ! echo "$stdin_content" | grep -qE "#${pr_num}([^0-9]|$)"; then
+        if [[ "$pane_cmd" == "claude" ]]; then
+            echo -e "\033[32m${branch}\033[0m \033[36m${pr_url}\033[0m"
+        else
+            echo -e "\033[36m${pr_url}\033[0m"
+        fi
+    fi
+fi
