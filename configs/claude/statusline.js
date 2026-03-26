@@ -76,7 +76,7 @@ process.stdin.on('end', async () => {
     }
 
     // Calculate percentage
-    const percentage = Math.min(100, Math.round((totalTokens / compactionThreshold) * 100));
+    const percentage = Math.min(100, Math.round((totalTokens / displayThreshold) * 100));
 
     // Format token display
     const tokenDisplay = formatTokenCount(totalTokens);
