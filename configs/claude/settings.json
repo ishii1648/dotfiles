@@ -151,29 +151,11 @@
         ]
       },
       {
-        "matcher": "Bash",
+        "matcher": "Skill",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/workflow-window-register.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; case \"$f\" in */tmux-sidebar/*.go) make -C /Users/sho-lab/ghq/github.com/ishii1648/tmux-sidebar install 2>/dev/null || true;; esac; }"
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "jq -r '.tool_input.file_path // \"\"' | { read -r f; case \"$f\" in */configs/tmux/tmux.conf) tmux source-file ~/.tmux.conf 2>/dev/null || true;; esac; }"
+            "command": "~/.claude/scripts/skill-call-counter.sh"
           }
         ]
       }

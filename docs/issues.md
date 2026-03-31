@@ -49,14 +49,7 @@
 | - | △ | ghostty / tmux | Ghostty AppleScript で Claude セッション常時俯瞰サイドバーを実現できるか未検証 — tmux レイヤー内では switch-client で消えるが Ghostty レベルの分割なら不変なはず | [ADR-047](adr/047-ghostty-applescript-claude-sidebar.md) |
 | ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
-| ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
-| - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
-| ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
-| ✔ | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
-| - | ○ | tmux / claude | tmux-sidebar（→ tmux-hub にリネーム予定）がモニタリング専用で新規タスク起動ができない — sidebar ペイン + popup の 2 層構造で監視・操作を一元化する | [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md) |
-| - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
-| ✔ | ○ | claude | workflow skill の session log が git 管理されておらずプロンプト改善に活用できない — Stop hook + マーカーファイル + 共通 skill で横断的に収集・コミットする | [ADR-058](adr/058-workflow-session-log-collection.md) |
-| ✔ | ○ | claude | dispatch が単一タスクでも planning Claude を起動しオーバーヘッドが大きい — dispatch/orchestrate に分離し、spawn を orchestrate に吸収する | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
+| - | ○ | claude | Skill ツールの呼び出し回数が把握できない — どのスキルが頻繁に使われているか分からず、改善優先度の判断ができない | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -612,124 +605,15 @@
 
 ---
 
-### ADR-050: tmux split-window + Fish スクリプトによる Claude セッションサイドバー
+### Skill 呼び出し回数計測
 
-**コンポーネント**: tmux / fish | **ADR**: [ADR-050](adr/050-tmux-split-window-fish-sidebar.md)
-
-**受け入れ条件**:
-
-- [x] `split-window -hfb` でサイドバー pane が左端に作成される
-- [x] サイドバーに各 Claude Code pane の状態（running / idle / permission / ask）が表示される
-- [x] `after-new-window` フックで新しいウィンドウにサイドバーが自動生成される
-- [x] toggle（`prefix+e` 等）で表示/非表示が切り替えられる
-- [x] セッション切り替え後もサイドバーが表示される
-- [x] ADR-007 の hooks（`claude-pane-state.sh`）が変更なく動作する
-- [x] `tmux.conf` の ADR-058 セクション（`claude-session-switch`、`claude-nav` カーソルモード）が削除される
-
----
-
-### ADR-051: Fish 実装不可要件を理由とした Go 製 tmux サイドバーツールへの移行
-
-**コンポーネント**: tmux / fish | **ADR**: [ADR-051](adr/051-go-tmux-sidebar-tool.md)
+**コンポーネント**: claude
 
 **受け入れ条件**:
 
-- [ ] `aqua.yaml` に `ishii1648/tmux-sidebar` エントリが追加され `aqua i` でバイナリがインストールされる
-- [ ] サイドバーに全 tmux session + window が階層表示される（Claude Code 以外のウィンドウも含む）
-- [ ] Claude Code が存在するウィンドウに状態バッジが表示される（running / idle / permission / ask）
-- [ ] `j/k` または矢印キーでウィンドウを選択できる
-- [ ] `Enter` で選択したウィンドウに `switch-client` + `select-window` で移動できる
-- [ ] 通常のペイン移動キー（`prefix+hjkl` 等）でサイドバーがフォーカスされない
-- [ ] `prefix+e` でサイドバーの表示/非表示が切り替えられる
-- [ ] `after-new-window` フックで各ウィンドウにサイドバーが自動生成される
-- [ ] `configs/fish/functions/claude-sidebar.fish` が削除される（Go バイナリに置換）
-- [ ] `configs/fish/functions/claude-sidebar-create.fish` が `tmux-sidebar` バイナリを起動するよう更新される
+- [ ] Skill ツールが呼び出されるたびに `~/.claude/skill-metrics/counts.jsonl` にログが追記される
+- [ ] ログの各行は `{"skill": "<name>", "timestamp": "<ISO8601>"}` の JSONL 形式である
+- [ ] `~/.claude/scripts/skill-stats.sh` を実行するとスキル別呼び出し回数が降順で表示される
+- [ ] `configs/claude/settings.json` の PostToolUse フックに Skill マッチャーが追加されている
+- [ ] フックスクリプト `~/.claude/scripts/skill-call-counter.sh` が実行可能ファイルとして配置されている
 
----
-
-### ADR-052: オーケストレーション機能を dotfiles skill として実装する
-
-**コンポーネント**: tmux / claude | **ADR**: [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md)
-
-**受け入れ条件**:
-
-- [x] `configs/claude/skills/orchestrate/skill.md` が作成され、`configs/claude/setup.sh` 実行後に `~/.claude/skills/orchestrate` へ symlink される
-- [x] symlink 経由で `/orchestrate` として呼び出せる
-- [x] `feature` / `bugfix` / `refactor` / `security` / `custom` のワークフロータイプが動作する
-- [x] tmux/worktree モードで各ワーカーが別ペインで起動する
-- [x] `prefix+s` の tmux popup にワーカー一覧（planner / code-reviewer / tdd-guide 等）と状態バッジ（running / idle / ask）が表示される
-
----
-
-### ADR-054: dispatch skill — spawn/orchestrate を統合した単一エントリポイント
-
-**コンポーネント**: claude | **ADR**: [ADR-054](adr/054-dispatch-skill-unified-entry-point.md)
-
-**受け入れ条件**:
-
-- [x] `/dispatch "<タスク記述>"` で worktree 作成から Claude セッション起動まで完結する
-- [x] `/dispatch --issue <番号>` で `docs/issues.md` の課題を参照してタスクを起動できる
-- [x] `/dispatch --dry-run` で実行計画（worktree 数・戦略・各ワーカーの役割）が表示されるが実際の起動は行われない
-- [x] `/dispatch cleanup <session>` で起動済みセッションと worktree を削除できる
-- [x] `configs/claude/setup.sh` 実行後に `~/.claude/skills/dispatch` として呼び出せる
-- [x] meta planner がタスク記述を受け取り、サブタスクの並列可能性を分析して実行戦略（single/parallel/pipeline/hybrid）を決定する
-- [x] meta planner の出力に worktree 名・ブランチ名・各ワーカーへのプロンプトが含まれる
-- [x] 単純なタスクに対して over-provision（full orchestrate 相当）にならない（単発判定が正しく機能する）
-- [x] 複雑なタスクに対して under-provision（単発判定）にならない（並列/パイプライン判定が機能する）
-
----
-
-### ADR-056: tmux-hub を並列作業の監視・操作ハブとして使用する
-
-**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md)
-
-**受け入れ条件**:
-
-- [ ] tmux-sidebar を tmux-hub にリネームする（リポジトリ名・バイナリ名・設定参照）
-- [ ] ghq 管理下の全リポジトリを既存セッションツリー表示にマージする（未起動 repo は `—` マークで区別）
-- [ ] 未起動 repo で `Enter` を押すと新規 tmux session を作成して移動する
-- [ ] `n` キーで `display-popup -w 80%` が開き task description を入力して dispatch を起動できる（sidebar ペイン幅の制約を回避）
-- [ ] `d` キーで選択中の dispatch session を cleanup できる（`/dispatch cleanup <session-id>` 相当）
-- [ ] `cmd+shift+s` が tmux-hub トグルになり、`tmw_pick` popup binding は削除される
-- [ ] `tmw_pick.fish` が廃止される
-- [ ] tmux-hub（sidebar ペイン + popup）で「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
-
----
-
-### ADR-057: stacked PRs — dispatch と分離した PR 依存管理コンポーネント
-
-**コンポーネント**: claude | **ADR**: [ADR-057](adr/057-stacked-prs-dependency-management.md)
-
-**受け入れ条件**:
-
-- [ ] dispatch の meta planner 出力フォーマットに `base_branch` / `merge_order` フィールドが含まれる
-- [ ] `merge_order` が付与された worktree セットに対して PR1 マージ後に PR2 の rebase と push が自動実行される
-- [ ] dispatch skill 自体は PR 依存の監視・実行を担わない（責務境界が維持される）
-
----
-
-### ADR-058: workflow skill の session log 収集と commit の体系化
-
-**コンポーネント**: claude | **ADR**: [ADR-058](adr/058-workflow-session-log-collection.md)
-
-**受け入れ条件**:
-
-- [x] dispatch が worker を起動するとき `dispatch-new-worker-window.sh` がペンディングコンテキストを書き込み、SessionStart hook がマーカーを生成する（Mode B）
-- [x] Stop hook（`workflow-session-log.sh`）がマーカー確認後、`transcript_path` を `<repo_root>/docs/dispatch-logs/<workflow-session-id>/<role>.jsonl` にコピーする
-- [x] マーカーが存在しない通常セッションでは Stop hook が何もしない（exit 0）
-- [x] `/session-log commit <workflow-session-id>` で該当セッションの JSONL が git add + commit される
-- [x] `workflow-sessions.json` の `auto_log` に skill 名を追加するだけで、その skill が起動した tmux セッション内の claude セッションが自動ログ収集される（Mode C — skill 側の変更不要、tmux セッション名の設定不要）
-
----
-
-### ADR-059: dispatch / orchestrate の責務分離
-
-**コンポーネント**: claude | **ADR**: [ADR-059](adr/059-dispatch-orchestrate-split.md)
-
-**受け入れ条件**:
-
-- [x] `/dispatch` が planning Claude なしで 1 worktree + 1 worker を直接起動できる
-- [x] `/orchestrate` が現行 dispatch のフロー（meta planner → YAML → N worktree + N worker）を実行できる
-- [x] `/orchestrate --from-todo` で TODO.md ベースの並列実行ができる（旧 spawn 相当）
-- [x] spawn skill が削除されている
-- [x] `/dispatch cleanup` と `/orchestrate cleanup` がそれぞれのリソースを正しく削除できる
