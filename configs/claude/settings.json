@@ -36,11 +36,7 @@
           },
           {
             "type": "command",
-            "command": "test -n \"$SSH_CONNECTION\" && printf '[SSH環境] ホスト: %s, 接続元: %s' \"$(hostname)\" \"$(echo $SSH_CONNECTION | cut -d' ' -f1)\""
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/workflow-skill-detect.sh"
+            "command": "test -n \"$SSH_CONNECTION\" && printf '[SSH環境] ホスト: %s, 接続元: %s' \"$(hostname)\" \"$(echo $SSH_CONNECTION | cut -d' ' -f1)\"; exit 0"
           }
         ]
       }
