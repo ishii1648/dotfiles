@@ -9,7 +9,7 @@ COUNTS_FILE="$METRICS_DIR/counts.jsonl"
 
 input=$(cat)
 
-skill=$(printf '%s' "$input" | jq -r '.tool_input.skill_name // empty')
+skill=$(printf '%s' "$input" | jq -r '.tool_input.skill // empty')
 
 if [ -z "$skill" ]; then
     exit 0
