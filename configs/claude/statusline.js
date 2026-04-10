@@ -340,49 +340,60 @@ async function getRateLimitUsage() {
     // cache miss
   }
 
-  let token;
+  // Keychain/credentials から全トークン候補を収集
+  const tokens = [];
   try {
-    let cred;
     if (process.platform === 'darwin') {
-      // macOS: Keychain から読み出し
-      const raw = execSync('security find-generic-password -s "Claude Code-credentials" -w', {
+      const dump = execSync('security dump-keychain 2>&1', {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
         timeout: 3000
-      }).trim();
-      cred = JSON.parse(raw);
+      });
+      const svcMatches = [...dump.matchAll(/"(Claude Code-credentials[^"]*)"/g)].map(m => m[1]);
+      for (const svc of svcMatches) {
+        try {
+          const raw = execSync(`security find-generic-password -s "${svc}" -w`, {
+            encoding: 'utf8',
+            stdio: ['pipe', 'pipe', 'pipe'],
+            timeout: 3000
+          }).trim();
+          const parsed = JSON.parse(raw);
+          const t = parsed.claudeAiOauth?.accessToken;
+          if (t) tokens.push(t);
+        } catch (_) {}
+      }
     } else {
-      // Linux: credentials.json から読む
       const credPath = path.join(process.env.HOME, '.claude', '.credentials.json');
-      cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+      const cred = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+      const t = cred.claudeAiOauth?.accessToken;
+      if (t) tokens.push(t);
     }
-    token = cred.claudeAiOauth?.accessToken;
   } catch (e) {
     return null;
   }
 
-  if (!token) return null;
-
-  try {
-    const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
-      'Authorization': `Bearer ${token}`,
-      'anthropic-beta': 'oauth-2025-04-20',
-    });
-    const data = JSON.parse(responseStr);
-    if (data.error) {
-      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), error: true }));
-      return null;
-    }
-    const result = {
-      fiveHour: data.five_hour?.utilization ?? null,
-      sevenDay: data.seven_day?.utilization ?? null,
-      monthly: data.extra_usage?.is_enabled ? (data.extra_usage?.utilization ?? null) : null,
-    };
-    fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
-    return result;
-  } catch (e) {
-    return null;
+  // 各トークンで API を試し、成功したものを返す
+  for (const token of tokens) {
+    try {
+      const responseStr = await httpsGet('https://api.anthropic.com/api/oauth/usage', {
+        'Authorization': `Bearer ${token}`,
+        'anthropic-beta': 'oauth-2025-04-20',
+      });
+      const data = JSON.parse(responseStr);
+      if (data.error) continue;
+      const result = {
+        fiveHour: data.five_hour?.utilization ?? null,
+        sevenDay: data.seven_day?.utilization ?? null,
+        monthly: data.extra_usage?.is_enabled ? (data.extra_usage?.utilization ?? null) : null,
+      };
+      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
+      return result;
+    } catch (_) {}
   }
+
+  // 全トークン失敗
+  fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), error: true }));
+  return null;
 }
 
 function coloredBar(pct, width) {
