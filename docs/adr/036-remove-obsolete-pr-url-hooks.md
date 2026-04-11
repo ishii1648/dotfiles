@@ -79,6 +79,6 @@ Stop hook のエントリ（`settings.json`）も `session-index-stop.sh` 用に
 
 ## 関連 ADR
 
-- 部分廃止: [ADR-011](011-claude-session-index.md)（PostToolUse / Stop hook による PR URL 収集を削除）
-- 部分廃止: [ADR-039](039-session-index-pr-url-backfill-on-stop.md)（Stop hook のトランスクリプトスキャンを削除）
-- 依存: [ADR-040](040-session-index-pr-url-backfill-cron-batch.md)（cron バッチ方式への移行）
+- 部分廃止: ADR-011（PostToolUse / Stop hook による PR URL 収集を削除、番号詰めにより削除済み）
+- 部分廃止: ADR-039（Stop hook のトランスクリプトスキャンを削除、番号詰めにより削除済み）
+- 依存: ADR-040（cron バッチ方式への移行、番号詰めにより削除済み）

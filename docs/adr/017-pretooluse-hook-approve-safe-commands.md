@@ -6,8 +6,8 @@
 
 ## 関連 ADR
 
-- [ADR-006](006-claude-code-custom-slash-commands.md) — PreToolUse hook 関連
-- [ADR-008](008-claude-code-pretooluse-hook.md) — PreToolUse hook 関連
+- [ADR-006](006-pretooluse-hook-bash-permissions.md) — PreToolUse hook 関連
+- [ADR-008](008-pretooluse-hook-redirect-to-tools.md) — PreToolUse hook 関連
 
 ## コンテキスト
 

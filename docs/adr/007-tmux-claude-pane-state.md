@@ -6,7 +6,7 @@
 
 ## 関連 ADR
 
-- [ADR-003](./003-tmux-claude-notification.md) — 通知の仕組みを状態バッジに発展
+- [ADR-003](./003-tmux-notification-click.md) — 通知の仕組みを状態バッジに発展
 
 ## コンテキスト
 

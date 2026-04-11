@@ -6,7 +6,7 @@
 
 ## 関連 ADR
 
-- [ADR-023](023-tmux-nested-remote-architecture.md) — ネスト構成が前提
+- [ADR-023](023-tmux-nested-architecture-decision.md) — ネスト構成が前提
 
 ## コンテキスト
 
