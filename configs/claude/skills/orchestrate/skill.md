@@ -77,8 +77,9 @@ version: 0.1.0
 
 1. **git worktree を作成する**:
    ```
-   git -C <repo-root> worktree add .orchestrate/<session-name>/<agent> -b orch/<session-name>/<agent>
+   git -C <repo-root> worktree add .orchestrate/<session-name>/<session-name>-<agent> -b orch/<session-name>/<agent>
    ```
+   - worktree のバセネームに `<session-name>-` を付けることで、複数セッション間で同名エージェントが `.git/worktrees/` でコンフリクトしないようにする
 
 2. **tmux ウィンドウを作成する**（ウィンドウ名 = エージェント名）:
    - 最初のエージェント: セッションごと作成
@@ -160,8 +161,8 @@ tmux send-keys -t <session-name>:<agent> "あなたは <agent> エージェン�
 タスク: <task-description>
 
 ワーカー:
-  0: planner      → .orchestrate/<session-name>/planner/
-  1: tdd-guide    → .orchestrate/<session-name>/tdd-guide/
+  0: planner      → .orchestrate/<session-name>/<session-name>-planner/
+  1: tdd-guide    → .orchestrate/<session-name>/<session-name>-tdd-guide/
   ...
 
 確認方法:
