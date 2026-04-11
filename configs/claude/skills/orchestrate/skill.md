@@ -127,6 +127,11 @@ tmux send-keys -t <session-name>:<agent> "あなたは <agent> エージェン�
 <repo-root>/.orchestrate/<session-name>/HANDOFF-<agent>-to-<next-agent>.md
 ```
 
+- `<agent>` が `tdd-guide` / `code-reviewer` / `security-reviewer` の場合は、プロンプト末尾に以下を追記する:
+```
+作業対象を独立したコンポーネント・ファイル単位に分割できる場合は、Agent ツールでサブエージェントを起動して並列実装してください。依存関係のある部分は逐次処理してください。
+```
+
 **最後のエージェント向け:**
 ```
 あなたは <agent> エージェントです。
@@ -138,6 +143,11 @@ tmux send-keys -t <session-name>:<agent> "あなたは <agent> エージェン�
 
 作業完了後、最終レポートを以下のパスに作成してください:
 <repo-root>/.orchestrate/<session-name>/FINAL-REPORT.md
+```
+
+- `<agent>` が `tdd-guide` / `code-reviewer` / `security-reviewer` の場合は、プロンプト末尾に以下を追記する:
+```
+作業対象を独立したコンポーネント・ファイル単位に分割できる場合は、Agent ツールでサブエージェントを起動して並列実装してください。依存関係のある部分は逐次処理してください。
 ```
 
 ### Step 4: 起動確認と案内
