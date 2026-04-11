@@ -9,8 +9,8 @@ function claude-sidebar
         # カーソルを左上に移動してから上書き（ちらつき防止）
         tput cup 0 0
 
-        printf "\033[1;36m Claude Sessions\033[0m\n"
-        printf " ─────────────────\n"
+        printf "\033[1;36m Claude Sessions\033[0m\033[K\n"
+        printf " ─────────────────\033[K\n"
 
         set -l has_entry false
 
@@ -33,20 +33,20 @@ function claude-sidebar
 
             switch $state
                 case running
-                    printf " \033[32m▶\033[0m %-20s \033[32mrunning\033[0m\n" $location
+                    printf " \033[32m▶\033[0m %-20s \033[32mrunning\033[0m\033[K\n" $location
                 case permission
-                    printf " \033[33m!\033[0m %-20s \033[33mpermission\033[0m\n" $location
+                    printf " \033[33m!\033[0m %-20s \033[33mpermission\033[0m\033[K\n" $location
                 case ask
-                    printf " \033[33m?\033[0m %-20s \033[33mask\033[0m\n" $location
+                    printf " \033[33m?\033[0m %-20s \033[33mask\033[0m\033[K\n" $location
                 case idle
-                    printf " \033[34m○\033[0m %-20s \033[34midle\033[0m\n" $location
+                    printf " \033[34m○\033[0m %-20s \033[34midle\033[0m\033[K\n" $location
                 case '*'
-                    printf " \033[90m·\033[0m %-20s \033[90m%s\033[0m\n" $location $state
+                    printf " \033[90m·\033[0m %-20s \033[90m%s\033[0m\033[K\n" $location $state
             end
         end
 
         if test $has_entry = false
-            printf " \033[90m(no active sessions)\033[0m\n"
+            printf " \033[90m(no active sessions)\033[0m\033[K\n"
         end
 
         # 前回の出力が長かった場合に残りの行をクリア
