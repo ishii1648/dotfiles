@@ -40,8 +40,11 @@ fi
 # タイムスタンプ管理: running 開始時に記録、それ以外で削除
 if [ "$STATE" = "running" ]; then
     # UserPromptSubmit (SOURCE空) → 常にリセット
-    # PostToolUse (SOURCE=post) → ファイルが無い場合のみ作成
-    if [ -z "$SOURCE" ] || [ ! -f "$STARTED_FILE" ]; then
+    # PostToolUse (SOURCE=post) + _started なし → 作成
+    # PostToolUse (SOURCE=post) + 直前が permission/ask → リセット（許可後の再開）
+    prev_state=$(cat "$PANE_FILE" 2>/dev/null)
+    if [ -z "$SOURCE" ] || [ ! -f "$STARTED_FILE" ] || \
+       [ "$prev_state" = "permission" ] || [ "$prev_state" = "ask" ]; then
         mkdir -p "$STATE_DIR"
         date +%s > "$STARTED_FILE"
     fi
