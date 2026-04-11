@@ -1,7 +1,8 @@
 ---
 name: orchestrate
 description: マルチエージェントオーケストレーションを実行する。feature/bugfix/refactor/security/custom のワークフロータイプを指定して各エージェントを tmux ウィンドウ + git worktree で起動し、ハンドオフ文書で引き継ぐ。「/orchestrate feature "新機能追加"」「/orchestrate bugfix」「orchestrate cleanup <session>」などで起動。
-argument-hint: "<workflow-type> [task] | custom <agents> [task] | cleanup <session>"
+argument-hint: "<feature|bugfix|refactor|security|custom> [task] | custom <agents> [task] | cleanup <session>"
+disable-model-invocation: true
 version: 0.1.0
 ---
 
