@@ -133,6 +133,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [047-ghostty-applescript-claude-sidebar.md](adr/047-ghostty-applescript-claude-sidebar.md)
 - [048-claude-autocompact-threshold-override.md](adr/048-claude-autocompact-threshold-override.md)
 - [050-tmux-split-window-fish-sidebar.md](adr/050-tmux-split-window-fish-sidebar.md)
+- [051-go-tmux-sidebar-tool.md](adr/051-go-tmux-sidebar-tool.md)
 
 ## Neovim プラグイン一覧
 

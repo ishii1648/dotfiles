@@ -2,7 +2,10 @@
 
 ## ステータス
 
-採用済み
+部分廃止（ADR-051 で一部変更）
+
+- **変更された決定**: 「案C: Rust/Go 自前実装（却下）」→ ADR-051 で Go 実装を採用
+- **引き続き有効な決定**: `split-window -hfb` によるサイドバー配置・`@pane_role = "sidebar"` による識別・`after-new-window` フックによる自動生成・`prefix+e` で toggle という構成全般
 
 ## 関連 ADR
 

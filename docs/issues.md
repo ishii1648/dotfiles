@@ -50,6 +50,7 @@
 | ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
 | ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
+| - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -618,4 +619,23 @@
 - [x] セッション切り替え後もサイドバーが表示される
 - [x] ADR-007 の hooks（`claude-pane-state.sh`）が変更なく動作する
 - [x] `tmux.conf` の ADR-058 セクション（`claude-session-switch`、`claude-nav` カーソルモード）が削除される
+
+---
+
+### ADR-051: Fish 実装不可要件を理由とした Go 製 tmux サイドバーツールへの移行
+
+**コンポーネント**: tmux / fish | **ADR**: [ADR-051](adr/051-go-tmux-sidebar-tool.md)
+
+**受け入れ条件**:
+
+- [ ] `aqua.yaml` に `ishii1648/tmux-sidebar` エントリが追加され `aqua i` でバイナリがインストールされる
+- [ ] サイドバーに全 tmux session + window が階層表示される（Claude Code 以外のウィンドウも含む）
+- [ ] Claude Code が存在するウィンドウに状態バッジが表示される（running / idle / permission / ask）
+- [ ] `j/k` または矢印キーでウィンドウを選択できる
+- [ ] `Enter` で選択したウィンドウに `switch-client` + `select-window` で移動できる
+- [ ] 通常のペイン移動キー（`prefix+hjkl` 等）でサイドバーがフォーカスされない
+- [ ] `prefix+e` でサイドバーの表示/非表示が切り替えられる
+- [ ] `after-new-window` フックで各ウィンドウにサイドバーが自動生成される
+- [ ] `configs/fish/functions/claude-sidebar.fish` が削除される（Go バイナリに置換）
+- [ ] `configs/fish/functions/claude-sidebar-create.fish` が `tmux-sidebar` バイナリを起動するよう更新される
 
