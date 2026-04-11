@@ -14,7 +14,7 @@ function claude-sidebar
 
         set -l has_entry false
 
-        for f in $state_dir/pane_[0-9]*
+        for f in $state_dir/pane_*
             # _started サフィックスのファイルはスキップ
             string match -q "*_started" $f; and continue
             test -f $f; or continue
@@ -25,7 +25,7 @@ function claude-sidebar
             test -z "$state"; and continue
 
             # pane が実際に存在するか確認し、session:window 情報を取得
-            set -l pane_info (tmux list-panes -a -F "#{pane_id} #{session_name}:#{window_index}" 2>/dev/null | string match -r "^$pane_id .*")
+            set -l pane_info (tmux list-panes -a -F "#{pane_id} #{session_name}:#{window_name}" 2>/dev/null | string match -r "^$pane_id .*")
             test -z "$pane_info"; and continue
 
             set -l location (string split " " -- $pane_info)[2]
