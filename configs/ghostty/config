@@ -50,7 +50,7 @@ keybind = super+u=text:\x00u
 keybind = super+t=text:\x00c
 keybind = super+w=text:\x00x
 keybind = super+shift+w=close_surface
-keybind = super+s=text:\x00s
+keybind = super+s=text:\x1b[115;9~
 keybind = super+shift+s=text:\x00S
 
 # tmux ウィンドウ移動 (Ctrl+Tab / Ctrl+Shift+Tab → CSI u シーケンス)
