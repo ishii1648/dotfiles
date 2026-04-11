@@ -49,6 +49,7 @@
 | - | △ | ghostty / tmux | Ghostty AppleScript で Claude セッション常時俯瞰サイドバーを実現できるか未検証 — tmux レイヤー内では switch-client で消えるが Ghostty レベルの分割なら不変なはず | [ADR-047](adr/047-ghostty-applescript-claude-sidebar.md) |
 | ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
+| ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -601,4 +602,20 @@
 - [x] prtrack session 内で ESC を押すと直前の session に戻る（`switch-client -l`）
 - [x] cmd+s の session 一覧に prtrack session が表示されない
 - [x] prtrack 終了後も session が残り、再度 Cmd+g で prtrack が再起動される
+
+---
+
+### ADR-050: tmux split-window + Fish スクリプトによる Claude セッションサイドバー
+
+**コンポーネント**: tmux / fish | **ADR**: [ADR-050](adr/050-tmux-split-window-fish-sidebar.md)
+
+**受け入れ条件**:
+
+- [x] `split-window -hfb` でサイドバー pane が左端に作成される
+- [x] サイドバーに各 Claude Code pane の状態（running / idle / permission / ask）が表示される
+- [x] `after-new-window` フックで新しいウィンドウにサイドバーが自動生成される
+- [x] toggle（`prefix+e` 等）で表示/非表示が切り替えられる
+- [x] セッション切り替え後もサイドバーが表示される
+- [x] ADR-007 の hooks（`claude-pane-state.sh`）が変更なく動作する
+- [x] `tmux.conf` の ADR-058 セクション（`claude-session-switch`、`claude-nav` カーソルモード）が削除される
 

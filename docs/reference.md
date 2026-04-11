@@ -132,6 +132,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [046-statusbar-popup-role-separation.md](adr/046-statusbar-popup-role-separation.md)
 - [047-ghostty-applescript-claude-sidebar.md](adr/047-ghostty-applescript-claude-sidebar.md)
 - [048-claude-autocompact-threshold-override.md](adr/048-claude-autocompact-threshold-override.md)
+- [050-tmux-split-window-fish-sidebar.md](adr/050-tmux-split-window-fish-sidebar.md)
 
 ## Neovim プラグイン一覧
 
