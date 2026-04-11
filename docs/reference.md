@@ -134,6 +134,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [048-claude-autocompact-threshold-override.md](adr/048-claude-autocompact-threshold-override.md)
 - [050-tmux-split-window-fish-sidebar.md](adr/050-tmux-split-window-fish-sidebar.md)
 - [051-go-tmux-sidebar-tool.md](adr/051-go-tmux-sidebar-tool.md)
+- [052-ecc-orchestrate-for-tmux-sidebar.md](adr/052-ecc-orchestrate-for-tmux-sidebar.md)
 
 ## Neovim プラグイン一覧
 

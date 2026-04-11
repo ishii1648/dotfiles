@@ -51,7 +51,7 @@
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
 | ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
 | - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
-| - | ○ | tmux / claude | tmux-sidebar にオーケストレーション進捗表示を追加するフレームワークを選定する — ECC /orchestrate（tmux ネイティブ）と cmux omc（Ghostty アプリ）を比較し ECC を採用 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
+| ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -642,14 +642,15 @@
 
 ---
 
-### ADR-052: tmux-sidebar オーケストレーションビューへの ECC orchestrate 採用
+### ADR-052: オーケストレーション機能を dotfiles skill として実装する
 
 **コンポーネント**: tmux / claude | **ADR**: [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md)
 
 **受け入れ条件**:
 
-- [ ] `ishii1648/tmux-sidebar` に `internal/state/orchestration.go` が追加され、`orchestration-status.js` の JSON 出力をパースできる
-- [ ] `internal/ui/model.go` に orchestration view が追加され、ワーカー一覧（planner / code-reviewer / tdd-guide 等）が表示される
-- [ ] 各ワーカーの状態バッジ（running / idle / permission / ask）が ADR-007 の pane_state と連動して表示される
-- [ ] ECC の tmux/worktree モード（`orchestrate-worktrees.js --execute`）実行中にサイドバーでワーカー進捗が確認できる
+- [x] `configs/claude/skills/orchestrate/skill.md` が作成され、`configs/claude/setup.sh` 実行後に `~/.claude/skills/orchestrate` へ symlink される
+- [x] symlink 経由で `/orchestrate` として呼び出せる
+- [x] `feature` / `bugfix` / `refactor` / `security` / `custom` のワークフロータイプが動作する
+- [x] tmux/worktree モードで各ワーカーが別ペインで起動する
+- [x] `prefix+s` の tmux popup にワーカー一覧（planner / code-reviewer / tdd-guide 等）と状態バッジ（running / idle / ask）が表示される
 

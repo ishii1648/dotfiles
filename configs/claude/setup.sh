@@ -66,6 +66,44 @@ else
     echo "  managed-keys sync: SKIP (dest not found)"
 fi
 
+# --- skills symlinks ---
+SKILLS_SRC="$SCRIPT_DIR/skills"
+SKILLS_DEST="$HOME/.claude/skills"
+
+if [[ -d "$SKILLS_SRC" ]]; then
+    if [[ "$DRY_RUN" == "true" ]]; then
+        shopt -s nullglob
+        for skill_dir in "$SKILLS_SRC"/*/; do
+            skill_name=$(basename "$skill_dir")
+            link="$SKILLS_DEST/$skill_name"
+            if [[ -L "$link" && "$(readlink "$link")" == "$skill_dir" ]]; then
+                echo "  skill symlink: ✓ OK ($skill_name)"
+            elif [[ -L "$link" ]]; then
+                echo "  skill symlink: WARN: $skill_name → wrong target"
+            else
+                echo "  skill symlink: WARN: $skill_name not linked"
+            fi
+        done
+        shopt -u nullglob
+    else
+        mkdir -p "$SKILLS_DEST"
+        shopt -s nullglob
+        for skill_dir in "$SKILLS_SRC"/*/; do
+            skill_name=$(basename "$skill_dir")
+            link="$SKILLS_DEST/$skill_name"
+            if [[ -L "$link" ]]; then
+                echo "  skill symlink: ✓ OK ($skill_name)"
+            else
+                ln -s "$skill_dir" "$link"
+                echo "  skill symlink: created → $skill_name"
+            fi
+        done
+        shopt -u nullglob
+    fi
+else
+    echo "  skills symlink: SKIP (no configs/claude/skills directory)"
+fi
+
 # --- launchd agent ---
 PLIST_NAME="com.user.session-index-backfill.plist"
 PLIST_SRC="$SCRIPT_DIR/launchd/$PLIST_NAME"
