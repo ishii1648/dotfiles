@@ -714,8 +714,8 @@
 
 **受け入れ条件**:
 
-- [x] dispatch が worker を起動するとき `dispatch-new-worker-window.sh` がペンディングコンテキストを書き込み、SessionStart hook がマーカーを生成する
+- [x] dispatch が worker を起動するとき `dispatch-new-worker-window.sh` がペンディングコンテキストを書き込み、SessionStart hook がマーカーを生成する（Mode B）
 - [x] Stop hook（`workflow-session-log.sh`）がマーカー確認後、`transcript_path` を `<repo_root>/docs/dispatch-logs/<workflow-session-id>/<role>.jsonl` にコピーする
 - [x] マーカーが存在しない通常セッションでは Stop hook が何もしない（exit 0）
 - [x] `/session-log commit <workflow-session-id>` で該当セッションの JSONL が git add + commit される
-- [x] `workflow-sessions.json` の `auto_log` にパターンを追加した tmux セッション（spawn-* 等）で claude が起動すると SessionStart hook が自動でマーカーを生成する（skill 側の変更不要）
+- [ ] `workflow-sessions.json` の `auto_log` に skill 名を追加するだけで、その skill が起動した tmux セッション内の claude セッションが自動ログ収集される（Mode C — skill 側の変更不要、tmux セッション名の設定不要）
