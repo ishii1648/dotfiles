@@ -10,7 +10,7 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
-| Claude Code skills | `configs/claude/skills/` | dispatch（軽量版）・orchestrate（計画+並列実行）など |
+| Claude Code skills | `configs/claude/skills/` | dispatch（軽量版）・orchestrate（エージェントチェーン順次実行）など |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
@@ -41,10 +41,10 @@
 | 役割 | コンポーネント | 実装状況 | 関連 ADR |
 |---|---|---|---|
 | 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
-| 計画+並列タスク起動（N worktree + N worker） | `/orchestrate` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
+| エージェントチェーン順次実行（1 worktree + N agent） | `/orchestrate` skill | 実装済み | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
-| dispatch/orchestrate 起動ランチャー | popup ランチャー（実装方式未定） | 設計中 | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
+| dispatch/orchestrate 起動ランチャー | popup ランチャー（`dispatch_launcher.fish`） | 実装済み | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
 
 dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
 
@@ -68,13 +68,16 @@ dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リ
 /dispatch skill（軽量版）
   └─ 1 worktree + 1 worker Claude を直接起動（planning なし）
 
-/orchestrate skill（計画+並列版）
-  └─ meta planner: タスク分解 → N worktree + N worker Claude 起動
-     └─ --from-todo: TODO.md ベースの並列実行（旧 spawn 相当）
+/orchestrate skill（エージェントチェーン版）
+  └─ ワークフロータイプ（feature/bugfix/refactor/security/custom）に応じた
+     エージェントチェーンを tmux wait-for で順次実行
+     例: planner → tdd-guide → code-reviewer → security-reviewer
+     └─ 1 worktree + N tmux ウィンドウ（各エージェント専用）
+     └─ ハンドオフ文書で引き継ぎ、advance ループで自動進行
         ↓
 tmux-sidebar: active session の監視・移動 UI (ADR-051)
 
-cmd+shift+s → popup ランチャー: dispatch/orchestrate 起動 (ADR-056, 設計中)
+cmd+shift+s → popup ランチャー: dispatch/orchestrate 起動 (ADR-056)
 ```
 
 **計画中の拡張（現行アーキテクチャのスコープ外）:**
@@ -117,10 +120,9 @@ ghq 管理リポジトリと既存 tmux セッションを統合した fzf セ�
 
 worktree 配置先: `<リポジトリ>@<worktree名>`（例: `dotfiles@feat-tmux`）
 
-### Worktree ピッカー — `tmw_pick`
+### dispatch/orchestrate ランチャー — `dispatch_launcher`
 
-`tmw_pick` は ghq リポジトリ一覧から fzf で選択し、デフォルトでメインリポジトリで直接 tmux セッションを開く。
-`tmw_worktree_repos.conf` に記載されたリポジトリのみ worktree 名を入力して `gw_add` を呼ぶ（オプトイン）。
+`cmd+shift+s`（tmux prefix + S）で popup を開き、ghq リポジトリを fzf で選択、`ctrl-t` で dispatch/orchestrate を切替、タスク記述を入力して実行する（ADR-056）。dispatch モードは `dispatch.sh launch` を、orchestrate モードは tmux session + claude で `/orchestrate` を起動する。
 
 ### セットアップ
 
