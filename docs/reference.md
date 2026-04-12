@@ -38,34 +38,33 @@
 
 実装済みコンポーネントと設計中コンポーネントを以下に示す。
 
+**現行の実装済みコンポーネント:**
+
 | 役割 | コンポーネント | 実装状況 | 関連 ADR |
 |---|---|---|---|
 | タスク起動の統合エントリポイント | `/dispatch` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
 | タスク並列分散実行 | `/spawn` skill | 実装済み | — |
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
-| stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
-dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS-XXXX` 形式、XXXX は衝突回避用4桁ランダム英数字）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。各セッションは `.dispatch/<session-name>/manifest.json` にリソース一覧（repo_root・worktree パス・ブランチ名・tmux セッション名）を記録し、cleanup はこのマニフェストを参照して安全にリソースを特定する。
+dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS-XXXX` 形式、XXXX は衝突回避用4桁ランダム英数字）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。各セッションは `.dispatch/<session-name>/manifest.json` にリソース一覧と作成状態を記録し、cleanup はマニフェストを検証してから安全に削除する（パス境界・ブランチプレフィックス・セッション名の一致を確認し、不一致は fail-closed で中断）。
 
-**依存モデルの分離（設計上の意図）:**
-- `depends_on`: dispatch 内の実行順依存（worktree A が完了してから B を起動する）
-- `base_branch` + `merge_order`（ADR-057 で定義）: PR のマージ順序（monitoring agent が参照）
-- 現時点では dispatch skill が出力する計画 YAML に `base_branch`/`merge_order` フィールドは未実装。monitoring agent との統合インタフェースは ADR-057 以降で確定する。
+**残存する設計上の制限:**
+- 部分起動中断後の補償処理の手順が未定義（マニフェストで作成済みリソースは把握できるが、ロールバック手順は現状 cleanup コマンドの手動実行のみ）
 
-**残存する設計上の制限（ADR-057 以降で対処予定）:**
-- 部分起動中断時のロールバック手順が未定義（マニフェストで状態は把握できるが補償処理の手順がない）
-- stacked PR の `base_branch`/`merge_order` と monitoring agent との統合インタフェースが未確定
-
-目標アーキテクチャ（monitoring agent は未実装）:
+現行の並列実行アーキテクチャ:
 
 ```
 /dispatch skill
   └─ meta planner: タスク分解 → worktree + Claude session 起動
         ↓
 tmux-sidebar: 全 session 状態を表示・操作 UI として統合 (ADR-056)
-        ↓
-monitoring agent: PR マージ順管理・rebase 自動化 (ADR-057)
 ```
+
+**計画中の拡張（現行アーキテクチャのスコープ外）:**
+
+| 役割 | コンポーネント | 状況 | 関連 ADR |
+|---|---|---|---|
+| stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft）— 統合インタフェース未確定 | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
 ### 手動並列作業（従来）
 

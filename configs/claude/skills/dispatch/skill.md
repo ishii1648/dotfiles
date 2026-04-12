@@ -185,6 +185,7 @@ worktrees リストの各エントリについて順番に実行する:
        "session_name": "<session-name>",
        "repo_root": "<repo-root>",
        "created_at": "<ISO8601-timestamp>",
+       "creation_state": "partial",
        "strategy": "<strategy>",
        "task_summary": "<task_summary>",
        "worktrees": [
@@ -192,12 +193,15 @@ worktrees リストの各エントリについて順番に実行する:
            "name": "<worktree-name>",
            "path": "<repo-root>/.dispatch/<session-name>/<worktree-name>",
            "branch": "dispatch/<session-name>/<worktree-name>",
-           "created": true
+           "created": false
          }
        ],
        "tmux_session": "<session-name>"
      }
      ```
+   - `creation_state` は起動開始時 `"partial"` で書き込み、全ウィンドウ起動完了後に `"complete"` へ更新する
+   - 各 worktree の `"created"` は worktree 作成成功後に `true` へ更新する
+   - 中断時は `creation_state: "partial"` のまま残り、復旧時の基準となる
    - マニフェストが存在するセッションのみが cleanup 対象として安全に識別できる
 
 全 worktree 作成後、`planning` ウィンドウを削除する:
@@ -242,15 +246,20 @@ worktree:
 
 `/dispatch cleanup <session-name>` が指定された場合:
 
-**マニフェストからリソース情報を取得する（存在する場合）:**
-- `.dispatch/<session-name>/manifest.json` を Read して `repo_root`・`worktrees`・`tmux_session` を取得する
-- マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と警告を表示して続行する
+**Step 6-1: マニフェストの読み込みと検証（fail-closed）**
+- `.dispatch/<session-name>/manifest.json` を Read する
+- マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と表示して**中断する**
+- 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
+  1. `repo_root` が現在の `git rev-parse --show-toplevel` と一致すること
+  2. `worktrees[].path` がすべて `<repo_root>/.dispatch/<session-name>/` 配下であること
+  3. `worktrees[].branch` がすべて `dispatch/<session-name>/` プレフィックスを持つこと
+  4. `tmux_session` が `<session-name>` と一致すること
 
-**リソースを削除する（マニフェストのリソース一覧を基準とする）:**
+**Step 6-2: リソースの削除（`created: true` のもののみ）**
 1. tmux セッションを削除する: `tmux kill-session -t <tmux_session>`
-2. マニフェストの `worktrees[].path` に記載された各 worktree を削除する:
+2. マニフェストの `worktrees[].created == true` の各 worktree を削除する:
    - `git worktree remove --force <path>`
-3. マニフェストの `worktrees[].branch` に記載された各ブランチを削除する:
+3. マニフェストの `worktrees[].created == true` の各ブランチを削除する:
    - `git -C <repo_root> branch -D <branch>`
 4. worktree ディレクトリ（マニフェスト含む）を削除する: `rm -r <repo_root>/.dispatch/<session-name>`
 5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
