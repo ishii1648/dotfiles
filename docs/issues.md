@@ -53,7 +53,7 @@
 | - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 | ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
 | ✔ | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
-| - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
+| - | ○ | tmux / claude | tmux-sidebar（→ tmux-hub にリネーム予定）がモニタリング専用で新規タスク起動ができない — sidebar ペイン + popup の 2 層構造で監視・操作を一元化する | [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md) |
 | - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 | ✔ | ○ | claude | workflow skill の session log が git 管理されておらずプロンプト改善に活用できない — Stop hook + マーカーファイル + 共通 skill で横断的に収集・コミットする | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | ✔ | ○ | claude | dispatch が単一タスクでも planning Claude を起動しオーバーヘッドが大きい — dispatch/orchestrate に分離し、spawn を orchestrate に吸収する | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
@@ -679,21 +679,20 @@
 
 ---
 
-### ADR-056: tmux-sidebar を全リポジトリ統合管理 UI として使用する
+### ADR-056: tmux-hub を並列作業の監視・操作ハブとして使用する
 
-**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md)
+**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md)
 
 **受け入れ条件**:
 
-- [ ] sidebar が ghq 管理下の全リポジトリを表示する（未起動セッションを含む）
-- [ ] active session は状態バッジ（running/idle/ask）と dispatch 情報（strategy/worktree 数）付きで表示される
+- [ ] tmux-sidebar を tmux-hub にリネームする（リポジトリ名・バイナリ名・設定参照）
+- [ ] ghq 管理下の全リポジトリを既存セッションツリー表示にマージする（未起動 repo は `—` マークで区別）
 - [ ] 未起動 repo で `Enter` を押すと新規 tmux session を作成して移動する
-- [ ] `n` キーで選択中の repo に対して dispatch を起動できる（task description 入力 → `/dispatch --repo <repo>` 実行）
+- [ ] `n` キーで `display-popup -w 80%` が開き task description を入力して dispatch を起動できる（sidebar ペイン幅の制約を回避）
 - [ ] `d` キーで選択中の dispatch session を cleanup できる（`/dispatch cleanup <session-id>` 相当）
-- [ ] `n` キーで `display-popup -w 80%` が開き task description を入力して dispatch を起動できる（sidebar 幅の制約を回避）
-- [ ] `cmd+shift+s` が sidebar トグルになり、`tmw_pick` popup binding は削除される
+- [ ] `cmd+shift+s` が tmux-hub トグルになり、`tmw_pick` popup binding は削除される
 - [ ] `tmw_pick.fish` が廃止される
-- [ ] sidebar + popup の組み合わせで「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
+- [ ] tmux-hub（sidebar ペイン + popup）で「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
 
 ---
 
