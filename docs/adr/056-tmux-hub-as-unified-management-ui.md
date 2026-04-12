@@ -48,8 +48,6 @@ tmux-hub を「並列作業の統合管理ハブ」として位置づけ、リ�
 
 `tmw_pick` popup は廃止し、tmux-hub からの popup 呼び出しに一本化する。`cmd+shift+s` は tmux-hub の表示トグルに変更する。
 
-**統合の前提条件**: tmux-hub が ghq 管理下の全リポジトリ（未起動セッションを含む）を表示できること。現状は active tmux session のみ表示しており、セッションのないリポジトリへの dispatch 起動に対応できない。
-
 ## 設計
 
 ### UI 構造
