@@ -18,7 +18,7 @@
 | コンポーネント | 管理場所 |
 |---|---|
 | claudedog | `ishii1648/claudedog` — Claude Code の人の介入率を追跡・可視化する計測ツール |
-| tmux-hub | `ishii1648/tmux-sidebar`（→ tmux-hub にリネーム予定） — 並列作業の監視・操作ハブ（Go 製 TUI） |
+| tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI） |
 
 ## ツールスタック
 
@@ -43,7 +43,8 @@
 | 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | 計画+並列タスク起動（N worktree + N worker） | `/orchestrate` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
-| リポジトリ・session の統合管理ハブ | tmux-hub (`ishii1648/tmux-sidebar` → リネーム予定) | 監視・移動は実装済み / ghq 統合・dispatch 起動は設計中 | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md) |
+| session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
+| dispatch/orchestrate 起動ランチャー | popup ランチャー（実装方式未定） | 設計中 | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
 
 dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
 
@@ -71,8 +72,9 @@ dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リ
   └─ meta planner: タスク分解 → N worktree + N worker Claude 起動
      └─ --from-todo: TODO.md ベースの並列実行（旧 spawn 相当）
         ↓
-tmux-hub: ghq 全 repo + active session の監視・操作ハブ (ADR-056)
-          （ghq 統合・dispatch 起動は設計中 / リネーム予定）
+tmux-sidebar: active session の監視・移動 UI (ADR-051)
+
+cmd+shift+s → popup ランチャー: dispatch/orchestrate 起動 (ADR-056, 設計中)
 ```
 
 **計画中の拡張（現行アーキテクチャのスコープ外）:**

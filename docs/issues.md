@@ -50,7 +50,7 @@
 | ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
 | - | ○ | claude | Skill ツールの呼び出し回数が把握できない — どのスキルが頻繁に使われているか分からず、改善優先度の判断ができない | — |
-| - | ○ | tmux / claude | tmux-sidebar（→ tmux-hub にリネーム予定）がモニタリング専用で操作起動ができない — sidebar ペイン（監視）+ popup ランチャー（dispatch/orchestrate 起動）に分離して一元化する | [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md) |
+| - | ○ | tmux / claude | dispatch/orchestrate の起動に毎回ターミナルで手入力が必要 — popup ランチャーでリポジトリ選択・モード切替・prompt 入力を一箇所に集約する | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
 | - | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
@@ -638,18 +638,13 @@
 
 ---
 
-### ADR-056: tmux-hub を並列作業の監視・操作ハブとして使用する
+### ADR-056: dispatch/orchestrate popup ランチャー
 
-**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md)
+**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md)
 
 **受け入れ条件**:
 
-- [ ] tmux-sidebar を tmux-hub にリネームする（リポジトリ名・バイナリ名・設定参照）
-- [ ] sidebar ペインが ghq 管理下の全リポジトリを既存セッションツリーにマージ表示する（未起動 repo は `—` マークで区別）
-- [ ] sidebar ペインで未起動 repo に `Enter` すると新規 tmux session を作成して移動する
-- [ ] sidebar ペインで `d` キーにより選択中の dispatch session を cleanup できる
 - [ ] `cmd+shift+s` で popup ランチャーが開き、ghq リポジトリ一覧 + dispatch/orchestrate 切替が表示される
 - [ ] popup ランチャーでリポジトリ選択 → prompt 入力 → Enter で dispatch or orchestrate が実行される
-- [ ] `tmw_pick.fish` が廃止される
-- [ ] sidebar（監視・移動・cleanup）+ popup ランチャー（dispatch/orchestrate 起動）で並列作業管理が完結する
+- [ ] `tmw_pick.fish` が廃止され、`cmd+shift+s` が popup ランチャーに置き換わる
 
