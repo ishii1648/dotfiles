@@ -92,7 +92,7 @@ version: 0.1.0
 
 ```yaml
 strategy: parallel        # single / parallel / pipeline / hybrid
-session_name: dispatch-YYYYMMDD-HHMMSS
+session_name: dispatch-YYYYMMDD-HHMMSS-XXXX  # XXXX は4桁ランダム英数字（同一秒起動の衝突回避）
 task_summary: "<タスクの短い要約（30字以内）>"
 worktrees:
   - name: "<worktree-name>"
