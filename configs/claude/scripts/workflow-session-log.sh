@@ -7,6 +7,11 @@ set -euo pipefail
 
 INPUT=$(cat)
 
+# stdin が有効な JSON でない場合はスキップ
+if ! printf '%s' "$INPUT" | jq empty 2>/dev/null; then
+    exit 0
+fi
+
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
 TRANSCRIPT_PATH=$(printf '%s' "$INPUT" | jq -r '.transcript_path // empty')
 
