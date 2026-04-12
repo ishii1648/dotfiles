@@ -268,16 +268,22 @@ worktree:
   3. `worktrees[].branch` がすべて `dispatch/<session-name>/` プレフィックスを持つこと
   4. `tmux_session` が `<session-name>` と一致すること
 
-**Step 6-2: リソースの削除（`created: true` のもののみ）**
+**Step 6-2: 実際の状態との reconciliation（クラッシュ時に manifest 未更新のリソースを回収）**
+- `git -C <repo_root> worktree list --porcelain` で `<repo_root>/.dispatch/<session-slug>/` 配下のすべての worktree を列挙する
+- `git -C <repo_root> branch --list "dispatch/<session-name>/*"` でセッションに属するすべてのブランチを列挙する
+- これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session-slug>` スコープに属するリソースをすべて削除対象とする
+  - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
+
+**Step 6-3: リソースの削除**
 1. tmux セッションを削除する: `tmux kill-session -t <tmux_session>`
-2. マニフェストの `worktrees[].created == true` の各 worktree を削除する:
+2. reconciliation で特定したすべての worktree を削除する:
    - `git worktree remove --force <path>`
-3. マニフェストの `worktrees[].created == true` の各ブランチを削除する:
+3. reconciliation で特定したすべてのブランチを削除する:
    - `git -C <repo_root> branch -D <branch>`
 4. worktree ディレクトリを削除する: `rm -r <repo_root>/.dispatch/<session-slug>`
-   - マニフェストファイルを削除する: `rm -r ~/.dispatch/<session-slug>`
-5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
-6. role ファイルを削除する（該当セッションのペイン分のみ）
+5. マニフェストファイルを削除する: `rm -r ~/.dispatch/<session-slug>`
+6. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
+7. role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
 

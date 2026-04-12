@@ -44,14 +44,13 @@
 | タスク並列分散実行 | `/spawn` skill | 実装済み | — |
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
-dispatch 実行の識別子はセッション名（`<owner>/<repo>` 形式、同名衝突時は `-2`・`-3` サフィックスで回避）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる。各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-slug>/manifest.json` に記録され（エージェントによる改ざんを防ぐため）、cleanup はマニフェストを fail-closed 検証（パス境界・ブランチプレフィックス・セッション名の一致確認）してから削除する。
+dispatch 実行の識別子はセッション名（`<owner>/<repo>` 形式、同名衝突時は `-2`・`-3` サフィックスで回避）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる。各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-slug>/manifest.json` に記録される（エージェントによる改ざんを防ぐため）。cleanup はマニフェストを fail-closed 検証した上で、**実際の `git worktree list` および `git branch` と照合する reconciliation** を実行し、マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収する。
 
 **部分起動中断時の手動復旧手順:**
-1. `~/.dispatch/<session-slug>/manifest.json` を確認する（`created: true` のリソースのみ削除対象）
-2. `/dispatch cleanup <session-name>` を実行する（manifest ベースの安全な削除）
-3. 原因を確認してから `/dispatch` で再実行する（新規セッション名で起動）
+1. `/dispatch cleanup <session-name>` を実行する（reconciliation で実際の状態も確認して削除）
+2. 原因を確認してから `/dispatch` で再実行する（新規セッション名で起動）
 
-> 注: リトライは常に新しいセッション名で起動する（既存の partial セッションは resume しない）。孤立した partial セッションは cleanup コマンドで手動削除する。自動再試行・自動調整は未実装。
+> **既知の制限**: セッション名は `<owner>/<repo>` 形式だが、衝突回避の `-2`・`-3` サフィックスが別リポジトリ名と一致する可能性がある（例: `owner/repo-2` は `owner/repo` の 2 回目とも `owner/repo-2` リポジトリとも解釈できる）。この場合はセッション名を手動指定して衝突を回避する。自動再試行・自動調整は未実装。
 
 現行の並列実行アーキテクチャ:
 
