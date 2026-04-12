@@ -218,9 +218,27 @@ version: 0.5.0
 
    全 worktree 作成後、planning ウィンドウを**削除する前に**各ウィンドウで Claude を起動する:
 
-   1. **Bash ツール**で Claude Code を起動する:
+   1. **Bash ツール**で worker の UUID を生成する（1コマンド1呼び出し）:
       ```
-      tmux send-keys -t <session-name>:<name> "claude" Enter
+      uuidgen
+      ```
+      取得した UUID を `<worker-uuid>` として保持する。
+
+      **Write ツール**でマーカーファイルを書き込む:
+      ファイルパス: `~/.workflow-sessions/<worker-uuid>.json`
+      内容:
+      ```json
+      {
+        "workflow_session_id": "<session-id>",
+        "role": "<name>",
+        "repo_root": "<repo-root>",
+        "log_dir": "docs/dispatch-logs/<session-id>"
+      }
+      ```
+
+      **Bash ツール**で Claude Code を起動する:
+      ```
+      tmux send-keys -t <session-name>:<name> "claude --session-id <worker-uuid>" Enter
       ```
       **Bash ツール**で 3 秒待機する:
       ```

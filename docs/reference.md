@@ -42,6 +42,7 @@
 |---|---|---|---|
 | タスク起動の統合エントリポイント | `/dispatch` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
 | タスク並列分散実行 | `/spawn` skill | 実装済み | — |
+| workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | リポジトリ・session の統合管理 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 監視・移動は実装済み / ghq 統合・dispatch 起動は設計中 | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
 dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。

@@ -55,6 +55,7 @@
 | ✔ | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
 | - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 | - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
+| ✔ | ○ | claude | workflow skill の session log が git 管理されておらずプロンプト改善に活用できない — Stop hook + マーカーファイル + 共通 skill で横断的に収集・コミットする | [ADR-058](adr/058-workflow-session-log-collection.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -705,3 +706,16 @@
 - [ ] `merge_order` が付与された worktree セットに対して PR1 マージ後に PR2 の rebase と push が自動実行される
 - [ ] dispatch skill 自体は PR 依存の監視・実行を担わない（責務境界が維持される）
 
+---
+
+### ADR-058: workflow skill の session log 収集と commit の体系化
+
+**コンポーネント**: claude | **ADR**: [ADR-058](adr/058-workflow-session-log-collection.md)
+
+**受け入れ条件**:
+
+- [x] dispatch が worker を起動するとき `claude --session-id <uuid>` を使い、`~/.workflow-sessions/<uuid>.json` にマーカーが書き込まれる
+- [x] Stop hook（`workflow-session-log.sh`）がマーカー確認後、`transcript_path` を `<repo_root>/docs/dispatch-logs/<workflow-session-id>/<role>.jsonl` にコピーする
+- [x] マーカーが存在しない通常セッションでは Stop hook が何もしない（exit 0）
+- [x] `/session-log commit <workflow-session-id>` で該当セッションの JSONL が git add + commit される
+- [x] dispatch 以外の workflow skill（spawn 等）でも同じマーカーファイル規約を使えば同様にログが収集される
