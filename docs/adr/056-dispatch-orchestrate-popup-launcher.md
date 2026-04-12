@@ -73,3 +73,7 @@ popup ランチャーは Go バイナリに依存しない軽量な実装を優�
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-056 セクション）
+
+## 実装 Issue
+- ishii1648/tmux-sidebar#2 — close 済み（tmux-sidebar から分離したため）
+- dotfiles 側の実装 issue は未作成
