@@ -5,7 +5,6 @@ Draft
 
 ## 関連 ADR
 - 関連: ADR-052（orchestrate skill — dispatch に内部化される）
-- 依存: ADR-055（meta planner — dispatch の動的実行戦略決定を担う）
 
 ## コンテキスト
 
@@ -32,10 +31,20 @@ Draft
 
 ### 実行フロー
 
-1. meta planner（ADR-055）がタスクを分析し実行戦略を決定する
+1. **meta planner**（本 ADR 内で定義）がタスクを分析し実行戦略を決定する
 2. 戦略に応じて worktree + Claude セッションを作成する
 3. 各ワーカーに適切なプロンプトを送信する
-4. ADR-053 の状態集約スクリプトで進捗を監視できる
+4. ADR-056 の sidebar UI で進捗を監視できる
+
+### meta planner の処理ステップ
+
+dispatch skill 内で subagent として動作し、ファイル出力を介して dispatch skill と連携する。
+
+1. **タスク分解**: タスク記述をサブタスクに分解する
+2. **依存関係分析**: サブタスク間の依存グラフを構築する
+3. **実行戦略選択**: 依存関係と複雑度から下記パターンを選択する
+4. **worktree 設計**: 必要な worktree 数・名前・ブランチ名を決定する
+5. **ワーカー指示書作成**: 各 Claude セッションへ送るプロンプトを生成する
 
 ### 実行戦略パターン
 
@@ -46,6 +55,26 @@ Draft
 | パイプライン | 前工程の成果物に依存 | N worktrees 逐次ハンドオフ |
 | 混合 | 並列 + パイプラインの組合せ | hybrid |
 
+### meta planner 出力フォーマット（dispatch skill が読む）
+
+```yaml
+strategy: parallel        # single / parallel / pipeline / hybrid
+worktrees:
+  - name: auth-compliance-impl
+    branch: dispatch/auth-compliance-impl
+    prompt: |
+      認証ミドルウェアの実装を...
+  - name: auth-compliance-review
+    branch: dispatch/auth-compliance-review
+    prompt: |
+      実装完了後、以下のハンドオフ文書を...
+      待機: .dispatch/<session>/HANDOFF-impl-to-review.md
+```
+
+### dry-run モード
+
+meta planner が決定した計画をユーザに提示してから実行する確認フェーズを設ける。`/dispatch --dry-run` で計画だけ出力する。
+
 ### 既存 skill の再配置
 
 - `spawn`: 内部プリミティブとして残す（直接呼び出しも可）
@@ -55,7 +84,7 @@ Draft
 
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
-| `configs/claude/skills/dispatch/skill.md` | dotfiles | 新規作成 |
+| `configs/claude/skills/dispatch/skill.md` | dotfiles | 新規作成（meta planner の呼び出し手順を含む） |
 | `configs/claude/setup.sh` | dotfiles | dispatch skill の symlink 追加 |
 
 ## 受け入れ条件
