@@ -91,8 +91,6 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 
 端末固有の設定（社内ツール・AWS 認証・端末固有 keybind・Git ユーザー情報等）は端末固有リポジトリで管理する。dotfiles には含めない。
 
-どの端末固有リポジトリを使うかは `terminal-repo.local` に定義する（`terminal-repo.local.example` を参照）。端末固有リポジトリの `setup.sh` を実行すると以下が配置される。端末固有リポジトリを持たない環境では `.example` テンプレートから手動作成する。
-
 | ツール | 配置先 | 初期配布 |
 |--------|--------|---------|
 | Git | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布。端末固有設定は直接編集 |

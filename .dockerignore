@@ -1,6 +1,5 @@
 # Docker build 時に除外するファイル
 # gitignore 済みだが COPY . で入ってしまうものを明示的に除外
 scripts/setup-manifest.local.yml
-terminal-repo.local
 .outputs/
 .git/

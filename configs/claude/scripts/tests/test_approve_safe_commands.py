@@ -26,7 +26,7 @@ class TestIsSafeReadonlyGhApi(unittest.TestCase):
 
     def test_gh_api_with_paginate_and_jq(self):
         cmd = (
-            "gh api repos/C-FO/clusterops/pulls/176744/reviews --paginate "
+            "gh api repos/owner/repo/pulls/12345/reviews --paginate "
             "2>/dev/null | jq -r '[.[] | select(.body != \"\" and "
             "(.state == \"COMMENTED\" or .state == \"CHANGES_REQUESTED\"))] | length'"
         )
