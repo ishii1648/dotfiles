@@ -21,7 +21,9 @@ ADR-051 で Go 製 tmux-sidebar ツールを開発中。現状の設計は「全
 
 ### 設計判断
 
-sidebar を「並列作業の統合管理 UI」として位置づけ、起動・監視・移動をすべて sidebar に集約する。`tmw_pick` popup は sidebar に統合して廃止する。
+sidebar を「並列作業の統合管理 UI」として位置づけ、リポジトリ選択・監視・移動を sidebar に集約する。ただし task description のテキスト入力は sidebar の幅（30〜40 文字）では不便なため、`n` キー押下時のみ `display-popup -w 80%` でフルサイズ popup を呼び出す。
+
+`tmw_pick` popup は廃止し、sidebar からの popup 呼び出しに一本化する。`cmd+shift+s` は sidebar の表示トグルに変更する。
 
 **統合の前提条件**: sidebar が ghq 管理下の全リポジトリ（未起動セッションを含む）を表示できること。現状は active tmux session のみ表示しており、セッションのないリポジトリへの dispatch 起動に対応できない。
 
@@ -39,26 +41,29 @@ sidebar を「並列作業の統合管理 UI」として位置づけ、起動・
 
 ghq 管理リポジトリと active tmux session をマージして表示する。active session は状態バッジ付き、未起動 repo はセッションなしとして区別表示する。
 
-### キーバインド
+### キーバインドとフロー
 
 | キー | 動作 |
 |---|---|
 | `Enter` | active session: switch-client で移動 / 未起動 repo: session 作成 + 移動 |
-| `n` | 選択中の repo に対して dispatch 起動（task description を入力 → `/dispatch --repo <repo> "<desc>"` を実行） |
+| `n` | `display-popup -w 80%` でテキスト入力 popup を開き task description を入力 → `/dispatch --repo <selected-repo> "<desc>"` を実行 |
 | `d` | 選択中の dispatch session を cleanup（`/dispatch cleanup <session-id>` 相当） |
 
-### 廃止するもの
-
-- `cmd+shift+s` → `tmw_pick` popup パターン
-- `tmw_pick.fish`（または大幅に簡略化）
+`n` のフロー:
+```
+sidebar (narrow)            popup (80% 幅)
+  dotfiles ──── n ────────→ dispatch> タスク記述を入力...
+  tmux-sidebar                         ↓ Enter
+  myapp                      /dispatch --repo dotfiles "..."
+```
 
 ### 変更が必要なファイル
 
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
-| `ishii1648/tmux-sidebar`（別リポ） | tmux-sidebar | ghq 統合・未起動 repo 表示・`n`/`d` キーバインド |
-| `configs/tmux/tmux.conf` | dotfiles | `cmd+shift+s` の binding 変更（popup 廃止） |
-| `configs/fish/functions/tmw_pick.fish` | dotfiles | 廃止または sidebar との役割整理 |
+| `ishii1648/tmux-sidebar`（別リポ） | tmux-sidebar | ghq 統合・未起動 repo 表示・`n`/`d` キーバインド（`n` は popup 呼び出し） |
+| `configs/tmux/tmux.conf` | dotfiles | `cmd+shift+s` を sidebar トグルに変更（popup binding 削除） |
+| `configs/fish/functions/tmw_pick.fish` | dotfiles | 廃止 |
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-056 セクション）

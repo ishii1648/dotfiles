@@ -688,8 +688,10 @@
 - [ ] 未起動 repo で `Enter` を押すと新規 tmux session を作成して移動する
 - [ ] `n` キーで選択中の repo に対して dispatch を起動できる（task description 入力 → `/dispatch --repo <repo>` 実行）
 - [ ] `d` キーで選択中の dispatch session を cleanup できる（`/dispatch cleanup <session-id>` 相当）
-- [ ] `cmd+shift+s` で sidebar が表示され、`tmw_pick` popup は廃止される
-- [ ] sidebar だけで「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
+- [ ] `n` キーで `display-popup -w 80%` が開き task description を入力して dispatch を起動できる（sidebar 幅の制約を回避）
+- [ ] `cmd+shift+s` が sidebar トグルになり、`tmw_pick` popup binding は削除される
+- [ ] `tmw_pick.fish` が廃止される
+- [ ] sidebar + popup の組み合わせで「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
 
 ---
 
