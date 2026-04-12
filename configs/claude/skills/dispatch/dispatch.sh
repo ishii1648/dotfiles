@@ -166,7 +166,12 @@ cmd_launch() {
 
   if ! tmux has-session -t "=$session_name" 2>/dev/null; then
     # session が存在しない → 新規作成（最初の window として window_name を使う）
+    # 現在のターミナルサイズを渡す（デタッチ作成後の比例拡大による sidebar 幅崩れを防止）
+    local cur_width cur_height
+    cur_width=$(tmux display-message -p '#{window_width}' 2>/dev/null || echo 200)
+    cur_height=$(tmux display-message -p '#{window_height}' 2>/dev/null || echo 50)
     tmux new-session -d -s "$session_name" -n "$window_name" -c "$work_dir" \
+      -x "$cur_width" -y "$cur_height" \
       || die "tmux session の作成に失敗しました: $session_name"
   else
     # session が存在する → window 追加
