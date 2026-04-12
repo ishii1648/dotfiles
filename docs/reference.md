@@ -135,6 +135,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [050-tmux-split-window-fish-sidebar.md](adr/050-tmux-split-window-fish-sidebar.md)
 - [051-go-tmux-sidebar-tool.md](adr/051-go-tmux-sidebar-tool.md)
 - [052-ecc-orchestrate-for-tmux-sidebar.md](adr/052-ecc-orchestrate-for-tmux-sidebar.md)
+- [054-dispatch-skill-unified-entry-point.md](adr/054-dispatch-skill-unified-entry-point.md)
 
 ## Neovim プラグイン一覧
 

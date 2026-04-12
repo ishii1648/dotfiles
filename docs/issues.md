@@ -52,7 +52,7 @@
 | ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
 | - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 | ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
-| - | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
+| ✔ | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
 | - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 | - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
@@ -665,15 +665,15 @@
 
 **受け入れ条件**:
 
-- [ ] `/dispatch "<タスク記述>"` で worktree 作成から Claude セッション起動まで完結する
-- [ ] `/dispatch --issue <番号>` で `docs/issues.md` の課題を参照してタスクを起動できる
-- [ ] `/dispatch --dry-run` で実行計画（worktree 数・戦略・各ワーカーの役割）が表示されるが実際の起動は行われない
-- [ ] `/dispatch cleanup <session>` で起動済みセッションと worktree を削除できる
-- [ ] `configs/claude/setup.sh` 実行後に `~/.claude/skills/dispatch` として呼び出せる
-- [ ] meta planner がタスク記述を受け取り、サブタスクの並列可能性を分析して実行戦略（single/parallel/pipeline/hybrid）を決定する
-- [ ] meta planner の出力に worktree 名・ブランチ名・各ワーカーへのプロンプトが含まれる
-- [ ] 単純なタスクに対して over-provision（full orchestrate 相当）にならない（単発判定が正しく機能する）
-- [ ] 複雑なタスクに対して under-provision（単発判定）にならない（並列/パイプライン判定が機能する）
+- [x] `/dispatch "<タスク記述>"` で worktree 作成から Claude セッション起動まで完結する
+- [x] `/dispatch --issue <番号>` で `docs/issues.md` の課題を参照してタスクを起動できる
+- [x] `/dispatch --dry-run` で実行計画（worktree 数・戦略・各ワーカーの役割）が表示されるが実際の起動は行われない
+- [x] `/dispatch cleanup <session>` で起動済みセッションと worktree を削除できる
+- [x] `configs/claude/setup.sh` 実行後に `~/.claude/skills/dispatch` として呼び出せる
+- [x] meta planner がタスク記述を受け取り、サブタスクの並列可能性を分析して実行戦略（single/parallel/pipeline/hybrid）を決定する
+- [x] meta planner の出力に worktree 名・ブランチ名・各ワーカーへのプロンプトが含まれる
+- [x] 単純なタスクに対して over-provision（full orchestrate 相当）にならない（単発判定が正しく機能する）
+- [x] 複雑なタスクに対して under-provision（単発判定）にならない（並列/パイプライン判定が機能する）
 
 ---
 

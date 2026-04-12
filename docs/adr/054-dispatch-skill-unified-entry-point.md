@@ -1,7 +1,7 @@
 # ADR-054: dispatch skill — spawn/orchestrate を統合した単一エントリポイント
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 関連: ADR-052（orchestrate skill — dispatch に内部化される）
