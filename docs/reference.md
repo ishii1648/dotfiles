@@ -34,14 +34,18 @@
 
 ## 並列スケール開発アーキテクチャ
 
-10-20 並列の Claude Code エージェントを同時に稼働・監視するため、以下のコンポーネント群を整備している。
+10-20 並列の Claude Code エージェントを同時に稼働・監視する構成。実装済みコンポーネントと設計中コンポーネントを以下に示す。
 
-| 役割 | コンポーネント | 関連 ADR |
-|---|---|---|
-| タスク起動の統合エントリポイント | `/dispatch` skill | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
-| タスク並列分散実行 | `/spawn` skill | — |
-| 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
-| stacked PR の依存グラフ表現・自動 rebase | monitoring agent（設計中） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
+| 役割 | コンポーネント | 実装状況 | 関連 ADR |
+|---|---|---|---|
+| タスク起動の統合エントリポイント | `/dispatch` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
+| タスク並列分散実行 | `/spawn` skill | 実装済み | — |
+| 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
+| stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
+
+dispatch 実行の識別子は `dispatch/<worktree名>` ブランチプレフィックス。ライフサイクル管理・障害時のロールバックセマンティクスは ADR-057 以降で設計する。
+
+目標アーキテクチャ（monitoring agent は未実装）:
 
 ```
 /dispatch skill
