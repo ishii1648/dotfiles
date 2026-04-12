@@ -38,57 +38,57 @@ dispatch/orchestrate の起動 UI を **独立した popup ランチャー** と
 
 ### popup ランチャー（2段階フロー）
 
-入力エリアがリポジトリフィルタとタスク記述で競合するため、2段階の popup で構成する:
-
-**Step 1: リポジトリ選択 popup**
+**Step 1: リポジトリ選択（fzf）**
 
 ```
-┌─────────────────────────────────────────┐
-│  [dispatch] [orchestrate]       j/k 切替│
-│─────────────────────────────────────────│
-│  > dotf                          filter │
-│─────────────────────────────────────────│
-│  ▶ dotfiles                             │
-│    dotfiles-private                     │
-└─────────────────────────────────────────┘
+┌─────────────────────────────┐
+│  repo >                     │
+│─────────────────────────────│
+│  ▶ dotfiles                 │
+│    dotfiles-private         │
+│    sandbox-ishii1648        │
+└─────────────────────────────┘
 ```
 
-- ghq リポジトリ一覧を fzf スタイルでフィルタ選択
-- `j`/`k` で dispatch / orchestrate を切替（デフォルト: dispatch）
+- ghq リポジトリ一覧を fzf でフィルタ選択（worktree ディレクトリは除外）
 - リポジトリ選択 + `Enter` で Step 2 に遷移
 
-**Step 2: タスク記述 popup**
+**Step 2: タスク記述 + モード切替（fish read）**
 
 ```
-┌─────────────────────────────────────────┐
-│  dispatch > dotfiles                    │
-│─────────────────────────────────────────│
-│  > タスク記述を入力...                  │
-│                                         │
-└─────────────────────────────────────────┘
+  tab: モード切替  enter: 実行
+  dispatch / orchestrate  dotfiles
+  ─────────────────────────────
+  > タスク記述を入力...
 ```
 
-- 選択済みのリポジトリとモードをヘッダに表示
+- `tab` で dispatch / orchestrate を切替（アクティブなモードがハイライト表示）
 - タスク記述を入力して `Enter` で実行
-- `/dispatch --repo <repo> "<prompt>"` または `/orchestrate --repo <repo> "<prompt>"` を実行
+- fish の `read -p` で動的 prompt を使用し、`tab` キーバインドで `commandline -f repaint` を呼ぶことで即時反映
 
-フロー:
+### 実行フロー
+
 1. `cmd+shift+s` で Step 1 popup 表示
-2. リポジトリをフィルタ選択 + dispatch/orchestrate 切替
-3. `Enter` で Step 2 popup に遷移
-4. タスク記述入力 + `Enter` で実行
+2. リポジトリをフィルタ選択
+3. `Enter` で Step 2 に遷移
+4. タスク記述入力 + `tab` で dispatch/orchestrate 切替
+5. `Enter` で実行:
+   - tmux ステータスバーに `{mode}: {repo} ... launching` を表示
+   - dispatch: `dispatch.sh launch` で worktree 作成 + claude 起動 → 新 session に自動切替
+   - orchestrate: tmux session 作成 → claude に `/orchestrate` を投入 → session に自動切替
 
 ### 実装方針
 
-popup ランチャーは Go バイナリに依存しない軽量な実装を優先する。fish スクリプト + fzf、または単純なシェルスクリプトで十分。
+popup ランチャーは Go バイナリに依存しない軽量な実装を優先する。fish スクリプト（`dispatch_launcher.fish`）+ fzf で実装。
 
 ### 変更が必要なファイル
 
 | ファイル | 変更内容 |
 |---|---|
-| popup ランチャースクリプト（新規） | ghq リポジトリ選択 + dispatch/orchestrate 切替 + prompt 入力 |
-| `configs/tmux/tmux.conf` | `cmd+shift+s` を popup ランチャーに変更（`tmw_pick` binding 削除） |
-| `configs/fish/functions/tmw_pick.fish` | 廃止 |
+| `configs/fish/functions/dispatch_launcher.fish`（新規） | リポジトリ選択 + dispatch/orchestrate 切替 + タスク記述入力 + 実行 |
+| `configs/tmux/tmux.conf` | `bind S` を `dispatch_launcher` に変更（`tmw_pick` binding 削除） |
+| `configs/fish/functions/tmw_pick.fish` | 廃止（`git rm`） |
+| `configs/fish/functions/__tmw_candidates.fish` | 廃止（`git rm`、`tmw_pick` 専用だったため） |
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-056 セクション）
