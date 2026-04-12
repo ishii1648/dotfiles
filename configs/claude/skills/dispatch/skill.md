@@ -200,17 +200,17 @@ version: 0.5.0
       git -C <repo-root> worktree add .dispatch/<session-id>/<name> -b dispatch/<session-id>/<name>
       ```
 
-   2. **Bash ツール**で tmux ウィンドウを作成する（ウィンドウ名 = worktree name）:
+   2. **Bash ツール**で tmux ウィンドウを作成し、ペイン role ファイルを書き込む:
       ```
-      tmux new-window -t <session-name> -n <name> -c <repo-root>/.dispatch/<session-id>/<name>
+      dispatch-new-worker-window <session-name> <name> <repo-root>/.dispatch/<session-id>/<name>
       ```
-      **重要**: `after-new-window` グローバルフックがデタッチセッションでも自動発火してサイドバーを起動するため、手動で `tmux split-window ... tmux-sidebar` を実行してはならない（二重起動になる）。
+      このスクリプトが `tmux new-window`・ペインID取得・role ファイル書き込みをまとめて処理する。
+      出力（例: `%42`）はペイン ID。サイドバーの起動は `after-new-window` フックに任せる。
 
-   3. **Bash ツール**でペイン ID を取得する（`$()` 不使用・単独呼び出し）:
-      ```
-      tmux display-message -p -t "<session-name>:<name>" "#{pane_id}"
-      ```
-      出力（例: `%42`）の `%` を除いた数値を pane_num とし、**Write ツール**で `/tmp/claude-pane-state/pane_<pane_num>_role` に `<name>` を書き込む。
+   3. **Write ツール**でワーカープロンプトをファイルに書き込む:
+      ファイルパス: `<repo-root>/.outputs/claude/dispatch-worker-<session-id>-<name>.md`
+      内容: YAML の `prompt` フィールドの値をそのまま書き込む（特殊文字・改行を保持）。
+      **重要**: `tmux send-keys` で長文プロンプトを直接送ると特殊文字・改行でエスケープが壊れるため、必ずファイル経由で渡すこと。
 
    4. **Read ツール**でマニフェストを読み込み、該当 worktree の `created` を `true` に更新して **Write ツール**で書き込む
 
@@ -227,9 +227,9 @@ version: 0.5.0
       sleep 3
       ```
 
-   2. **Bash ツール**で YAML の `prompt` フィールドの内容をそのまま送信する:
+   2. **Bash ツール**でワーカープロンプトファイルを読むよう短文で指示する（長文の直接送信は禁止）:
       ```
-      tmux send-keys -t <session-name>:<name> "<prompt>" Enter
+      tmux send-keys -t <session-name>:<name> "<repo-root>/.outputs/claude/dispatch-worker-<session-id>-<name>.md を読んで指示通りに実行してください" Enter
       ```
 
    ### 2-5: マニフェストを完了状態に更新して planning ウィンドウを削除する
