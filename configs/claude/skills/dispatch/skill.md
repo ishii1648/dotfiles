@@ -200,11 +200,11 @@ version: 0.5.0
       git -C <repo-root> worktree add .dispatch/<session-id>/<name> -b dispatch/<session-id>/<name>
       ```
 
-   2. **Bash ツール**で tmux ウィンドウを作成し、ペイン role ファイルを書き込む:
+   2. **Bash ツール**で tmux ウィンドウを作成し、ペイン role ファイルと SessionStart hook 用ペンディングコンテキストを書き込む:
       ```
-      dispatch-new-worker-window <session-name> <name> <repo-root>/.dispatch/<session-id>/<name>
+      dispatch-new-worker-window <session-name> <name> <repo-root>/.dispatch/<session-id>/<name> <session-id> <repo-root>
       ```
-      このスクリプトが `tmux new-window`・ペインID取得・role ファイル書き込みをまとめて処理する。
+      このスクリプトが `tmux new-window`・ペインID取得・role ファイル書き込み・ペンディングコンテキスト書き込みをまとめて処理する。
       出力（例: `%42`）はペイン ID。サイドバーの起動は `after-new-window` フックに任せる。
 
    3. **Write ツール**でワーカープロンプトをファイルに書き込む:
@@ -218,27 +218,9 @@ version: 0.5.0
 
    全 worktree 作成後、planning ウィンドウを**削除する前に**各ウィンドウで Claude を起動する:
 
-   1. **Bash ツール**で worker の UUID を生成する（1コマンド1呼び出し）:
+   1. **Bash ツール**で Claude Code を起動する:
       ```
-      uuidgen
-      ```
-      取得した UUID を `<worker-uuid>` として保持する。
-
-      **Write ツール**でマーカーファイルを書き込む:
-      ファイルパス: `~/.workflow-sessions/<worker-uuid>.json`
-      内容:
-      ```json
-      {
-        "workflow_session_id": "<session-id>",
-        "role": "<name>",
-        "repo_root": "<repo-root>",
-        "log_dir": "docs/dispatch-logs/<session-id>"
-      }
-      ```
-
-      **Bash ツール**で Claude Code を起動する:
-      ```
-      tmux send-keys -t <session-name>:<name> "claude --session-id <worker-uuid>" Enter
+      tmux send-keys -t <session-name>:<name> "claude" Enter
       ```
       **Bash ツール**で 3 秒待機する:
       ```

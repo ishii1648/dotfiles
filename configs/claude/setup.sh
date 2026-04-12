@@ -104,6 +104,26 @@ else
     echo "  skills symlink: SKIP (no configs/claude/skills directory)"
 fi
 
+# --- workflow-sessions config symlink ---
+WF_CONFIG_SRC="$SCRIPT_DIR/workflow-sessions.json"
+WF_CONFIG_DEST="$HOME/.workflow-sessions/config.json"
+
+if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ -L "$WF_CONFIG_DEST" && "$(readlink "$WF_CONFIG_DEST")" == "$WF_CONFIG_SRC" ]]; then
+        echo "  workflow-sessions config: ✓ OK"
+    else
+        echo "  workflow-sessions config: WARN: not linked ($WF_CONFIG_DEST)"
+    fi
+else
+    mkdir -p "$HOME/.workflow-sessions"
+    if [[ -L "$WF_CONFIG_DEST" && "$(readlink "$WF_CONFIG_DEST")" == "$WF_CONFIG_SRC" ]]; then
+        echo "  workflow-sessions config: ✓ OK"
+    else
+        ln -sf "$WF_CONFIG_SRC" "$WF_CONFIG_DEST"
+        echo "  workflow-sessions config: linked → $WF_CONFIG_DEST"
+    fi
+fi
+
 # --- launchd agent ---
 PLIST_NAME="com.user.session-index-backfill.plist"
 PLIST_SRC="$SCRIPT_DIR/launchd/$PLIST_NAME"
