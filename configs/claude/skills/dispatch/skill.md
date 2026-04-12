@@ -195,11 +195,6 @@ version: 0.5.0
       tmux new-window -t <session-name> -n <name> -c <repo-root>/.dispatch/<session-id>/<name>
       ```
 
-   2a. **サイドバーを明示的に起動する**（after-new-window フックが dispatch のデタッチセッションでは機能しないため）:
-      ```
-      tmux split-window -hfb -d -l 35 -t <session-name>:<name> tmux-sidebar
-      ```
-
    3. **ワーカーロールファイルを書き込む**（sidebar 用）:
       ```
       PANE_NUM=$(tmux display-message -p -t "<session-name>:<name>" "#{pane_id}" | tr -d '%')
