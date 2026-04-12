@@ -43,7 +43,12 @@
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 | stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
-dispatch 実行の識別子は `dispatch/<worktree名>` ブランチプレフィックス。ライフサイクル管理・障害時のロールバックセマンティクスは ADR-057 以降で設計する。
+dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS` 形式）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。
+
+**既知の設計上の制限（今後の ADR で対処予定）:**
+- cleanup は `--force` 強制削除のみで、部分起動失敗時のロールバック手順は未定義
+- セッション状態の永続化なし（tmux セッション消滅後の復元は不可）
+- ライフサイクル管理・障害時のセマンティクスは ADR-057 以降で設計する
 
 目標アーキテクチャ（monitoring agent は未実装）:
 
