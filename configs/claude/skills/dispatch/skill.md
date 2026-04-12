@@ -232,9 +232,15 @@ version: 0.5.0
    <タスク記述（全文）>
    ````
 
-2. **セッションを作成する**:
+2. **セッションを作成する**（現在のウィンドウサイズを継承してサイドバー幅を正しく維持する）:
+   現在のウィンドウサイズを取得する:
    ```
-   tmux new-session -d -s <session-name> -n planning -c <repo-root>
+   tmux display-message -p '#{window_width}'
+   tmux display-message -p '#{window_height}'
+   ```
+   取得した値（`<W>` × `<H>`）を使ってセッションを作成する:
+   ```
+   tmux new-session -d -s <session-name> -n planning -c <repo-root> -x <W> -y <H>
    ```
    作成後、マニフェストの `tmux_created` を `true` に更新する（クラッシュ時に tmux が孤立していることを示す）。
 
