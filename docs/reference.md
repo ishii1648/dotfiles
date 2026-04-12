@@ -32,11 +32,9 @@
 | package manager | aqua | `aqua.yaml` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
-## 並列スケール開発アーキテクチャ（設計目標・一部未実装）
+## 並列スケール開発アーキテクチャ（独立タスクの並列実行）
 
-> **注意**: このセクションは 10-20 並列エージェント運用の**目標アーキテクチャ**を記述する。実装済みコンポーネントと未実装コンポーネントが混在しており、信頼性保証（ロールバック・stacked PR 自動化）は未実装の設計課題が残る。
-
-実装済みコンポーネントと設計中コンポーネントを以下に示す。
+> **スコープ**: このセクションは**相互に独立したサブタスクの並列実行**（10-20 エージェント同時稼働）を対象とする。依存関係のある stacked PR 管理は現行スコープ外（後述）。
 
 **現行の実装済みコンポーネント:**
 
@@ -46,10 +44,14 @@
 | タスク並列分散実行 | `/spawn` skill | 実装済み | — |
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
-dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS-XXXX` 形式、XXXX は衝突回避用4桁ランダム英数字）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。各セッションは `.dispatch/<session-name>/manifest.json` にリソース一覧と作成状態を記録し、cleanup はマニフェストを検証してから安全に削除する（パス境界・ブランチプレフィックス・セッション名の一致を確認し、不一致は fail-closed で中断）。
+dispatch 実行の識別子はセッション名（`<owner>/<repo>` 形式、同名衝突時は `-2`・`-3` サフィックスで回避）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる。各セッションは `.dispatch/<session-slug>/manifest.json` にリソース一覧と作成状態（`creation_state: partial|complete`）を記録し、cleanup はマニフェストを fail-closed 検証（パス境界・ブランチプレフィックス・セッション名の一致確認）してから削除する。
 
-**残存する設計上の制限:**
-- 部分起動中断後の補償処理の手順が未定義（マニフェストで作成済みリソースは把握できるが、ロールバック手順は現状 cleanup コマンドの手動実行のみ）
+**部分起動中断時の手動復旧手順:**
+1. `manifest.json` の `creation_state` が `"partial"` であることを確認する（`created: true` のリソースのみ削除対象）
+2. `/dispatch cleanup <session-name>` を実行する（manifest ベースの安全な削除）
+3. 原因を確認してから `/dispatch` で再実行する
+
+> 注: 自動再試行・自動調整は未実装。リトライは手動操作のみ。
 
 現行の並列実行アーキテクチャ:
 

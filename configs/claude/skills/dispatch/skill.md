@@ -2,7 +2,7 @@
 name: dispatch
 description: タスク記述（または issue 番号・GitHub issue URL）を受け取り、実行戦略を動的に決定して worktree + Claude セッションを起動する統合エントリポイント。「/dispatch "認証ミドルウェアを修正"」「/dispatch --issue 53」「/dispatch <GitHub-issue-URL>」「/dispatch --repo ishii1648/tmux-sidebar "タスク"」「/dispatch cleanup <session>」で起動。
 argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --dry-run "<タスク記述>" | cleanup <session>'
-version: 0.2.0
+version: 0.3.0
 ---
 
 # dispatch
@@ -52,11 +52,13 @@ version: 0.2.0
      - 見つかればそのパスを `repo-root` として使用する
      - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
    - 指定なしの場合: `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
-7. session-name を生成する: `dispatch-YYYYMMDD-HHMMSS-XXXX`
-   - XXXX は4文字のランダム英数字（例: `a3f7`）を生成して付加し、同一秒内の並行起動時の名前衝突を防ぐ
-   - 生成後、`tmux has-session -t <session-name> 2>/dev/null` が成功する（同名セッションが既存）場合はサフィックスを再生成して再チェックする
-8. 計画 YAML の出力先を決定する: `<repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
-   - `.outputs/claude/` ディレクトリが存在しない場合は作成する
+7. session-name を決定する（tmux セッション名として使用）:
+   - `--repo <owner/repo>` が指定されている場合: session-name = `<owner>/<repo>`（例: `ishii1648/tmux-sidebar`）
+   - 指定なしの場合: `git remote get-url origin 2>/dev/null` から `owner/repo` を抽出して session-name とする。取得できない場合はリポジトリのディレクトリ名を使用する。
+   - 同名の tmux セッションが既存の場合（`tmux has-session -t <session-name>` が成功）: `-2`、`-3` と数字サフィックスを付加して衝突を回避する
+8. session-slug を生成する: session-name の `/` を `-` に置換したファイルシステム安全な識別子（例: `ishii1648-tmux-sidebar`）
+   - 計画 YAML の出力先: `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
+   - `.outputs/claude/` ディレクトリが存在しない場合は Write ツールで `.outputs/claude/.gitkeep` を作成して対応する
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -112,11 +114,11 @@ session 作成: <session-name>  (planning ウィンドウで分析中...)
      - ブランチ名形式: `dispatch/<session-name>/<worktree-name>`
   5. **ワーカー指示書作成**: 各 Claude セッションへ送るプロンプトを生成する
      - pipeline/hybrid の場合、待機するハンドオフファイルパスを明示する
-- 出力は以下の YAML 形式で `<repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml` に書き込む:
+- 出力は以下の YAML 形式で `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml` に書き込む:
 
 ```yaml
 strategy: parallel        # single / parallel / pipeline / hybrid
-session_name: dispatch-YYYYMMDD-HHMMSS
+session_name: "<session-name>"
 task_summary: "<タスクの短い要約（30字以内）>"
 worktrees:
   - name: "<worktree-name>"
@@ -128,8 +130,15 @@ worktrees:
 
 ### Step 4: 計画の表示と確認
 
-meta planner が生成した YAML を Read して以下の形式で表示する:
+meta planner が生成した YAML を Read して以下の手順で表示する。
 
+**planning ウィンドウへの表示（dry-run 以外）:**
+以下のコマンドで planning ウィンドウに計画 YAML の全内容を表示する:
+```
+tmux send-keys -t <session-name>:planning "cat <plan-yaml-path>" Enter
+```
+
+**現在のターミナルへの表示（prompt は全文表示）:**
 ```
 dispatch 計画:
   セッション: <session-name>
@@ -138,10 +147,12 @@ dispatch 計画:
 
   worktree 一覧:
     0: <name>  (branch: <branch>)
-       → <promptの最初の1行>
+       prompt:
+         <promptの全文（各行2スペースインデント）>
     1: <name>  (branch: <branch>)
-       依存: <depends_on>
-       → <promptの最初の1行>
+       依存: <depends_on>（なければ省略）
+       prompt:
+         <promptの全文（各行2スペースインデント）>
   ...
 ```
 
@@ -158,7 +169,7 @@ worktrees リストの各エントリについて順番に実行する:
 
 1. **git worktree を作成する**:
    ```
-   git -C <repo-root> worktree add .dispatch/<session-name>/<name> -b <branch>
+   git -C <repo-root> worktree add .dispatch/<session-slug>/<name> -b <branch>
    ```
 
 2. **tmux ウィンドウを作成する**（ウィンドウ名 = worktree name）:
@@ -177,12 +188,13 @@ worktrees リストの各エントリについて順番に実行する:
 4. `.gitignore` に `.dispatch/` が含まれていない場合は追記する
 
 5. **セッションマニフェストを書き込む**（部分失敗時の復旧・cleanup の基盤）:
-   - パス: `.dispatch/<session-name>/manifest.json`
+   - パス: `.dispatch/<session-slug>/manifest.json`
    - 各リソース作成後に都度更新し、cleanup はこのファイルを参照する
    - フォーマット:
      ```json
      {
        "session_name": "<session-name>",
+       "session_slug": "<session-slug>",
        "repo_root": "<repo-root>",
        "created_at": "<ISO8601-timestamp>",
        "creation_state": "partial",
@@ -191,7 +203,7 @@ worktrees リストの各エントリについて順番に実行する:
        "worktrees": [
          {
            "name": "<worktree-name>",
-           "path": "<repo-root>/.dispatch/<session-name>/<worktree-name>",
+           "path": "<repo-root>/.dispatch/<session-slug>/<worktree-name>",
            "branch": "dispatch/<session-name>/<worktree-name>",
            "created": false
          }
@@ -230,8 +242,8 @@ dispatch 開始: <session-name>
 タスク: <task_summary>
 
 worktree:
-  0: <name>  → .dispatch/<session-name>/<name>/
-  1: <name>  → .dispatch/<session-name>/<name>/
+  0: <name>  → .dispatch/<session-slug>/<name>/
+  1: <name>  → .dispatch/<session-slug>/<name>/
   ...
 
 確認方法:
@@ -247,11 +259,12 @@ worktree:
 `/dispatch cleanup <session-name>` が指定された場合:
 
 **Step 6-1: マニフェストの読み込みと検証（fail-closed）**
-- `.dispatch/<session-name>/manifest.json` を Read する
+- session-slug = session-name の `/` を `-` に置換して求める（例: `ishii1648/tmux-sidebar` → `ishii1648-tmux-sidebar`）
+- `.dispatch/<session-slug>/manifest.json` を Read する
 - マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と表示して**中断する**
 - 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
   1. `repo_root` が現在の `git rev-parse --show-toplevel` と一致すること
-  2. `worktrees[].path` がすべて `<repo_root>/.dispatch/<session-name>/` 配下であること
+  2. `worktrees[].path` がすべて `<repo_root>/.dispatch/<session-slug>/` 配下であること
   3. `worktrees[].branch` がすべて `dispatch/<session-name>/` プレフィックスを持つこと
   4. `tmux_session` が `<session-name>` と一致すること
 
@@ -261,8 +274,8 @@ worktree:
    - `git worktree remove --force <path>`
 3. マニフェストの `worktrees[].created == true` の各ブランチを削除する:
    - `git -C <repo_root> branch -D <branch>`
-4. worktree ディレクトリ（マニフェスト含む）を削除する: `rm -r <repo_root>/.dispatch/<session-name>`
-5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
+4. worktree ディレクトリ（マニフェスト含む）を削除する: `rm -r <repo_root>/.dispatch/<session-slug>`
+5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
 6. role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
