@@ -12,7 +12,9 @@ function tmw --description 'git worktreeをfzfで選択してtmux sessionを作�
     set -l session_name (basename $worktree)
 
     if not tmux has-session -t $session_name 2>/dev/null
-        tmux new-session -d -s $session_name -c $worktree
+        set -l win_w (tmux display-message -p '#{window_width}')
+        set -l win_h (tmux display-message -p '#{window_height}')
+        tmux new-session -d -s $session_name -c $worktree -x $win_w -y $win_h
     end
 
     if test -n "$TMUX"

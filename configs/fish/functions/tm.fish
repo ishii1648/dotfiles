@@ -61,7 +61,9 @@ function tm --description 'tmux session管理（既存session切替 + ghqから�
         set -l session_name (__tm_session_name $entry)
         set -l project_path (ghq root)/$entry
 
-        tmux new-session -d -s $session_name -c $project_path
+        set -l win_w (tmux display-message -p '#{window_width}')
+        set -l win_h (tmux display-message -p '#{window_height}')
+        tmux new-session -d -s $session_name -c $project_path -x $win_w -y $win_h
         if test -n "$TMUX"
             tmux switch-client -t $session_name
         else

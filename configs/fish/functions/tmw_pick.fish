@@ -33,7 +33,9 @@ function tmw_pick --description 'fzfでリポジトリを選択しtmux session�
     # デフォルト: 直接セッションを開く
     set -l session_name (__tm_session_name $repo_rel)
     if not tmux has-session -t $session_name 2>/dev/null
-        tmux new-session -d -s $session_name -c $repo_path
+        set -l win_w (tmux display-message -p '#{window_width}')
+        set -l win_h (tmux display-message -p '#{window_height}')
+        tmux new-session -d -s $session_name -c $repo_path -x $win_w -y $win_h
     end
     if test -n "$TMUX"
         tmux switch-client -t $session_name
