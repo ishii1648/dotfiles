@@ -22,12 +22,9 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     set -g _dl_repo (basename $selected)
 
     function _dl_prompt
-        # ヘッダー行
         set_color brblack
         printf '  tab: モード切替  enter: 実行\n'
         set_color normal
-
-        # モード + リポジトリ表示
         printf '  '
         if test "$_dl_mode" = dispatch
             set_color --bold brgreen
@@ -42,8 +39,6 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         end
         set_color normal
         printf '  %s\n' $_dl_repo
-
-        # 入力プロンプト
         set_color brblack
         printf '  ─────────────────────────────\n'
         set_color normal
@@ -75,31 +70,19 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     set -l slug (echo $prompt_text | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
     set -l branch_name "feat/$slug"
 
-    # 進行中通知（popup が閉じた後にステータスバーに表示）
+    # tmux run-shell で popup 外で実行（popup 終了後も生存する）
     tmux display-message "$mode: $repo_name ... launching"
 
     if test "$mode" = dispatch
-        bash ~/.claude/skills/dispatch/dispatch.sh launch "$selected" "$prompt_text" --branch "$branch_name" > /dev/null 2>&1
-
         set -l wt_name (string replace -a '/' '-' $branch_name)
         set -l target_session "$repo_name@$wt_name"
-        tmux switch-client -t "=$target_session" 2>/dev/null
+        tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' '$prompt_text' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
     else
-        set -l repo_path "$ghq_root/$selected"
-        set -l session_name $repo_name
-        set -l win_w (tmux display-message -p '#{window_width}')
-        set -l win_h (tmux display-message -p '#{window_height}')
+        # orchestrate: orchestrate.sh launch を直接呼び出す
+        # worktree + tmux session + claude 起動を一括実行
+        set -l prompt_file (mktemp /tmp/dispatch-orch-prompt-XXXXXX)
+        printf '%s' "$prompt_text" > $prompt_file
 
-        if not tmux has-session -t "=$session_name" 2>/dev/null
-            tmux new-session -d -s "$session_name" -c "$repo_path" -x $win_w -y $win_h
-        end
-
-        sleep 1
-        set -l target_pane (tmux list-panes -t "=$session_name" -F '#{pane_id} #{@pane_role}' | string match -v '*sidebar*' | head -1 | string split ' ')[1]
-        if test -z "$target_pane"
-            set target_pane (tmux list-panes -t "=$session_name" -F '#{pane_id}' | tail -1)
-        end
-        tmux send-keys -t "$target_pane" "printf '/orchestrate feature \"$prompt_text\"' | claude" Enter
-        tmux switch-client -t "=$session_name"
+        tmux run-shell -b "bash ~/.config/fish/functions/_dl_orchestrate_launch.sh '$selected' '$prompt_file'"
     end
 end
