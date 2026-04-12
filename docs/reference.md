@@ -48,11 +48,14 @@ dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リ
 
 各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-id>/manifest.json` に記録される（エージェントによる改ざんを防ぐため）。**最初の副作用（git worktree 作成）より前に全リソースを `created: false` で事前宣言して書き込む**（manifest-first）。cleanup は manifest の `repo_root` を参照して呼び出し元の CWD に依存せずどこからでも動作し、`git worktree list` および `git branch` との reconciliation でクラッシュ直前に作成されたリソースも回収する。
 
+dispatch 起動時には session-id がユーザに表示される（例: `session 作成: ishii1648/tmux-sidebar [session-id: ishii1648-tmux-sidebar-20260412-152030-a3f7]`）。
+
 **部分起動中断時の手動復旧手順:**
-1. `/dispatch cleanup <session-name>` を実行する（manifest の `repo_root` と reconciliation で安全に削除）
+1. `/dispatch cleanup <session-id>` を実行する（session-id を使うと一意に特定できるため推奨）
+   - または `/dispatch cleanup <session-name>`（同名セッションが複数ある場合は選択肢を表示）
 2. 原因を確認してから `/dispatch` で再実行する（新規 session-id で起動）
 
-> 注: 自動再試行・自動調整は未実装。
+> 注: 自動再試行・自動調整は未実装。マニフェストはすべての副作用（tmux 作成を含む）より前に書き込まれるため、クラッシュ直後でも session-id でセッションを発見できる。
 
 現行の並列実行アーキテクチャ:
 

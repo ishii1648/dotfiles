@@ -62,6 +62,23 @@ version: 0.4.0
 9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS-XXXX`（XXXX は4桁ランダム英数字）
    - **表示名（session-name）とは別の不変識別子**。後続のマニフェストパス・ブランチプレフィックス・worktree パスはすべて session-id でスコープする
    - マニフェストパス: `~/.dispatch/<session-id>/manifest.json`
+10. **マニフェストを初期書き込みする（すべての副作用より前）**:
+    - `~/.dispatch/<session-id>/manifest.json` を Write ツールで作成する
+    ```json
+    {
+      "session_id": "<session-id>",
+      "session_name": "<session-name>",
+      "session_slug": "<session-slug>",
+      "repo_root": "<repo-root>",
+      "created_at": "<ISO8601-timestamp>",
+      "creation_state": "partial",
+      "worktrees": [],
+      "tmux_session": "<session-name>",
+      "tmux_created": false
+    }
+    ```
+    - この時点ではまだ tmux も worktree も存在しない（`partial` + 空リスト）
+    - クラッシュしても `~/.dispatch/` を走査すれば session-id でこのセッションを発見できる
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -129,6 +146,7 @@ version: 0.4.0
    ```
    tmux new-session -d -s <session-name> -n planning -c <repo-root>
    ```
+   作成後、マニフェストの `tmux_created` を `true` に更新する（クラッシュ時に tmux が孤立していることを示す）。
 
 3. **planning ウィンドウで Claude を起動し、計画プロンプトを送信する**:
    ```
@@ -141,8 +159,9 @@ version: 0.4.0
 
 4. ユーザに以下を表示する:
    ```
-   session 作成: <session-name>
+   session 作成: <session-name>  [session-id: <session-id>]
    planning ウィンドウで計画を作成中...  (tmux attach -t <session-name> で確認できます)
+   クリーンアップ: /dispatch cleanup <session-id>  (または <session-name>)
    ```
 
 ### Step 3: 計画 YAML の完成を待機
@@ -279,15 +298,15 @@ worktree:
 
 ### Step 6: cleanup サブコマンド
 
-`/dispatch cleanup <session-name>` が指定された場合:
+`/dispatch cleanup <session-name|session-id>` が指定された場合:
 
 **Step 6-1: マニフェストの読み込みと検証（fail-closed・呼び出し元リポジトリに依存しない）**
-- session-slug = session-name の `/` を `-` に置換して求める
-- `~/.dispatch/` 以下を走査して `session_name == <session-name>` のマニフェストを探す:
+- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS-XXXX` パターン）の場合: `~/.dispatch/<session-id>/manifest.json` を直接 Read する（最も確実な指定方法）
+- 引数が `session-name` 形式の場合: `~/.dispatch/` 以下を走査して `session_name` フィールドが一致するマニフェストを探す
   - `ls ~/.dispatch/` でサブディレクトリを列挙し、各 `manifest.json` の `session_name` フィールドを確認する
   - 一致するものを対象マニフェストとする
 - マニフェストが見つからない場合は「マニフェストが見つかりません」と表示して**中断する**
-- 複数見つかった場合は一覧を表示してユーザに選択させる
+- 複数見つかった場合は `session_id`・`created_at`・`creation_state`・`task_summary` を一覧表示してユーザに選択させる
 - マニフェストから `repo_root` と `session_id` を取得する（呼び出し元の CWD は使用しない）
 - 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
   1. `worktrees[].path` がすべて `<manifest.repo_root>/.dispatch/<session_id>/` 配下であること
@@ -301,7 +320,7 @@ worktree:
   - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
 
 **Step 6-3: リソースの削除**
-1. tmux セッションを削除する: `tmux kill-session -t <tmux_session>`
+1. tmux セッションを削除する（`tmux_created: true` の場合のみ）: `tmux kill-session -t <tmux_session>`
 2. reconciliation で特定したすべての worktree を削除する:
    - `git -C <manifest.repo_root> worktree remove --force <path>`
 3. reconciliation で特定したすべてのブランチを削除する:
