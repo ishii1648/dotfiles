@@ -2,7 +2,7 @@
 name: dispatch
 description: タスク記述（または issue 番号・GitHub issue URL）を受け取り、実行戦略を動的に決定して worktree + Claude セッションを起動する統合エントリポイント。「/dispatch "認証ミドルウェアを修正"」「/dispatch --issue 53」「/dispatch <GitHub-issue-URL>」「/dispatch --repo ishii1648/tmux-sidebar "タスク"」「/dispatch cleanup <session>」で起動。
 argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --dry-run "<タスク記述>" | cleanup <session>'
-version: 0.3.0
+version: 0.4.0
 ---
 
 # dispatch
@@ -79,66 +79,85 @@ version: 0.3.0
    - タスク記述 = `<title>\n\n<body の内容>`
 4. 取得できない場合は「GitHub issue の取得に失敗しました」と表示して終了する
 
-### Step 2: tmux session の作成（dry-run 以外）
+### Step 2: tmux session の作成と planning ウィンドウで Claude を起動（dry-run 以外）
 
 `--dry-run` の場合はこのステップをスキップする。
 
-`planning` ウィンドウを持つ dispatch セッションを作成する:
+1. **計画プロンプトファイルを書き込む**: Write ツールで `/tmp/dispatch-task-<session-slug>.md` に以下の内容を書き込む:
+   ```markdown
+   # dispatch meta planning
 
-```
-tmux new-session -d -s <session-name> -n planning -c <repo-root>
-```
+   以下のタスクを分析し、`<plan-yaml-path>` に計画 YAML を生成してください。
 
-作成後、ユーザに以下を表示する:
+   ## タスク記述
 
-```
-session 作成: <session-name>  (planning ウィンドウで分析中...)
-```
+   <タスク記述（全文）>
 
-### Step 3: meta planner によるタスク分析
+   ## 分析内容
 
-以下の処理を subagent（subagent_type=Explore）として実行し、計画 YAML を生成する。
+   1. タスクを独立したサブタスクに分解する（最大6件）
+   2. サブタスク間の依存グラフを構築する
+   3. 実行戦略を選択する:
+      - single: 単一タスクまたは分解不要な小規模変更
+      - parallel: 相互依存なしの複数独立タスク
+      - pipeline: 前工程の成果物に後工程が依存する逐次処理
+      - hybrid: 並列グループと逐次ハンドオフが混在
+   4. worktree 数・名前・ブランチ名を決定する（ブランチ形式: `dispatch/<session-name>/<name>`）
+   5. 各ワーカーへの詳細な指示書（プロンプト）を作成する
 
-**subagent への指示内容:**
-- タスク記述を受け取り、以下を分析する:
-  1. **タスク分解**: タスクを独立したサブタスクに分解する（最大6件）
-  2. **依存関係分析**: サブタスク間の依存グラフを構築する
-  3. **実行戦略選択**: 下記パターンから選択する
-     | パターン | 条件 |
-     |---|---|
-     | single | 独立した単一タスク、または分解不要な小規模変更 |
-     | parallel | 独立したサブタスクが複数あり相互依存なし |
-     | pipeline | 前工程の成果物に後工程が依存する逐次処理 |
-     | hybrid | 並列グループと逐次ハンドオフが混在 |
-  4. **worktree 設計**: 必要な worktree 数・名前・ブランチ名を決定する
-     - ブランチ名形式: `dispatch/<session-name>/<worktree-name>`
-  5. **ワーカー指示書作成**: 各 Claude セッションへ送るプロンプトを生成する
-     - pipeline/hybrid の場合、待機するハンドオフファイルパスを明示する
-- 出力は以下の YAML 形式で `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml` に書き込む:
+   ## 出力形式
 
-```yaml
-strategy: parallel        # single / parallel / pipeline / hybrid
-session_name: "<session-name>"
-task_summary: "<タスクの短い要約（30字以内）>"
-worktrees:
-  - name: "<worktree-name>"
-    branch: "dispatch/<session-name>/<worktree-name>"
-    depends_on: []          # 依存する worktree 名のリスト（pipeline/hybrid 用）
-    prompt: |
-      <このワーカーへ送信するプロンプト>
-```
+   以下の YAML を `<plan-yaml-path>` に書き込んでください:
+
+   ```yaml
+   strategy: single
+   session_name: "<session-name>"
+   task_summary: "<30字以内の要約>"
+   worktrees:
+     - name: "<worktree-name>"
+       branch: "dispatch/<session-name>/<worktree-name>"
+       depends_on: []
+       prompt: |
+         <ワーカーへのプロンプト全文（受け入れ条件・実装対象・実装方針・確認手順を含む）>
+   ```
+   ```
+
+2. **セッションを作成する**:
+   ```
+   tmux new-session -d -s <session-name> -n planning -c <repo-root>
+   ```
+
+3. **planning ウィンドウで Claude を起動し、計画プロンプトを送信する**:
+   ```
+   tmux send-keys -t <session-name>:planning "claude" Enter
+   ```
+   3 秒待機してから:
+   ```
+   tmux send-keys -t <session-name>:planning "/tmp/dispatch-task-<session-slug>.md を読んで指示通りに実行してください" Enter
+   ```
+
+4. ユーザに以下を表示する:
+   ```
+   session 作成: <session-name>
+   planning ウィンドウで計画を作成中...  (tmux attach -t <session-name> で確認できます)
+   ```
+
+### Step 3: 計画 YAML の完成を待機
+
+planning ウィンドウの Claude が `<plan-yaml-path>` を書き込むまで待機する。
+subagent（subagent_type=Explore）として以下を実行する:
+
+- `<plan-yaml-path>` を Read する
+- ファイルが存在しない / 空の場合は 5 秒待機して再試行する（最大 12 回 = 60 秒）
+- ファイルが存在して内容があれば、YAML 内容を返す
+- タイムアウトした場合は「計画の生成がタイムアウトしました。planning ウィンドウを確認してください」と表示して終了する
+
+**`--dry-run` の場合:** セッションを作成せず、自身で計画 YAML を生成して `<plan-yaml-path>` に書き込む。
 
 ### Step 4: 計画の表示と確認
 
-meta planner が生成した YAML を Read して以下の手順で表示する。
+`<plan-yaml-path>` を Read して以下の形式で **現在のターミナル** に全文表示する（prompt も全文）:
 
-**planning ウィンドウへの表示（dry-run 以外）:**
-以下のコマンドで planning ウィンドウに計画 YAML の全内容を表示する:
-```
-tmux send-keys -t <session-name>:planning "cat <plan-yaml-path>" Enter
-```
-
-**現在のターミナルへの表示（prompt は全文表示）:**
 ```
 dispatch 計画:
   セッション: <session-name>
@@ -148,11 +167,11 @@ dispatch 計画:
   worktree 一覧:
     0: <name>  (branch: <branch>)
        prompt:
-         <promptの全文（各行2スペースインデント）>
+         <promptの全文（各行4スペースインデント）>
     1: <name>  (branch: <branch>)
        依存: <depends_on>（なければ省略）
        prompt:
-         <promptの全文（各行2スペースインデント）>
+         <promptの全文（各行4スペースインデント）>
   ...
 ```
 
