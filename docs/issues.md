@@ -54,6 +54,7 @@
 | ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
 | - | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある — 実行戦略（並列/逐次/パイプライン）の動的決定も含む | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
 | - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
+| - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -686,4 +687,16 @@
 - [ ] sidebar に全 worktree の Claude セッション状態が表示される
 - [ ] sidebar 内で `d` キーを押すと選択中のセッションを cleanup できる
 - [ ] tmux popup を使わずに sidebar だけで「タスク起動 → 進捗確認 → セッション移動」が完結する
+
+---
+
+### ADR-057: stacked PRs — dispatch と分離した PR 依存管理コンポーネント
+
+**コンポーネント**: claude | **ADR**: [ADR-057](adr/057-stacked-prs-dependency-management.md)
+
+**受け入れ条件**:
+
+- [ ] dispatch の meta planner 出力フォーマットに `base_branch` / `merge_order` フィールドが含まれる
+- [ ] `merge_order` が付与された worktree セットに対して PR1 マージ後に PR2 の rebase と push が自動実行される
+- [ ] dispatch skill 自体は PR 依存の監視・実行を担わない（責務境界が維持される）
 
