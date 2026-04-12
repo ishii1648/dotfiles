@@ -52,7 +52,9 @@ version: 0.2.0
      - 見つかればそのパスを `repo-root` として使用する
      - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
    - 指定なしの場合: `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
-7. session-name を生成する: `dispatch-YYYYMMDD-HHMMSS`（以降のステップで使用）
+7. session-name を生成する: `dispatch-YYYYMMDD-HHMMSS-XXXX`
+   - XXXX は4文字のランダム英数字（例: `a3f7`）を生成して付加し、同一秒内の並行起動時の名前衝突を防ぐ
+   - 生成後、`tmux has-session -t <session-name> 2>/dev/null` が成功する（同名セッションが既存）場合はサフィックスを再生成して再チェックする
 8. 計画 YAML の出力先を決定する: `<repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
    - `.outputs/claude/` ディレクトリが存在しない場合は作成する
 
