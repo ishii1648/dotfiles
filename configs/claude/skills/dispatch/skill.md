@@ -122,7 +122,7 @@ version: 0.4.0
       - parallel: 相互依存なしの複数独立タスク
       - pipeline: 前工程の成果物に後工程が依存する逐次処理
       - hybrid: 並列グループと逐次ハンドオフが混在
-   4. worktree 数・名前・ブランチ名を決定する（ブランチ形式: `dispatch/<session-name>/<name>`）
+   4. worktree 数・名前・ブランチ名を決定する（ブランチ形式: `dispatch/<session-id>/<name>`）
    5. 各ワーカーへの詳細な指示書（プロンプト）を作成する
 
    ## 出力形式
@@ -135,7 +135,7 @@ version: 0.4.0
    task_summary: "<30字以内の要約>"
    worktrees:
      - name: "<worktree-name>"
-       branch: "dispatch/<session-name>/<worktree-name>"
+       branch: "dispatch/<session-id>/<worktree-name>"
        depends_on: []
        prompt: |
          <ワーカーへのプロンプト全文（受け入れ条件・実装対象・実装方針・確認手順を含む）>
