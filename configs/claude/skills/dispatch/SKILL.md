@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 ## 概要
 
-`./dispatch.sh` に全ロジックを委譲する。
+`~/.claude/skills/dispatch/dispatch.sh` に全ロジックを委譲する。
 最大 Bash 3回 + AskUserQuestion 1回で完結する。
 
 ## ワークフロー
@@ -43,7 +43,7 @@ disable-model-invocation: true
 repo が不足している場合、`list-repos` で候補を取得:
 
 ```bash
-bash "${CLAUDE_SKILL_ROOT}/dispatch.sh" list-repos
+bash ~/.claude/skills/dispatch/dispatch.sh list-repos
 ```
 
 結果から AskUserQuestion の選択肢を生成する（最大4件、よく使うリポジトリを優先）。
@@ -70,14 +70,14 @@ prompt の内容からタスクに適したブランチ名を決定する。
 デフォルト（`--in-session` なし）では `--session` を渡さない。dispatch.sh 側が worktree 名を session 名にして新規 session を作成する:
 
 ```bash
-bash "${CLAUDE_SKILL_ROOT}/dispatch.sh" launch "<repo>" "<prompt>" --branch "<branch_name>"
+bash ~/.claude/skills/dispatch/dispatch.sh launch "<repo>" "<prompt>" --branch "<branch_name>"
 ```
 
 `--in-session` が指定されている場合、現在の tmux session 名を取得して `--session` に渡す:
 
 ```bash
 current_session=$(tmux display-message -p '#{session_name}')
-bash "${CLAUDE_SKILL_ROOT}/dispatch.sh" launch "<repo>" "<prompt>" --branch "<branch_name>" --session "$current_session"
+bash ~/.claude/skills/dispatch/dispatch.sh launch "<repo>" "<prompt>" --branch "<branch_name>" --session "$current_session"
 ```
 
 オプション引数:
