@@ -30,7 +30,7 @@ tmux-sidebar に新しいキーバインドを追加し、sidebar 内から直�
 
 | キー | 動作 |
 |---|---|
-| `n` | 新規タスク起動（`docs/issues.md` から fzf で選択 → `/dispatch` 実行） |
+| `n` | 新規タスク起動（インライン入力でタスク記述を入力 → `/dispatch` 実行） |
 | `Enter` | 選択セッション・ウィンドウへ移動（既存） |
 | `d` | 選択セッションの cleanup（`/dispatch cleanup` 相当） |
 
