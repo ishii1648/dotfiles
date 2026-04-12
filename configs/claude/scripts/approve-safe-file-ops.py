@@ -8,6 +8,7 @@ to the normal permission prompt.
 """
 
 import json
+import os
 import re
 import sys
 
@@ -29,6 +30,16 @@ def is_claude_subdir_path(file_path: str) -> bool:
     return bool(re.search(r"\.claude/[^/]+/", file_path))
 
 
+def is_dispatch_path(file_path: str) -> bool:
+    """Check if the path is under ~/.dispatch/ (dispatch session manifests).
+
+    Allow:
+      ~/.dispatch/ishii1648-tmux-sidebar-20260412-185317-eb61/manifest.json
+    """
+    expanded = os.path.expanduser(file_path)
+    return bool(re.search(r"/\.dispatch/[^/]+/", expanded))
+
+
 def get_file_path(tool_name: str, tool_input: dict) -> str:
     if tool_name == "NotebookEdit":
         return tool_input.get("notebook_path", "")
@@ -47,7 +58,7 @@ def main():
         if not file_path:
             sys.exit(0)
 
-        if is_claude_subdir_path(file_path):
+        if is_claude_subdir_path(file_path) or is_dispatch_path(file_path):
             output = {
                 "hookSpecificOutput": {
                     "hookEventName": "PreToolUse",

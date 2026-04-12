@@ -103,7 +103,7 @@ version: 0.5.0
 
 `--dry-run` の場合はこのステップをスキップして Step 3 へ進む。
 
-1. **計画プロンプトファイルを書き込む**: Write ツールで `/tmp/dispatch-task-<session-slug>.md` に以下の内容を書き込む（`<session-id>` 等は実際の値に展開してから書き込む）:
+1. **計画プロンプトファイルを書き込む**: Write ツールで `<repo-root>/.outputs/claude/dispatch-task-<session-slug>.md` に以下の内容を書き込む（`<session-id>` 等は実際の値に展開してから書き込む）:
 
    ````markdown
    # dispatch meta planning & execution
@@ -244,7 +244,7 @@ version: 0.5.0
    ```
    3 秒待機してから:
    ```
-   tmux send-keys -t <session-name>:planning "/tmp/dispatch-task-<session-slug>.md を読んで指示通りに実行してください" Enter
+   tmux send-keys -t <session-name>:planning "<repo-root>/.outputs/claude/dispatch-task-<session-slug>.md を読んで指示通りに実行してください" Enter
    ```
 
 4. ユーザに以下を表示して、**このセッションの処理を終了する**:
