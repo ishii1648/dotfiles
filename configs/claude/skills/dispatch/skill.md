@@ -79,6 +79,7 @@ version: 0.5.0
     ```
     - この時点ではまだ tmux も worktree も存在しない（`partial` + 空リスト）
     - クラッシュしても `~/.dispatch/` を走査すれば session-id でこのセッションを発見できる
+    - worktree パスの命名規則: `<repo-root>@dispatch-<session-id>-<name>`（ブランチ名 `dispatch/<session-id>/<name>` の `/` を `-` に置換）
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -175,7 +176,7 @@ version: 0.5.0
      "worktrees": [
        {
          "name": "<worktree-name>",
-         "path": "<repo-root>/.dispatch/<session-id>/<worktree-name>",
+         "path": "<repo-root>@dispatch-<session-id>-<worktree-name>",
          "branch": "dispatch/<session-id>/<worktree-name>",
          "created": false
        }
@@ -187,22 +188,19 @@ version: 0.5.0
 
    すべての worktree を `created: false` で事前宣言してから作成を開始する（クラッシュ時の回収基盤）。
 
-   ### 2-2: .gitignore に `.dispatch/` を追記する
-
-   **Grep ツール**で `.gitignore` に `.dispatch/` が含まれるか確認し、含まれていない場合のみ **Edit ツール**で追記する。
-
-   ### 2-3: worktree を作成して tmux ウィンドウを起動する
+   ### 2-2: worktree を作成して tmux ウィンドウを起動する
 
    worktrees リストの各エントリについて順番に実行する:
 
    1. **Bash ツール**で git worktree を作成する（1コマンド1呼び出し）:
       ```
-      git -C <repo-root> worktree add .dispatch/<session-id>/<name> -b dispatch/<session-id>/<name>
+      git -C <repo-root> worktree add <repo-root>@dispatch-<session-id>-<name> -b dispatch/<session-id>/<name>
       ```
+      （worktree パスは `gw_add` と同じ `<repo-root>@<branch-slug>` 形式。ブランチ名の `/` を `-` に置換）
 
    2. **Bash ツール**で tmux ウィンドウを作成し、ペイン role ファイルと SessionStart hook 用ペンディングコンテキストを書き込む:
       ```
-      dispatch-new-worker-window <session-name> <name> <repo-root>/.dispatch/<session-id>/<name> <session-id> <repo-root>
+      dispatch-new-worker-window <session-name> <name> <repo-root>@dispatch-<session-id>-<name> <session-id> <repo-root>
       ```
       このスクリプトが `tmux new-window`・ペインID取得・role ファイル書き込み・ペンディングコンテキスト書き込みをまとめて処理する。
       出力（例: `%42`）はペイン ID。サイドバーの起動は `after-new-window` フックに任せる。
@@ -319,12 +317,12 @@ version: 0.5.0
 - 複数見つかった場合は `session_id`・`created_at`・`creation_state`・`task_summary` を一覧表示してユーザに選択させる
 - マニフェストから `repo_root` と `session_id` を取得する（呼び出し元の CWD は使用しない）
 - 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
-  1. `worktrees[].path` がすべて `<manifest.repo_root>/.dispatch/<session_id>/` 配下であること
+  1. `worktrees[].path` がすべて `<manifest.repo_root>@dispatch-<session_id>-` プレフィックスを持つこと
   2. `worktrees[].branch` がすべて `dispatch/<session_id>/` プレフィックスを持つこと
   3. `tmux_session` が `<session-name>` と一致すること
 
 **Step 4-2: 実際の状態との reconciliation（クラッシュ時に manifest 未更新のリソースを回収）**
-- **Bash ツール**で `git -C <manifest.repo_root> worktree list --porcelain` を実行し、`<manifest.repo_root>/.dispatch/<session_id>/` 配下のすべての worktree を列挙する
+- **Bash ツール**で `git -C <manifest.repo_root> worktree list --porcelain` を実行し、`<manifest.repo_root>@dispatch-<session_id>-` プレフィックスを持つすべての worktree を列挙する
 - **Bash ツール**で `git -C <manifest.repo_root> branch --list "dispatch/<session_id>/*"` を実行し、セッションに属するすべてのブランチを列挙する
 - これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session_id>` スコープに属するリソースをすべて削除対象とする
   - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
@@ -335,7 +333,8 @@ version: 0.5.0
    - `git -C <manifest.repo_root> worktree remove --force <path>`
 3. **Bash ツール**で reconciliation で特定したすべてのブランチを削除する（各 branch を個別呼び出し）:
    - `git -C <manifest.repo_root> branch -D <branch>`
-4. **Bash ツール**で worktree ディレクトリを削除する: `rm -r <manifest.repo_root>/.dispatch/<session_id>`
+4. **Bash ツール**で各 worktree ディレクトリを個別に削除する（各 path を個別呼び出し）:
+   - `rm <path>`（`rm -rf` は禁止。worktree remove 後は空ディレクトリのみ残る）
 5. **Bash ツール**でマニフェストファイルを削除する: `rm -r ~/.dispatch/<session_id>`
 6. **Bash ツール**で計画 YAML を削除する: `rm <manifest.repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
 7. **Bash ツール**で role ファイルを削除する（該当セッションのペイン分のみ）
@@ -345,5 +344,5 @@ version: 0.5.0
 - tmux セッション内でのみ動作する
 - git リポジトリ内でのみ動作する
 - ファイル削除には `rm` を使用する（`rm -rf` は禁止）
-- `.dispatch/` ディレクトリは `.gitignore` に追加する
+- worktree パスは `gw_add` と同じ `<repo-root>@<branch-slug>` 形式（ブランチ名の `/` を `-` に置換）
 - ネットワーク通信を伴うコマンドは使用しない（aws, curl, terraform 等）
