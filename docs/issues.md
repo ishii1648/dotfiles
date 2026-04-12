@@ -56,6 +56,7 @@
 | - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 | - | ○ | claude | stacked PRs を順列でマージするシナリオが dispatch の kick-off モデルで解決できない — PR 依存管理（マージ待ち・rebase）は継続的な GitHub 状態監視が必要で dispatch と責務が異なる | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 | ✔ | ○ | claude | workflow skill の session log が git 管理されておらずプロンプト改善に活用できない — Stop hook + マーカーファイル + 共通 skill で横断的に収集・コミットする | [ADR-058](adr/058-workflow-session-log-collection.md) |
+| ✔ | ○ | claude | dispatch が単一タスクでも planning Claude を起動しオーバーヘッドが大きい — dispatch/orchestrate に分離し、spawn を orchestrate に吸収する | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -719,3 +720,17 @@
 - [x] マーカーが存在しない通常セッションでは Stop hook が何もしない（exit 0）
 - [x] `/session-log commit <workflow-session-id>` で該当セッションの JSONL が git add + commit される
 - [x] `workflow-sessions.json` の `auto_log` に skill 名を追加するだけで、その skill が起動した tmux セッション内の claude セッションが自動ログ収集される（Mode C — skill 側の変更不要、tmux セッション名の設定不要）
+
+---
+
+### ADR-059: dispatch / orchestrate の責務分離
+
+**コンポーネント**: claude | **ADR**: [ADR-059](adr/059-dispatch-orchestrate-split.md)
+
+**受け入れ条件**:
+
+- [x] `/dispatch` が planning Claude なしで 1 worktree + 1 worker を直接起動できる
+- [x] `/orchestrate` が現行 dispatch のフロー（meta planner → YAML → N worktree + N worker）を実行できる
+- [x] `/orchestrate --from-todo` で TODO.md ベースの並列実行ができる（旧 spawn 相当）
+- [x] spawn skill が削除されている
+- [x] `/dispatch cleanup` と `/orchestrate cleanup` がそれぞれのリソースを正しく削除できる

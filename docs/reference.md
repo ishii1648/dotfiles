@@ -10,7 +10,7 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
-| Claude Code skills | `configs/claude/skills/` | dispatch・orchestrate・spawn など |
+| Claude Code skills | `configs/claude/skills/` | dispatch（軽量版）・orchestrate（計画+並列実行）など |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
@@ -40,29 +40,36 @@
 
 | 役割 | コンポーネント | 実装状況 | 関連 ADR |
 |---|---|---|---|
-| タスク起動の統合エントリポイント | `/dispatch` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
-| タスク並列分散実行 | `/spawn` skill | 実装済み | — |
+| 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
+| 計画+並列タスク起動（N worktree + N worker） | `/orchestrate` skill | 実装済み | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | リポジトリ・session の統合管理 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 監視・移動は実装済み / ghq 統合・dispatch 起動は設計中 | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
 dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
 
-各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-id>/manifest.json` に記録される（エージェントによる改ざんを防ぐため）。**最初の副作用（git worktree 作成）より前に全リソースを `created: false` で事前宣言して書き込む**（manifest-first）。cleanup は manifest の `repo_root` を参照して呼び出し元の CWD に依存せずどこからでも動作し、`git worktree list` および `git branch` との reconciliation でクラッシュ直前に作成されたリソースも回収する。
+各セッションのマニフェストはリポジトリ外に記録される（エージェントによる改ざんを防ぐため）:
+- `/dispatch`: `~/.dispatch/<session-id>/manifest.json`
+- `/orchestrate`: `~/.orchestrate/<session-id>/manifest.json`
 
-dispatch 起動時には session-id がユーザに表示される（例: `session 作成: ishii1648/tmux-sidebar [session-id: ishii1648-tmux-sidebar-20260412-152030-a3f7]`）。
+**最初の副作用（git worktree 作成）より前に全リソースを `created: false` で事前宣言して書き込む**（manifest-first）。cleanup は manifest の `repo_root` を参照して呼び出し元の CWD に依存せずどこからでも動作し、`git worktree list` および `git branch` との reconciliation でクラッシュ直前に作成されたリソースも回収する。
+
+起動時には session-id がユーザに表示される（例: `session 作成: ishii1648/tmux-sidebar [session-id: ishii1648-tmux-sidebar-20260412-152030]`）。
 
 **部分起動中断時の手動復旧手順:**
-1. `/dispatch cleanup <session-id>` を実行する（session-id を使うと一意に特定できるため推奨）
-   - または `/dispatch cleanup <session-name>`（同名セッションが複数ある場合は選択肢を表示）
-2. 原因を確認してから `/dispatch` で再実行する（新規 session-id で起動）
+1. `/dispatch cleanup <session-id>` または `/orchestrate cleanup <session-id>` を実行する（session-id を使うと一意に特定できるため推奨）
+2. 原因を確認してから再実行する（新規 session-id で起動）
 
 > 注: 自動再試行・自動調整は未実装。マニフェストはすべての副作用（tmux 作成を含む）より前に書き込まれるため、クラッシュ直後でも session-id でセッションを発見できる。
 
 現行の並列実行アーキテクチャ:
 
 ```
-/dispatch skill
-  └─ meta planner: タスク分解 → worktree + Claude session 起動
+/dispatch skill（軽量版）
+  └─ 1 worktree + 1 worker Claude を直接起動（planning なし）
+
+/orchestrate skill（計画+並列版）
+  └─ meta planner: タスク分解 → N worktree + N worker Claude 起動
+     └─ --from-todo: TODO.md ベースの並列実行（旧 spawn 相当）
         ↓
 tmux-sidebar: ghq 全 repo + active session の統合管理 UI (ADR-056)
               （ghq 統合・dispatch 起動は設計中）

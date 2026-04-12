@@ -1,202 +1,371 @@
 ---
 name: orchestrate
-description: マルチエージェントオーケストレーションを実行する。feature/bugfix/refactor/security/custom のワークフロータイプを指定して各エージェントを tmux ウィンドウ + git worktree で起動し、ハンドオフ文書で引き継ぐ。「/orchestrate feature "新機能追加"」「/orchestrate bugfix」「orchestrate cleanup <session>」などで起動。
-argument-hint: "<feature|bugfix|refactor|security|custom> [task] | custom <agents> [task] | cleanup <session>"
-disable-model-invocation: true
-version: 0.1.0
+description: タスク記述（または issue 番号・GitHub issue URL・TODO.md）を受け取り、meta planner が実行戦略を動的に決定して N worktree + N worker Claude を起動する。計画フェーズを経由して並列・逐次・ハイブリッド実行を行う。「/orchestrate "複数コンポーネントの修正"」「/orchestrate --issue 53」「/orchestrate --from-todo TODO.md」「/orchestrate --dry-run "タスク"」「/orchestrate cleanup <session>」で起動。
+argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --from-todo [path] | --dry-run "<タスク記述>" | cleanup <session>'
+version: 1.0.0
 ---
 
 # orchestrate
 
-マルチエージェントオーケストレーションを tmux + git worktree モードで実行する。
+タスク記述または issue 番号を受け取り、meta planner がタスクを分析して実行戦略（single/parallel/pipeline/hybrid）を自動決定する。各戦略に応じて git worktree と tmux ウィンドウを作成し、Claude セッションを起動する。
 
-## ワークフロータイプ
-
-| タイプ | エージェントチェーン |
-|--------|---------------------|
-| `feature` | planner → tdd-guide → code-reviewer → security-reviewer |
-| `bugfix` | planner → tdd-guide → code-reviewer |
-| `refactor` | architect → code-reviewer → tdd-guide |
-| `security` | security-reviewer → code-reviewer → architect |
-| `custom` | 引数で指定した任意エージェント列（カンマ区切り） |
+単一ブランチで完結する作業には `/dispatch`（軽量版・planning なし）を使用する。
 
 ## 引数フォーマット
 
 ```
-/orchestrate <workflow-type> [task-description]
-/orchestrate custom <agents> [task-description]
-/orchestrate cleanup <session-name>
+/orchestrate "<タスク記述>"
+/orchestrate --issue <番号>
+/orchestrate <GitHub-issue-URL>
+/orchestrate <owner/repo>#<number>
+/orchestrate --repo <owner/repo> "<タスク記述>"
+/orchestrate --repo <owner/repo> --issue <番号>
+/orchestrate --from-todo [path]
+/orchestrate --dry-run "<タスク記述>"
+/orchestrate --dry-run --issue <番号>
+/orchestrate cleanup <session-name|session-id>
 ```
 
-- `workflow-type`: feature / bugfix / refactor / security / custom
-- `task-description`: タスクの説明（省略時は AskUserQuestion で確認）
-- `custom` の `agents`: カンマ区切りのエージェント名（例: `planner,code-reviewer`）
-- `cleanup <session-name>`: 指定セッションのリソースを削除
+- `<タスク記述>`: 実行したいタスクの自然言語説明
+- `--issue <番号>`: `docs/issues.md` の ADR 番号を参照してタスクを起動（例: `--issue 53`）
+- `<GitHub-issue-URL>`: `https://github.com/<owner>/<repo>/issues/<number>` 形式。issue title + body をタスク記述として使用し、owner/repo を自動設定する
+- `<owner/repo>#<number>`: GitHub issue の shorthand 形式（例: `ishii1648/tmux-sidebar#2`）
+- `--repo <owner/repo>`: 作業リポジトリを明示指定する。`ghq` のローカルパスを使用（例: `--repo ishii1648/tmux-sidebar`）
+- `--from-todo [path]`: TODO.md を読み込み、未完了タスクを一括でタスク記述として使用する（旧 spawn 相当）。path 省略時は `./TODO.md`
+- `--dry-run`: 実行計画を表示するが実際の起動は行わない
+- `cleanup <session-name|session-id>`: 指定セッションのリソースをすべて削除
 
 ## ステップ
 
 ### Step 1: 引数の解析と事前チェック
 
 1. 第1引数でサブコマンドを判定する
-   - `cleanup` の場合は Step 5 へジャンプ
-2. ワークフロータイプを取得する（feature / bugfix / refactor / security / custom）
-3. `custom` の場合は第2引数からエージェントリストをカンマ分割で取得する
-4. task-description が空の場合は AskUserQuestion で確認する
-5. tmux セッション外かチェック:
-   - `tmux display-message -p '#{session_name}' 2>/dev/null` が空なら「tmux セッション外では動作しません」と表示して終了
-6. git リポジトリ外かチェック:
-   - `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
+   - `cleanup` の場合は Step 4 へジャンプ
+2. `--dry-run` フラグを検出してフラグ変数に保持する
+3. `--repo <owner/repo>` フラグを検出してリポジトリ変数に保持する
+4. `--from-todo [path]` フラグを検出した場合は Step 1-5 へ
+5. 残り引数から以下を順に検出する:
+   a. `https://github.com/` で始まる文字列（GitHub issue URL）→ Step 1-4 へ（URL から owner/repo も自動設定）
+   b. `<owner/repo>#<number>` パターン（例: `ishii1648/tmux-sidebar#2`）→ Step 1-4 へ（owner/repo を自動設定）
+   c. `--issue <番号>` フラグ → Step 1-3 へ
+   d. その他の文字列をタスク記述として使用する
+6. tmux セッション外かチェック:
+   - **Bash ツール**で `tmux display-message -p '#{session_name}'` を実行し、出力が空なら「tmux セッション外では動作しません」と表示して終了
+7. リポジトリルートを決定する:
+   - `--repo <owner/repo>` が指定された場合:
+     - **Bash ツール**で `ghq list -p <owner/repo>` でローカルパスを検索する
+     - 見つかればそのパスを `repo-root` として使用する
+     - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
+   - 指定なしの場合: **Bash ツール**で `git rev-parse --show-toplevel` を実行し、空なら「git リポジトリ外では動作しません」と表示して終了
+8. session-name を決定する（tmux セッション名として使用）:
+   - `--repo <owner/repo>` が指定されている場合: session-name = `<owner>/<repo>`（例: `ishii1648/tmux-sidebar`）
+   - 指定なしの場合: **Bash ツール**で `git remote get-url origin` から `owner/repo` を抽出して session-name とする。取得できない場合はリポジトリのディレクトリ名を使用する。
+   - 同名セッションの存在チェックは **Bash ツール**で `tmux has-session -t <session-name>` を**単独呼び出し**で実行する。ツール呼び出しがエラーなしで成功した（= セッションが存在する）場合は `-2`、`-3` と数字サフィックスを付加して再チェックする（`&&`/`||`/`;` での連結は禁止、1コマンド1呼び出しで繰り返す）
+9. session-slug を生成する: session-name の `/` を `-` に置換したファイルシステム安全な識別子（例: `ishii1648-tmux-sidebar`）
+   - 計画 YAML の出力先: `<repo-root>/.outputs/claude/orchestrate-plan-<session-slug>.yaml`
+   - `.outputs/claude/` ディレクトリが存在しない場合は **Write ツール**で `.outputs/claude/.gitkeep` を作成して対応する
+10. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS`（**Bash ツール**で `date +%Y%m%d-%H%M%S` で取得）
+    - **表示名（session-name）とは別の不変識別子**。後続のマニフェストパス・ブランチプレフィックス・worktree パスはすべて session-id でスコープする
+    - マニフェストパス: `~/.orchestrate/<session-id>/manifest.json`
+11. **マニフェストを初期書き込みする（すべての副作用より前）**:
+    - `~/.orchestrate/<session-id>/manifest.json` を Write ツールで作成する
+    ```json
+    {
+      "session_id": "<session-id>",
+      "session_name": "<session-name>",
+      "session_slug": "<session-slug>",
+      "repo_root": "<repo-root>",
+      "created_at": "<ISO8601-timestamp>",
+      "creation_state": "partial",
+      "worktrees": [],
+      "tmux_session": "<session-name>",
+      "tmux_created": false
+    }
+    ```
+    - この時点ではまだ tmux も worktree も存在しない（`partial` + 空リスト）
+    - クラッシュしても `~/.orchestrate/` を走査すれば session-id でこのセッションを発見できる
+    - worktree パスの命名規則: `<repo-root>@orchestrate-<session-id>-<name>`（ブランチ名 `orchestrate/<session-id>/<name>` の `/` を `-` に置換）
 
-### Step 2: セッション名とワークスペースの準備
+#### Step 1-3: issue 番号からタスク記述を取得
 
-1. タイムスタンプ付きセッション名を生成する:
-   - 形式: `orch-YYYYMMDD-HHMMSS`（例: `orch-20240101-120000`）
-   - Bash コマンド: `date '+orch-%Y%m%d-%H%M%S'`
-2. リポジトリルートを取得する: `git rev-parse --show-toplevel`
-3. ハンドオフ文書ディレクトリを作成する:
-   - パス: `<repo-root>/.orchestrate/<session-name>/`
-4. `.gitignore` に `.orchestrate/` が含まれていない場合は追記する
+1. 番号を3桁ゼロ埋めして `docs/issues.md` の `ADR-NNN` セクションを Read して取得する
+2. セクションの `**受け入れ条件**` と課題タイトルをタスク記述として使用する
+3. 取得できない場合は「issues.md に ADR-NNN セクションが見つかりません」と表示して終了
 
-### Step 3: ワーカーの起動
+#### Step 1-4: GitHub issue URL / shorthand からタスク記述を取得
 
-ワークフロータイプに応じたエージェントリストを決定し、順番に以下を実行する。
+1. URL 形式（`https://github.com/<owner>/<repo>/issues/<number>`）の場合:
+   - URL から `<owner>/<repo>` を抽出する
+   - `--repo` が未指定であれば自動設定する
+   - `gh issue view <URL> --json title,body` で issue 情報を取得する
+2. shorthand 形式（`<owner/repo>#<number>`）の場合:
+   - `gh issue view <number> --repo <owner/repo> --json title,body` で取得する
+   - `--repo` が未指定であれば `owner/repo` を自動設定する
+3. issue の title と body を結合してタスク記述として使用する:
+   - タスク記述 = `<title>\n\n<body の内容>`
+4. 取得できない場合は「GitHub issue の取得に失敗しました」と表示して終了する
 
-#### 3-1: エージェントリストの決定
+#### Step 1-5: TODO.md からタスク記述を取得
 
-| タイプ | エージェントリスト |
-|--------|------------------|
-| feature | planner, tdd-guide, code-reviewer, security-reviewer |
-| bugfix | planner, tdd-guide, code-reviewer |
-| refactor | architect, code-reviewer, tdd-guide |
-| security | security-reviewer, code-reviewer, architect |
-| custom | 引数で受け取ったリスト |
-
-#### 3-2: 各エージェントの git worktree と tmux ウィンドウを作成する
-
-エージェントリストの各エージェントについて:
-
-1. **git worktree を作成する**:
+1. `--from-todo` の後にパスが指定されていればそのパスを使用、なければ `./TODO.md` を使用する
+2. ファイルの存在チェック: 存在しない場合は「TODO.md が見つかりません: <path>」と表示して終了
+3. **Read ツール**で TODO.md を読み込み、未完了タスク（`- [ ]` 行）を抽出する
+   - 完了済み（`- [x]`）は対象外
+4. 未完了タスクが 0 件の場合は「未完了タスクがありません」と表示して終了
+5. 抽出したタスク一覧を以下の形式でタスク記述として構成する:
    ```
-   git -C <repo-root> worktree add .orchestrate/<session-name>/<session-name>-<agent> -b orch/<session-name>/<agent>
-   ```
-   - worktree のバセネームに `<session-name>-` を付けることで、複数セッション間で同名エージェントが `.git/worktrees/` でコンフリクトしないようにする
+   TODO.md の以下の未完了タスクを並列実行してください:
 
-2. **tmux ウィンドウを作成する**（ウィンドウ名 = エージェント名）:
-   - 最初のエージェント: セッションごと作成
-     ```
-     tmux new-session -d -s <session-name> -n <agent> -c <worktree-path>
-     ```
-   - 2番目以降:
-     ```
-     tmux new-window -t <session-name> -n <agent> -c <worktree-path>
-     ```
+   1. <タスク1の記述>
+   2. <タスク2の記述>
+   ...
 
-3. **ワーカーロールファイルを書き込む**（`prefix+s` popup 用）:
-   ```
-   PANE_NUM=$(tmux display-message -p -t "<session-name>:<agent>" "#{pane_id}" | tr -d '%')
-   mkdir -p /tmp/claude-pane-state
-   echo "<agent>" > /tmp/claude-pane-state/pane_${PANE_NUM}_role
+   各タスクを独立したサブタスクとして分解し、可能な限り並列に実行してください。
    ```
 
-#### 3-3: Claude Code を起動してプロンプトを送信する
+### Step 2: tmux session の作成と planning ウィンドウで Claude を起動（dry-run 以外）
 
-各エージェントウィンドウで:
+`--dry-run` の場合はこのステップをスキップして Step 3 へ進む。
 
-1. Claude Code を起動する:
+1. **計画プロンプトファイルを書き込む**: Write ツールで `<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md` に以下の内容を書き込む（`<session-id>` 等は実際の値に展開してから書き込む）:
+
+   ````markdown
+   # orchestrate meta planning & execution
+
+   以下のタスクを分析し、計画を立ててから実行まで行ってください。
+
+   ## コンテキスト
+
+   - session-id: <session-id>
+   - session-name: <session-name>
+   - session-slug: <session-slug>
+   - repo-root: <repo-root>
+   - plan-yaml-path: <plan-yaml-path>
+   - manifest-path: ~/.orchestrate/<session-id>/manifest.json
+
+   ## Bash ツール使用の制約
+
+   以下の制約はすべての Bash 呼び出しに適用される（PreToolUse hook が強制）:
+   - `&&`/`||`/`;` での複数コマンド連結は**禁止**。各コマンドを個別の Bash 呼び出しに分割すること
+   - `$()` コマンド置換は**禁止**。前の Bash 呼び出し結果の出力から値を読み取ること
+   - ファイル書き込みには Write ツールを使用すること（`echo >` や `cat >` は禁止）
+   - `mkdir` は禁止。Write ツールはディレクトリを自動作成する
+   - Bash から `/tmp/` へのリダイレクト（`> /tmp/...`）は禁止（Write ツールは使用可）
+
+   ## Phase 1: 計画
+
+   1. タスクを独立したサブタスクに分解する（最大6件）
+   2. サブタスク間の依存グラフを構築する
+   3. 実行戦略を選択する:
+      - single: 単一タスクまたは分解不要な小規模変更
+      - parallel: 相互依存なしの複数独立タスク
+      - pipeline: 前工程の成果物に後工程が依存する逐次処理
+      - hybrid: 並列グループと逐次ハンドオフが混在
+   4. worktree 数・名前・ブランチ名を決定する（ブランチ形式: `orchestrate/<session-id>/<name>`）
+   5. 各ワーカーへの詳細な指示書（プロンプト）を作成する
+   6. **Write ツール**で以下の YAML を `<plan-yaml-path>` に書き込む:
+
+   ```yaml
+   strategy: single
+   session_name: "<session-name>"
+   task_summary: "<30字以内の要約>"
+   worktrees:
+     - name: "<worktree-name>"
+       branch: "orchestrate/<session-id>/<worktree-name>"
+       depends_on: []
+       prompt: |
+         <ワーカーへのプロンプト全文（受け入れ条件・実装対象・実装方針・確認手順を含む）>
    ```
-   tmux send-keys -t <session-name>:<agent> "claude" Enter
+
+   ## Phase 2: 実行
+
+   YAML を書き込んだ後、以下を順番に実行する。
+
+   ### 2-1: マニフェストを更新する（manifest-first）
+
+   **Read ツール**で `~/.orchestrate/<session-id>/manifest.json` を読み込む。
+   **Write ツール**で以下の内容に更新する（creation_state・strategy・task_summary・worktrees を上書き）:
+
+   ```json
+   {
+     "session_id": "<session-id>",
+     "session_name": "<session-name>",
+     "session_slug": "<session-slug>",
+     "repo_root": "<repo-root>",
+     "created_at": "<ISO8601-timestamp>",
+     "creation_state": "partial",
+     "strategy": "<strategy>",
+     "task_summary": "<task_summary>",
+     "worktrees": [
+       {
+         "name": "<worktree-name>",
+         "path": "<repo-root>@orchestrate-<session-id>-<worktree-name>",
+         "branch": "orchestrate/<session-id>/<worktree-name>",
+         "created": false
+       }
+     ],
+     "tmux_session": "<session-name>",
+     "tmux_created": true
+   }
    ```
-   起動完了まで 3 秒待機する。
 
-2. プロンプトをウィンドウに送信する:
+   すべての worktree を `created: false` で事前宣言してから作成を開始する（クラッシュ時の回収基盤）。
 
-**最初のエージェント（planner / architect / security-reviewer）向け:**
-```
-tmux send-keys -t <session-name>:<agent> "あなたは <agent> エージェントです。以下のタスクを担当してください。\n\nタスク: <task-description>\n\n作業完了後、次のエージェント（<next-agent>）向けのハンドオフ文書を以下のパスに作成してください:\n<repo-root>/.orchestrate/<session-name>/HANDOFF-<agent>-to-<next-agent>.md\n\nハンドオフ文書の形式:\n# HANDOFF: <agent> → <next-agent>\n## 完了した作業\n## 次のエージェントへの具体的な指示\n## 重要なファイルパス" Enter
-```
+   ### 2-2: worktree を作成して tmux ウィンドウを起動する
 
-**2番目以降のエージェント向け（最後のエージェント以外）:**
-```
-あなたは <agent> エージェントです。
+   worktrees リストの各エントリについて順番に実行する:
 
-前のエージェント（<prev-agent>）のハンドオフ文書が届いたら作業を開始してください:
-<repo-root>/.orchestrate/<session-name>/HANDOFF-<prev-agent>-to-<agent>.md
+   1. **Bash ツール**で git worktree を作成する（1コマンド1呼び出し）:
+      ```
+      git -C <repo-root> worktree add <repo-root>@orchestrate-<session-id>-<name> -b orchestrate/<session-id>/<name>
+      ```
+      （worktree パスは `gw_add` と同じ `<repo-root>@<branch-slug>` 形式。ブランチ名の `/` を `-` に置換）
 
-ファイルがまだ存在しない場合は、Read ツールで定期的に確認しながら待機してください（最大30分）。
+   2. **Bash ツール**で tmux ウィンドウを作成し、ペイン role ファイルと SessionStart hook 用ペンディングコンテキストを書き込む:
+      ```
+      dispatch-new-worker-window <session-name> <name> <repo-root>@orchestrate-<session-id>-<name> <session-id> <repo-root>
+      ```
+      このスクリプトが `tmux new-window`・ペインID取得・role ファイル書き込み・ペンディングコンテキスト書き込みをまとめて処理する。
+      出力（例: `%42`）はペイン ID。サイドバーの起動は `after-new-window` フックに任せる。
 
-作業完了後、次のエージェント（<next-agent>）向けのハンドオフ文書を作成してください:
-<repo-root>/.orchestrate/<session-name>/HANDOFF-<agent>-to-<next-agent>.md
-```
+   3. **Write ツール**でワーカープロンプトをファイルに書き込む:
+      ファイルパス: `<repo-root>/.outputs/claude/orchestrate-worker-<session-id>-<name>.md`
+      内容: YAML の `prompt` フィールドの値をそのまま書き込む（特殊文字・改行を保持）。
+      **重要**: `tmux send-keys` で長文プロンプトを直接送ると特殊文字・改行でエスケープが壊れるため、必ずファイル経由で渡すこと。
 
-- `<agent>` が `tdd-guide` / `code-reviewer` / `security-reviewer` の場合は、プロンプト末尾に以下を追記する:
-```
-作業対象を独立したコンポーネント・ファイル単位に分割できる場合は、Agent ツールでサブエージェントを起動して並列実装してください。依存関係のある部分は逐次処理してください。
-```
+   4. **Read ツール**でマニフェストを読み込み、該当 worktree の `created` を `true` に更新して **Write ツール**で書き込む
 
-**最後のエージェント向け:**
-```
-あなたは <agent> エージェントです。
+   ### 2-4: 各 worktree ウィンドウで Claude を起動してプロンプトを送信する
 
-前のエージェント（<prev-agent>）のハンドオフ文書が届いたら作業を開始してください:
-<repo-root>/.orchestrate/<session-name>/HANDOFF-<prev-agent>-to-<agent>.md
+   全 worktree 作成後、planning ウィンドウを**削除する前に**各ウィンドウで Claude を起動する:
 
-ファイルがまだ存在しない場合は、定期的に確認しながら待機してください。
+   1. **Bash ツール**で Claude Code を起動する:
+      ```
+      tmux send-keys -t <session-name>:<name> "claude" Enter
+      ```
+      **Bash ツール**で 3 秒待機する:
+      ```
+      sleep 3
+      ```
 
-作業完了後、最終レポートを以下のパスに作成してください:
-<repo-root>/.orchestrate/<session-name>/FINAL-REPORT.md
-```
+   2. **Bash ツール**でワーカープロンプトファイルを読むよう短文で指示する（長文の直接送信は禁止）:
+      ```
+      tmux send-keys -t <session-name>:<name> "<repo-root>/.outputs/claude/orchestrate-worker-<session-id>-<name>.md を読んで指示通りに実行してください" Enter
+      ```
 
-- `<agent>` が `tdd-guide` / `code-reviewer` / `security-reviewer` の場合は、プロンプト末尾に以下を追記する:
-```
-作業対象を独立したコンポーネント・ファイル単位に分割できる場合は、Agent ツールでサブエージェントを起動して並列実装してください。依存関係のある部分は逐次処理してください。
-```
+   ### 2-5: マニフェストを完了状態に更新して planning ウィンドウを削除する
 
-### Step 4: 起動確認と案内
+   1. **Write ツール**でマニフェストの `creation_state` を `"complete"` に更新する
+   2. **Bash ツール**で planning ウィンドウを削除する（自身のウィンドウを最後に削除する）:
+      ```
+      tmux kill-window -t <session-name>:planning
+      ```
 
-全ワーカー起動後、以下を表示する:
+   ## タスク記述
 
-```
-オーケストレーション開始: <session-name>
-ワークフロー: <workflow-type>
-タスク: <task-description>
+   <タスク記述（全文）>
+   ````
 
-ワーカー:
-  0: planner      → .orchestrate/<session-name>/<session-name>-planner/
-  1: tdd-guide    → .orchestrate/<session-name>/<session-name>-tdd-guide/
-  ...
+2. **セッションを作成する**（現在のウィンドウサイズを継承してサイドバー幅を正しく維持する）:
+   **Bash ツール**でウィンドウサイズを取得する（各1呼び出し）:
+   ```
+   tmux display-message -p '#{window_width}'
+   tmux display-message -p '#{window_height}'
+   ```
+   取得した値（`<W>` × `<H>`）を使って **Bash ツール**でセッションを作成する:
+   ```
+   tmux new-session -d -s <session-name> -n planning -c <repo-root> -x <W> -y <H>
+   ```
+   **Write ツール**でマニフェストの `tmux_created` を `true` に更新する（クラッシュ時に tmux が孤立していることを示す）。
 
-確認方法:
-  prefix+s        : tmux セッション一覧でワーカー状態を確認
-  claude-sessions-status.sh <session-name>  : 詳細状態を表示
-  tmux attach -t <session-name>             : セッションに接続
-```
+3. **planning ウィンドウで Claude を起動し、計画プロンプトを送信する**:
+   **Bash ツール**で Claude Code を起動する:
+   ```
+   tmux send-keys -t <session-name>:planning "claude" Enter
+   ```
+   **Bash ツール**で 3 秒待機してから:
+   ```
+   sleep 3
+   ```
+   **Bash ツール**でプロンプトを送信する:
+   ```
+   tmux send-keys -t <session-name>:planning "<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md を読んで指示通りに実行してください" Enter
+   ```
 
-### Step 5: cleanup サブコマンド
+4. ユーザに以下を表示して、**このセッションの処理を終了する**:
+   ```
+   session 作成: <session-name>  [session-id: <session-id>]
+   planning ウィンドウで計画と起動を実行中...  (tmux attach -t <session-name> で確認できます)
+   クリーンアップ: /orchestrate cleanup <session-id>  (または <session-name>)
+   ```
 
-`/orchestrate cleanup <session-name>` が指定された場合:
+   **元セッションの orchestrate skill はここで終了する。** tmux session の作成と Claude の起動が完了した状態であり、その後の計画策定・worktree 作成・worker Claude 起動はすべて planning ウィンドウの Claude が担当する。
 
-1. tmux セッションを削除する: `tmux kill-session -t <session-name>`
-2. git worktree をすべて削除する:
-   - `git worktree list` で `orch/<session-name>/` を含む worktree を特定する
-   - 各 worktree を `git worktree remove --force <path>` で削除する
-3. orch ブランチを削除する:
-   - `git branch -D orch/<session-name>/<agent>` を各エージェント分実行する
-4. ハンドオフ文書ディレクトリを削除する: `rm -r <repo-root>/.orchestrate/<session-name>`
-5. role ファイルを削除する: `rm -f /tmp/claude-pane-state/pane_*_role` （該当セッション分のみ）
+### Step 3: 計画 YAML の生成と表示（dry-run 専用）
 
-## エージェント役割一覧
+`--dry-run` の場合のみ実行する。
 
-| エージェント | 役割 |
-|-------------|------|
-| `planner` | タスク分析・実装計画の策定 |
-| `tdd-guide` | TDD アプローチでのテスト設計と実装 |
-| `code-reviewer` | コードレビューと改善提案 |
-| `security-reviewer` | セキュリティ観点でのレビューと脆弱性検査 |
-| `architect` | アーキテクチャ設計とリファクタリング計画 |
+1. 自身でタスクを分析して計画 YAML を生成し、`<plan-yaml-path>` に書き込む（planning ウィンドウを作成しない）。
+2. `<plan-yaml-path>` を Read して以下の形式で **現在のターミナル** に全文表示する（prompt も全文）:
+
+   ```
+   orchestrate 計画:
+     セッション: <session-name>
+     戦略: <strategy>
+     タスク: <task_summary>
+
+     worktree 一覧:
+       0: <name>  (branch: <branch>)
+          prompt:
+            <promptの全文（各行4スペースインデント）>
+       1: <name>  (branch: <branch>)
+          依存: <depends_on>（なければ省略）
+          prompt:
+            <promptの全文（各行4スペースインデント）>
+     ...
+   ```
+
+3. ここで終了する。
+
+### Step 4: cleanup サブコマンド
+
+`/orchestrate cleanup <session-name|session-id>` が指定された場合:
+
+**Step 4-1: マニフェストの読み込みと検証（fail-closed・呼び出し元リポジトリに依存しない）**
+- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS` パターン）の場合: **Read ツール**で `~/.orchestrate/<session-id>/manifest.json` を直接読む（最も確実な指定方法）
+- 引数が `session-name` 形式の場合: `~/.orchestrate/` 以下を走査して `session_name` フィールドが一致するマニフェストを探す
+  - **Bash ツール**で `ls ~/.orchestrate/` でサブディレクトリを列挙し、**Read ツール**で各 `manifest.json` の `session_name` フィールドを確認する
+  - 一致するものを対象マニフェストとする
+- マニフェストが見つからない場合は「マニフェストが見つかりません」と表示して**中断する**
+- 複数見つかった場合は `session_id`・`created_at`・`creation_state`・`task_summary` を一覧表示してユーザに選択させる
+- マニフェストから `repo_root` と `session_id` を取得する（呼び出し元の CWD は使用しない）
+- 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
+  1. `worktrees[].path` がすべて `<manifest.repo_root>@orchestrate-<session_id>-` プレフィックスを持つこと
+  2. `worktrees[].branch` がすべて `orchestrate/<session_id>/` プレフィックスを持つこと
+  3. `tmux_session` が `<session-name>` と一致すること
+
+**Step 4-2: 実際の状態との reconciliation（クラッシュ時に manifest 未更新のリソースを回収）**
+- **Bash ツール**で `git -C <manifest.repo_root> worktree list --porcelain` を実行し、`<manifest.repo_root>@orchestrate-<session_id>-` プレフィックスを持つすべての worktree を列挙する
+- **Bash ツール**で `git -C <manifest.repo_root> branch --list "orchestrate/<session_id>/*"` を実行し、セッションに属するすべてのブランチを列挙する
+- これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session_id>` スコープに属するリソースをすべて削除対象とする
+  - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
+
+**Step 4-3: リソースの削除**
+1. **Bash ツール**で tmux セッションを削除する（`tmux_created: true` の場合のみ）: `tmux kill-session -t <tmux_session>`
+2. **Bash ツール**で reconciliation で特定したすべての worktree を削除する（各 path を個別呼び出し）:
+   - `git -C <manifest.repo_root> worktree remove --force <path>`
+3. **Bash ツール**で reconciliation で特定したすべてのブランチを削除する（各 branch を個別呼び出し）:
+   - `git -C <manifest.repo_root> branch -D <branch>`
+4. **Bash ツール**で各 worktree ディレクトリを個別に削除する（各 path を個別呼び出し）:
+   - `rm <path>`（`rm -rf` は禁止。worktree remove 後は空ディレクトリのみ残る）
+5. **Bash ツール**でマニフェストファイルを削除する: `rm -r ~/.orchestrate/<session_id>`
+6. **Bash ツール**で計画 YAML を削除する: `rm <manifest.repo_root>/.outputs/claude/orchestrate-plan-<session-slug>.yaml`
+7. **Bash ツール**で role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
 
 - tmux セッション内でのみ動作する
 - git リポジトリ内でのみ動作する
 - ファイル削除には `rm` を使用する（`rm -rf` は禁止）
-- `.orchestrate/` ディレクトリは `.gitignore` に追加する
+- worktree パスは `gw_add` と同じ `<repo-root>@<branch-slug>` 形式（ブランチ名の `/` を `-` に置換）
+- ネットワーク通信を伴うコマンドは使用しない（aws, curl, terraform 等）
