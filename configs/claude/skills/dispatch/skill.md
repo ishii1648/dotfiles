@@ -45,21 +45,21 @@ version: 0.5.0
    c. `--issue <番号>` フラグ → Step 1-3 へ
    d. その他の文字列をタスク記述として使用する
 5. tmux セッション外かチェック:
-   - `tmux display-message -p '#{session_name}' 2>/dev/null` が空なら「tmux セッション外では動作しません」と表示して終了
+   - **Bash ツール**で `tmux display-message -p '#{session_name}'` を実行し、出力が空なら「tmux セッション外では動作しません」と表示して終了
 6. リポジトリルートを決定する:
    - `--repo <owner/repo>` が指定された場合:
-     - `ghq list -p <owner/repo>` でローカルパスを検索する
+     - **Bash ツール**で `ghq list -p <owner/repo>` でローカルパスを検索する
      - 見つかればそのパスを `repo-root` として使用する
      - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
-   - 指定なしの場合: `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
+   - 指定なしの場合: **Bash ツール**で `git rev-parse --show-toplevel` を実行し、空なら「git リポジトリ外では動作しません」と表示して終了
 7. session-name を決定する（tmux セッション名として使用）:
    - `--repo <owner/repo>` が指定されている場合: session-name = `<owner>/<repo>`（例: `ishii1648/tmux-sidebar`）
-   - 指定なしの場合: `git remote get-url origin 2>/dev/null` から `owner/repo` を抽出して session-name とする。取得できない場合はリポジトリのディレクトリ名を使用する。
-   - 同名の tmux セッションが既存の場合（`tmux has-session -t <session-name>` が成功）: `-2`、`-3` と数字サフィックスを付加して衝突を回避する
+   - 指定なしの場合: **Bash ツール**で `git remote get-url origin` から `owner/repo` を抽出して session-name とする。取得できない場合はリポジトリのディレクトリ名を使用する。
+   - 同名セッションの存在チェックは **Bash ツール**で `tmux has-session -t <session-name>` を**単独呼び出し**で実行する。ツール呼び出しがエラーなしで成功した（= セッションが存在する）場合は `-2`、`-3` と数字サフィックスを付加して再チェックする（`&&`/`||`/`;` での連結は禁止、1コマンド1呼び出しで繰り返す）
 8. session-slug を生成する: session-name の `/` を `-` に置換したファイルシステム安全な識別子（例: `ishii1648-tmux-sidebar`）
    - 計画 YAML の出力先: `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
-   - `.outputs/claude/` ディレクトリが存在しない場合は Write ツールで `.outputs/claude/.gitkeep` を作成して対応する
-9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS`（`date +%Y%m%d-%H%M%S` で取得）
+   - `.outputs/claude/` ディレクトリが存在しない場合は **Write ツール**で `.outputs/claude/.gitkeep` を作成して対応する
+9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS`（**Bash ツール**で `date +%Y%m%d-%H%M%S` で取得）
    - **表示名（session-name）とは別の不変識別子**。後続のマニフェストパス・ブランチプレフィックス・worktree パスはすべて session-id でスコープする
    - マニフェストパス: `~/.dispatch/<session-id>/manifest.json`
 10. **マニフェストを初期書き込みする（すべての副作用より前）**:
@@ -119,6 +119,15 @@ version: 0.5.0
    - plan-yaml-path: <plan-yaml-path>
    - manifest-path: ~/.dispatch/<session-id>/manifest.json
 
+   ## Bash ツール使用の制約
+
+   以下の制約はすべての Bash 呼び出しに適用される（PreToolUse hook が強制）:
+   - `&&`/`||`/`;` での複数コマンド連結は**禁止**。各コマンドを個別の Bash 呼び出しに分割すること
+   - `$()` コマンド置換は**禁止**。前の Bash 呼び出し結果の出力から値を読み取ること
+   - ファイル書き込みには Write ツールを使用すること（`echo >` や `cat >` は禁止）
+   - `mkdir` は禁止。Write ツールはディレクトリを自動作成する
+   - Bash から `/tmp/` へのリダイレクト（`> /tmp/...`）は禁止（Write ツールは使用可）
+
    ## Phase 1: 計画
 
    1. タスクを独立したサブタスクに分解する（最大6件）
@@ -130,7 +139,7 @@ version: 0.5.0
       - hybrid: 並列グループと逐次ハンドオフが混在
    4. worktree 数・名前・ブランチ名を決定する（ブランチ形式: `dispatch/<session-id>/<name>`）
    5. 各ワーカーへの詳細な指示書（プロンプト）を作成する
-   6. 以下の YAML を `<plan-yaml-path>` に書き込む:
+   6. **Write ツール**で以下の YAML を `<plan-yaml-path>` に書き込む:
 
    ```yaml
    strategy: single
@@ -150,7 +159,8 @@ version: 0.5.0
 
    ### 2-1: マニフェストを更新する（manifest-first）
 
-   `~/.dispatch/<session-id>/manifest.json` を Read して、以下のフィールドを追記・更新する（creation_state・strategy・task_summary・worktrees を上書き）:
+   **Read ツール**で `~/.dispatch/<session-id>/manifest.json` を読み込む。
+   **Write ツール**で以下の内容に更新する（creation_state・strategy・task_summary・worktrees を上書き）:
 
    ```json
    {
@@ -179,50 +189,52 @@ version: 0.5.0
 
    ### 2-2: .gitignore に `.dispatch/` を追記する
 
-   `.gitignore` に `.dispatch/` が含まれていない場合のみ追記する。
+   **Grep ツール**で `.gitignore` に `.dispatch/` が含まれるか確認し、含まれていない場合のみ **Edit ツール**で追記する。
 
    ### 2-3: worktree を作成して tmux ウィンドウを起動する
 
    worktrees リストの各エントリについて順番に実行する:
 
-   1. **git worktree を作成する**:
+   1. **Bash ツール**で git worktree を作成する（1コマンド1呼び出し）:
       ```
       git -C <repo-root> worktree add .dispatch/<session-id>/<name> -b dispatch/<session-id>/<name>
       ```
 
-   2. **tmux ウィンドウを作成する**（ウィンドウ名 = worktree name）:
+   2. **Bash ツール**で tmux ウィンドウを作成する（ウィンドウ名 = worktree name）:
       ```
       tmux new-window -t <session-name> -n <name> -c <repo-root>/.dispatch/<session-id>/<name>
       ```
 
-   3. **ワーカーロールファイルを書き込む**（sidebar 用）:
+   3. **Bash ツール**でペイン ID を取得する（`$()` 不使用・単独呼び出し）:
       ```
-      PANE_NUM=$(tmux display-message -p -t "<session-name>:<name>" "#{pane_id}" | tr -d '%')
-      mkdir -p /tmp/claude-pane-state
-      echo "<name>" > /tmp/claude-pane-state/pane_${PANE_NUM}_role
+      tmux display-message -p -t "<session-name>:<name>" "#{pane_id}"
       ```
+      出力（例: `%42`）の `%` を除いた数値を pane_num とし、**Write ツール**で `/tmp/claude-pane-state/pane_<pane_num>_role` に `<name>` を書き込む。
 
-   4. マニフェストの該当 worktree の `created` を `true` に更新する
+   4. **Read ツール**でマニフェストを読み込み、該当 worktree の `created` を `true` に更新して **Write ツール**で書き込む
 
    ### 2-4: 各 worktree ウィンドウで Claude を起動してプロンプトを送信する
 
    全 worktree 作成後、planning ウィンドウを**削除する前に**各ウィンドウで Claude を起動する:
 
-   1. Claude Code を起動する:
+   1. **Bash ツール**で Claude Code を起動する:
       ```
       tmux send-keys -t <session-name>:<name> "claude" Enter
       ```
-      起動完了まで 3 秒待機する。
+      **Bash ツール**で 3 秒待機する:
+      ```
+      sleep 3
+      ```
 
-   2. YAML の `prompt` フィールドの内容をそのまま送信する:
+   2. **Bash ツール**で YAML の `prompt` フィールドの内容をそのまま送信する:
       ```
       tmux send-keys -t <session-name>:<name> "<prompt>" Enter
       ```
 
    ### 2-5: マニフェストを完了状態に更新して planning ウィンドウを削除する
 
-   1. マニフェストの `creation_state` を `"complete"` に更新する
-   2. planning ウィンドウを削除する（自身のウィンドウを最後に削除する）:
+   1. **Write ツール**でマニフェストの `creation_state` を `"complete"` に更新する
+   2. **Bash ツール**で planning ウィンドウを削除する（自身のウィンドウを最後に削除する）:
       ```
       tmux kill-window -t <session-name>:planning
       ```
@@ -233,22 +245,27 @@ version: 0.5.0
    ````
 
 2. **セッションを作成する**（現在のウィンドウサイズを継承してサイドバー幅を正しく維持する）:
-   現在のウィンドウサイズを取得する:
+   **Bash ツール**でウィンドウサイズを取得する（各1呼び出し）:
    ```
    tmux display-message -p '#{window_width}'
    tmux display-message -p '#{window_height}'
    ```
-   取得した値（`<W>` × `<H>`）を使ってセッションを作成する:
+   取得した値（`<W>` × `<H>`）を使って **Bash ツール**でセッションを作成する:
    ```
    tmux new-session -d -s <session-name> -n planning -c <repo-root> -x <W> -y <H>
    ```
-   作成後、マニフェストの `tmux_created` を `true` に更新する（クラッシュ時に tmux が孤立していることを示す）。
+   **Write ツール**でマニフェストの `tmux_created` を `true` に更新する（クラッシュ時に tmux が孤立していることを示す）。
 
 3. **planning ウィンドウで Claude を起動し、計画プロンプトを送信する**:
+   **Bash ツール**で Claude Code を起動する:
    ```
    tmux send-keys -t <session-name>:planning "claude" Enter
    ```
-   3 秒待機してから:
+   **Bash ツール**で 3 秒待機してから:
+   ```
+   sleep 3
+   ```
+   **Bash ツール**でプロンプトを送信する:
    ```
    tmux send-keys -t <session-name>:planning "<repo-root>/.outputs/claude/dispatch-task-<session-slug>.md を読んで指示通りに実行してください" Enter
    ```
@@ -293,9 +310,9 @@ version: 0.5.0
 `/dispatch cleanup <session-name|session-id>` が指定された場合:
 
 **Step 4-1: マニフェストの読み込みと検証（fail-closed・呼び出し元リポジトリに依存しない）**
-- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS` パターン）の場合: `~/.dispatch/<session-id>/manifest.json` を直接 Read する（最も確実な指定方法）
+- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS` パターン）の場合: **Read ツール**で `~/.dispatch/<session-id>/manifest.json` を直接読む（最も確実な指定方法）
 - 引数が `session-name` 形式の場合: `~/.dispatch/` 以下を走査して `session_name` フィールドが一致するマニフェストを探す
-  - `ls ~/.dispatch/` でサブディレクトリを列挙し、各 `manifest.json` の `session_name` フィールドを確認する
+  - **Bash ツール**で `ls ~/.dispatch/` でサブディレクトリを列挙し、**Read ツール**で各 `manifest.json` の `session_name` フィールドを確認する
   - 一致するものを対象マニフェストとする
 - マニフェストが見つからない場合は「マニフェストが見つかりません」と表示して**中断する**
 - 複数見つかった場合は `session_id`・`created_at`・`creation_state`・`task_summary` を一覧表示してユーザに選択させる
@@ -306,21 +323,21 @@ version: 0.5.0
   3. `tmux_session` が `<session-name>` と一致すること
 
 **Step 4-2: 実際の状態との reconciliation（クラッシュ時に manifest 未更新のリソースを回収）**
-- `git -C <manifest.repo_root> worktree list --porcelain` で `<manifest.repo_root>/.dispatch/<session_id>/` 配下のすべての worktree を列挙する
-- `git -C <manifest.repo_root> branch --list "dispatch/<session_id>/*"` でセッションに属するすべてのブランチを列挙する
+- **Bash ツール**で `git -C <manifest.repo_root> worktree list --porcelain` を実行し、`<manifest.repo_root>/.dispatch/<session_id>/` 配下のすべての worktree を列挙する
+- **Bash ツール**で `git -C <manifest.repo_root> branch --list "dispatch/<session_id>/*"` を実行し、セッションに属するすべてのブランチを列挙する
 - これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session_id>` スコープに属するリソースをすべて削除対象とする
   - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
 
 **Step 4-3: リソースの削除**
-1. tmux セッションを削除する（`tmux_created: true` の場合のみ）: `tmux kill-session -t <tmux_session>`
-2. reconciliation で特定したすべての worktree を削除する:
+1. **Bash ツール**で tmux セッションを削除する（`tmux_created: true` の場合のみ）: `tmux kill-session -t <tmux_session>`
+2. **Bash ツール**で reconciliation で特定したすべての worktree を削除する（各 path を個別呼び出し）:
    - `git -C <manifest.repo_root> worktree remove --force <path>`
-3. reconciliation で特定したすべてのブランチを削除する:
+3. **Bash ツール**で reconciliation で特定したすべてのブランチを削除する（各 branch を個別呼び出し）:
    - `git -C <manifest.repo_root> branch -D <branch>`
-4. worktree ディレクトリを削除する: `rm -r <manifest.repo_root>/.dispatch/<session_id>`
-5. マニフェストファイルを削除する: `rm -r ~/.dispatch/<session_id>`
-6. 計画 YAML を削除する: `rm <manifest.repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
-7. role ファイルを削除する（該当セッションのペイン分のみ）
+4. **Bash ツール**で worktree ディレクトリを削除する: `rm -r <manifest.repo_root>/.dispatch/<session_id>`
+5. **Bash ツール**でマニフェストファイルを削除する: `rm -r ~/.dispatch/<session_id>`
+6. **Bash ツール**で計画 YAML を削除する: `rm <manifest.repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
+7. **Bash ツール**で role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
 
