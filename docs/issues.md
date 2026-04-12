@@ -677,16 +677,19 @@
 
 ---
 
-### ADR-056: tmux-sidebar をタスク起動・進捗監視の統合 UI として使用する
+### ADR-056: tmux-sidebar を全リポジトリ統合管理 UI として使用する
 
 **コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md)
 
 **受け入れ条件**:
 
-- [ ] sidebar 内で `n` キーを押すと `docs/issues.md` のタスクを fzf で選択して `/dispatch` を起動できる
-- [ ] sidebar に全 worktree の Claude セッション状態が表示される
-- [ ] sidebar 内で `d` キーを押すと選択中のセッションを cleanup できる
-- [ ] tmux popup を使わずに sidebar だけで「タスク起動 → 進捗確認 → セッション移動」が完結する
+- [ ] sidebar が ghq 管理下の全リポジトリを表示する（未起動セッションを含む）
+- [ ] active session は状態バッジ（running/idle/ask）と dispatch 情報（strategy/worktree 数）付きで表示される
+- [ ] 未起動 repo で `Enter` を押すと新規 tmux session を作成して移動する
+- [ ] `n` キーで選択中の repo に対して dispatch を起動できる（task description 入力 → `/dispatch --repo <repo>` 実行）
+- [ ] `d` キーで選択中の dispatch session を cleanup できる（`/dispatch cleanup <session-id>` 相当）
+- [ ] `cmd+shift+s` で sidebar が表示され、`tmw_pick` popup は廃止される
+- [ ] sidebar だけで「リポジトリ選択 → dispatch 起動 → 進捗確認 → セッション移動 → cleanup」が完結する
 
 ---
 

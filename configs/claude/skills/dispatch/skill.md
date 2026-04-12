@@ -59,7 +59,7 @@ version: 0.5.0
 8. session-slug を生成する: session-name の `/` を `-` に置換したファイルシステム安全な識別子（例: `ishii1648-tmux-sidebar`）
    - 計画 YAML の出力先: `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
    - `.outputs/claude/` ディレクトリが存在しない場合は Write ツールで `.outputs/claude/.gitkeep` を作成して対応する
-9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS-XXXX`（XXXX は4桁ランダム英数字）
+9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS-mmm`（mmm はミリ秒3桁、`date +%Y%m%d-%H%M%S-%3N` で取得）
    - **表示名（session-name）とは別の不変識別子**。後続のマニフェストパス・ブランチプレフィックス・worktree パスはすべて session-id でスコープする
    - マニフェストパス: `~/.dispatch/<session-id>/manifest.json`
 10. **マニフェストを初期書き込みする（すべての副作用より前）**:
@@ -287,7 +287,7 @@ version: 0.5.0
 `/dispatch cleanup <session-name|session-id>` が指定された場合:
 
 **Step 4-1: マニフェストの読み込みと検証（fail-closed・呼び出し元リポジトリに依存しない）**
-- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS-XXXX` パターン）の場合: `~/.dispatch/<session-id>/manifest.json` を直接 Read する（最も確実な指定方法）
+- 引数が `session-id` 形式（`<slug>-YYYYMMDD-HHMMSS-mmm` パターン）の場合: `~/.dispatch/<session-id>/manifest.json` を直接 Read する（最も確実な指定方法）
 - 引数が `session-name` 形式の場合: `~/.dispatch/` 以下を走査して `session_name` フィールドが一致するマニフェストを探す
   - `ls ~/.dispatch/` でサブディレクトリを列挙し、各 `manifest.json` の `session_name` フィールドを確認する
   - 一致するものを対象マニフェストとする
