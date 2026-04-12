@@ -52,6 +52,10 @@
 | ✔ | ○ | tmux / fish | Claude セッション状態を常時俯瞰できない — popup は都度操作が必要で、作業フローを断ち切らずに複数セッションを把握できない | [ADR-050](adr/050-tmux-split-window-fish-sidebar.md) |
 | - | ○ | tmux / fish | Fish 実装では全セッション表示・Enter 移動・ペイン除外の3機能を実現できない — passive display の構造的制約により Go 製専用ツールへの移行が必要 | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 | ✔ | ○ | tmux / claude | オーケストレーション進捗を tmux popup で確認できない — ECC 設計を参考に dotfiles skill として実装し、将来的に tmux-sidebar へ移行 | [ADR-052](adr/052-ecc-orchestrate-for-tmux-sidebar.md) |
+| - | ○ | tmux / claude | 並列度が上がると全 worktree の Claude セッション状態を俯瞰できない — claude-sessions-status.sh が単一セッション内のワーカーしか表示しない | [ADR-053](adr/053-global-session-status-cross-worktree.md) |
+| - | ○ | claude | 新しい作業開始のエントリポイントが gw_add / spawn / orchestrate に分散し、how の判断をユーザが毎回行う必要がある | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
+| - | ○ | claude | dispatch skill の実行戦略決定（並列/逐次/パイプライン）を担う meta planner が存在しない — 既存 planner は計画書作成のみで戦略を動的決定しない | [ADR-055](adr/055-meta-planner-dynamic-execution-strategy.md) |
+| - | ○ | tmux / claude | tmux-sidebar がモニタリング専用で新規タスク起動ができない — popup を使わずに sidebar だけで開発 workflow を完結できない | [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -653,4 +657,57 @@
 - [x] `feature` / `bugfix` / `refactor` / `security` / `custom` のワークフロータイプが動作する
 - [x] tmux/worktree モードで各ワーカーが別ペインで起動する
 - [x] `prefix+s` の tmux popup にワーカー一覧（planner / code-reviewer / tdd-guide 等）と状態バッジ（running / idle / ask）が表示される
+
+---
+
+### ADR-053: 全 worktree 横断 Claude セッション状態集約
+
+**コンポーネント**: tmux / claude | **ADR**: [ADR-053](adr/053-global-session-status-cross-worktree.md)
+
+**受け入れ条件**:
+
+- [ ] `claude-sessions-status.sh`（引数なし）を実行すると全 tmux セッションをまたいで Claude が動いている pane の状態が一覧表示される
+- [ ] 表示フォーマットが `[session:window]  状態バッジ  経過時間  (role)` の形式になっている
+- [ ] `/tmp/claude-pane-state/` に状態ファイルが存在しない pane は表示されない
+- [ ] 既存の `claude-sessions-status.sh <session-name>` 引数付きモードが引き続き動作する
+
+---
+
+### ADR-054: dispatch skill — spawn/orchestrate を統合した単一エントリポイント
+
+**コンポーネント**: claude | **ADR**: [ADR-054](adr/054-dispatch-skill-unified-entry-point.md)
+
+**受け入れ条件**:
+
+- [ ] `/dispatch "<タスク記述>"` で worktree 作成から Claude セッション起動まで完結する
+- [ ] `/dispatch --issue <番号>` で `docs/issues.md` の課題を参照してタスクを起動できる
+- [ ] `/dispatch --dry-run` で実行計画（worktree 数・戦略・各ワーカーの役割）が表示されるが実際の起動は行われない
+- [ ] `/dispatch cleanup <session>` で起動済みセッションと worktree を削除できる
+- [ ] `configs/claude/setup.sh` 実行後に `~/.claude/skills/dispatch` として呼び出せる
+
+---
+
+### ADR-055: meta planner — 動的実行戦略決定エージェント
+
+**コンポーネント**: claude | **ADR**: [ADR-055](adr/055-meta-planner-dynamic-execution-strategy.md)
+
+**受け入れ条件**:
+
+- [ ] meta planner がタスク記述を受け取り、サブタスクの並列可能性を分析して実行戦略（single/parallel/pipeline/hybrid）を決定する
+- [ ] meta planner の出力に worktree 名・ブランチ名・各ワーカーへのプロンプトが含まれる
+- [ ] 単純なタスクに対して over-provision（full orchestrate 相当）にならない（単発判定が正しく機能する）
+- [ ] 複雑なタスクに対して under-provision（単発判定）にならない（並列/パイプライン判定が機能する）
+
+---
+
+### ADR-056: tmux-sidebar をタスク起動・進捗監視の統合 UI として使用する
+
+**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md)
+
+**受け入れ条件**:
+
+- [ ] sidebar 内で `n` キーを押すと `docs/issues.md` のタスクを fzf で選択して `/dispatch` を起動できる
+- [ ] sidebar に全 worktree の Claude セッション状態が表示される（ADR-053 の集約スクリプトを使用）
+- [ ] sidebar 内で `d` キーを押すと選択中のセッションを cleanup できる
+- [ ] tmux popup を使わずに sidebar だけで「タスク起動 → 進捗確認 → セッション移動」が完結する
 
