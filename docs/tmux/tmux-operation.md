@@ -63,8 +63,10 @@ tmw
 |------|----------|
 | pane作成（横分割） | `prefix + n` |
 | pane削除 | `prefix + x` |
-| 左のpaneへ移動 | `prefix + h` または `prefix + j` |
-| 右のpaneへ移動 | `prefix + k` または `prefix + l` |
+| 左のpaneへ移動 | `prefix + h` |
+| 下のpaneへ移動 | `prefix + j` |
+| 上のpaneへ移動 | `prefix + k` |
+| 右のpaneへ移動 | `prefix + l` |
 | paneリサイズ | `prefix + H/J/K/L` |
 
 ### URL操作（Cmd + u）
