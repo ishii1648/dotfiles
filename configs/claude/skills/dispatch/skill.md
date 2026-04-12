@@ -204,6 +204,7 @@ version: 0.5.0
       ```
       tmux new-window -t <session-name> -n <name> -c <repo-root>/.dispatch/<session-id>/<name>
       ```
+      **重要**: `after-new-window` グローバルフックがデタッチセッションでも自動発火してサイドバーを起動するため、手動で `tmux split-window ... tmux-sidebar` を実行してはならない（二重起動になる）。
 
    3. **Bash ツール**でペイン ID を取得する（`$()` 不使用・単独呼び出し）:
       ```
