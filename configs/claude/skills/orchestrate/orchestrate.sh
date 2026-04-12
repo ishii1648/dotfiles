@@ -275,7 +275,7 @@ create_worktree() {
   echo "$worktree_path"
 }
 
-# --- マニフェスト書き込み (v4: chain 構造対応) ---
+# --- マニフェスト書き込み (v0.0.4: chain 構造対応) ---
 write_manifest() {
   local session_id="$1"
   local session_name="$2"

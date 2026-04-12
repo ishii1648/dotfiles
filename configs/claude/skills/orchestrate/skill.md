@@ -2,7 +2,7 @@
 name: orchestrate
 description: ワークフロータイプに応じたエージェントチェーンを順次実行する。feature/bugfix/refactor/security/custom を指定し、各エージェントがハンドオフ文書で引き継ぎながら計画→TDD→レビューを実行する。「/orchestrate feature "新機能追加"」「/orchestrate bugfix --issue 53」「/orchestrate --dry-run feature "タスク"」「/orchestrate cleanup <session>」で起動。
 argument-hint: '<workflow-type> "<タスク記述>" | <workflow-type> --issue <番号> | <workflow-type> <GitHub-issue-URL> | custom --agents <a,b,c> "<タスク記述>" | --dry-run <workflow-type> "<タスク記述>" | cleanup <session>'
-version: 4.0.0
+version: 0.0.4
 ---
 
 # orchestrate

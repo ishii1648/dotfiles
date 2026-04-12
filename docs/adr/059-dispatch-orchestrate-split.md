@@ -1,11 +1,14 @@
 # ADR-059: dispatch / orchestrate の責務分離
 
 ## ステータス
-採用済み
+部分廃止（ADR-060 で一部変更）
+
+> dispatch の責務分離（軽量版としての位置付け）は引き続き有効。orchestrate の設計（「planning Claude が戦略決定」「worktree N個 + worker Claude N個」）は ADR-060 で「ワークフロータイプ固定のエージェントチェーン + 単一 worktree + tmux wait-for」に変更。
 
 ## 関連 ADR
 - 依存: ADR-054（dispatch skill — spawn/orchestrate を統合した単一エントリポイント）
 - 関連: ADR-052（orchestrate skill）
+- 関連: ADR-060（orchestrate v0.0.4 — エージェントチェーン復元）
 
 ## コンテキスト
 
