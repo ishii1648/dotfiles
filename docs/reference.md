@@ -105,7 +105,7 @@ scripts/setup.sh --dry-run          # チェックのみ
 
 ### ADR 一覧
 
-→ [reference-adr.md](reference-adr.md)
+→ [issues.md](issues.md)（サマリ・対応状況・ADR リンクを一元管理）
 
 ## ツール詳細
 
