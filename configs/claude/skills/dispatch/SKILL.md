@@ -15,7 +15,7 @@ disable-model-invocation: true
 
 ## 概要
 
-`~/.claude/scripts/dispatch.sh` に全ロジックを委譲する。
+`./dispatch.sh` に全ロジックを委譲する。
 最大 Bash 3回 + AskUserQuestion 1回で完結する。
 
 ## ワークフロー
