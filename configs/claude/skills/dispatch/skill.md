@@ -188,7 +188,7 @@ worktrees リストの各エントリについて順番に実行する:
 4. `.gitignore` に `.dispatch/` が含まれていない場合は追記する
 
 5. **セッションマニフェストを書き込む**（部分失敗時の復旧・cleanup の基盤）:
-   - パス: `.dispatch/<session-slug>/manifest.json`
+   - パス: `~/.dispatch/<session-slug>/manifest.json`（リポジトリ外に配置しエージェントによる改ざんを防ぐ）
    - 各リソース作成後に都度更新し、cleanup はこのファイルを参照する
    - フォーマット:
      ```json
@@ -260,7 +260,7 @@ worktree:
 
 **Step 6-1: マニフェストの読み込みと検証（fail-closed）**
 - session-slug = session-name の `/` を `-` に置換して求める（例: `ishii1648/tmux-sidebar` → `ishii1648-tmux-sidebar`）
-- `.dispatch/<session-slug>/manifest.json` を Read する
+- `~/.dispatch/<session-slug>/manifest.json` を Read する（リポジトリ外の dispatcher-owned ファイル）
 - マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と表示して**中断する**
 - 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
   1. `repo_root` が現在の `git rev-parse --show-toplevel` と一致すること
@@ -274,7 +274,8 @@ worktree:
    - `git worktree remove --force <path>`
 3. マニフェストの `worktrees[].created == true` の各ブランチを削除する:
    - `git -C <repo_root> branch -D <branch>`
-4. worktree ディレクトリ（マニフェスト含む）を削除する: `rm -r <repo_root>/.dispatch/<session-slug>`
+4. worktree ディレクトリを削除する: `rm -r <repo_root>/.dispatch/<session-slug>`
+   - マニフェストファイルを削除する: `rm -r ~/.dispatch/<session-slug>`
 5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
 6. role ファイルを削除する（該当セッションのペイン分のみ）
 
