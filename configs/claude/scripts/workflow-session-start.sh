@@ -4,7 +4,7 @@ set -euo pipefail
 # SessionStart hook: workflow session log collector
 # Reads session_id from stdin JSON.
 # Mode B: checks ~/.workflow-sessions/pending/pane-<N>.json (written by dispatch-new-worker-window.sh)
-# Mode A: checks ~/.workflow-sessions/config.json for tmux session name patterns
+# Mode C: checks ~/.workflow-sessions/pending/<session>-<window>.json (written by workflow-window-register.sh)
 
 INPUT=$(cat)
 SESSION_ID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty')
@@ -28,12 +28,7 @@ if [[ -n "$PANE_NUM" ]]; then
     fi
 fi
 
-# --- Mode A: config-based auto-log for tmux session patterns ---
-CONFIG_FILE="$SESSIONS_DIR/config.json"
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    exit 0
-fi
-
+# --- Mode C: session+window pending context (written by workflow-window-register.sh) ---
 if [[ -z "${TMUX:-}" ]]; then
     exit 0
 fi
@@ -44,35 +39,15 @@ if [[ -z "$TMUX_SESSION" ]]; then
 fi
 
 WINDOW_NAME=$(tmux display-message -p '#{window_name}' 2>/dev/null || true)
-
-# Find first matching pattern in config (glob: * → .*)
-MATCH_JSON=$(jq -c --arg s "$TMUX_SESSION" \
-    '(.auto_log // []) | map(select(.session_pattern as $p | $s | test("^" + ($p | gsub("\\*"; ".*")) + "$"))) | .[0]' \
-    "$CONFIG_FILE" 2>/dev/null || echo "null")
-
-if [[ "$MATCH_JSON" == "null" || -z "$MATCH_JSON" ]]; then
+if [[ -z "$WINDOW_NAME" ]]; then
     exit 0
 fi
 
-# Get repo root from current working directory (claude inherits CWD from tmux pane)
-REPO_ROOT=$(git rev-parse --show-toplevel 2>/dev/null || true)
-if [[ -z "$REPO_ROOT" ]]; then
+PENDING_FILE_C="$SESSIONS_DIR/pending/${TMUX_SESSION}-${WINDOW_NAME}.json"
+if [[ -f "$PENDING_FILE_C" ]]; then
+    cp "$PENDING_FILE_C" "$SESSIONS_DIR/${SESSION_ID}.json"
+    rm "$PENDING_FILE_C"
     exit 0
 fi
-
-WORKFLOW_SESSION_ID="$TMUX_SESSION"
-ROLE="${WINDOW_NAME:-worker}"
-LOG_DIR_TEMPLATE=$(printf '%s' "$MATCH_JSON" | jq -r '.log_dir // "docs/workflow-logs/{workflow_session_id}"')
-LOG_DIR="${LOG_DIR_TEMPLATE//\{workflow_session_id\}/$WORKFLOW_SESSION_ID}"
-LOG_DIR="${LOG_DIR//\{session_id\}/$SESSION_ID}"
-
-mkdir -p "$SESSIONS_DIR"
-jq -n \
-    --arg wsi "$WORKFLOW_SESSION_ID" \
-    --arg role "$ROLE" \
-    --arg repo_root "$REPO_ROOT" \
-    --arg log_dir "$LOG_DIR" \
-    '{"workflow_session_id": $wsi, "role": $role, "repo_root": $repo_root, "log_dir": $log_dir}' \
-    > "$SESSIONS_DIR/${SESSION_ID}.json"
 
 exit 0

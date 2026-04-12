@@ -37,6 +37,10 @@
           {
             "type": "command",
             "command": "test -n \"$SSH_CONNECTION\" && printf '[SSH環境] ホスト: %s, 接続元: %s' \"$(hostname)\" \"$(echo $SSH_CONNECTION | cut -d' ' -f1)\""
+          },
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/workflow-skill-detect.sh"
           }
         ]
       }
@@ -147,6 +151,15 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh running post"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/workflow-window-register.sh"
           }
         ]
       },

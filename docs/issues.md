@@ -718,4 +718,4 @@
 - [x] Stop hook（`workflow-session-log.sh`）がマーカー確認後、`transcript_path` を `<repo_root>/docs/dispatch-logs/<workflow-session-id>/<role>.jsonl` にコピーする
 - [x] マーカーが存在しない通常セッションでは Stop hook が何もしない（exit 0）
 - [x] `/session-log commit <workflow-session-id>` で該当セッションの JSONL が git add + commit される
-- [ ] `workflow-sessions.json` の `auto_log` に skill 名を追加するだけで、その skill が起動した tmux セッション内の claude セッションが自動ログ収集される（Mode C — skill 側の変更不要、tmux セッション名の設定不要）
+- [x] `workflow-sessions.json` の `auto_log` に skill 名を追加するだけで、その skill が起動した tmux セッション内の claude セッションが自動ログ収集される（Mode C — skill 側の変更不要、tmux セッション名の設定不要）

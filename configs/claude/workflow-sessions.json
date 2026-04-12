@@ -1,8 +1,5 @@
 {
-  "auto_log": [
-    {
-      "session_pattern": "spawn-*",
-      "log_dir": "docs/workflow-logs/{workflow_session_id}"
-    }
-  ]
+  "auto_log": {
+    "spawn": { "log_dir": "docs/workflow-logs/{session_name}" }
+  }
 }
