@@ -10,6 +10,7 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
+| Claude Code skills | `configs/claude/skills/` | dispatch・orchestrate・spawn など |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
@@ -17,7 +18,7 @@
 | コンポーネント | 管理場所 |
 |---|---|
 | claudedog | `ishii1648/claudedog` — Claude Code の人の介入率を追跡・可視化する計測ツール |
-| Claude Code skills | 別リポジトリ |
+| tmux-sidebar | `ishii1648/tmux-sidebar` — 全 session・worktree 状態の監視 UI（Go 製 TUI） |
 
 ## ツールスタック
 
@@ -31,7 +32,27 @@
 | package manager | aqua | `aqua.yaml` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
-## 並列作業の構成
+## 並列スケール開発アーキテクチャ
+
+10-20 並列の Claude Code エージェントを同時に稼働・監視するため、以下のコンポーネント群を整備している。
+
+| 役割 | コンポーネント | 関連 ADR |
+|---|---|---|
+| タスク起動の統合エントリポイント | `/dispatch` skill | [ADR-054](adr/054-dispatch-skill-unified-entry-point.md) |
+| タスク並列分散実行 | `/spawn` skill | — |
+| 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
+| stacked PR の依存グラフ表現・自動 rebase | monitoring agent（設計中） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
+
+```
+/dispatch skill
+  └─ meta planner: タスク分解 → worktree + Claude session 起動
+        ↓
+tmux-sidebar: 全 session 状態を表示・操作 UI として統合 (ADR-056)
+        ↓
+monitoring agent: PR マージ順管理・rebase 自動化 (ADR-057)
+```
+
+### 手動並列作業（従来）
 
 tmux セッション一本化（Ghostty tab 廃止）による構成:
 
@@ -132,10 +153,13 @@ scripts/setup.sh --dry-run          # チェックのみ
 - [046-statusbar-popup-role-separation.md](adr/046-statusbar-popup-role-separation.md)
 - [047-ghostty-applescript-claude-sidebar.md](adr/047-ghostty-applescript-claude-sidebar.md)
 - [048-claude-autocompact-threshold-override.md](adr/048-claude-autocompact-threshold-override.md)
+- [049-prtrack-permanent-session-instead-of-popup.md](adr/049-prtrack-permanent-session-instead-of-popup.md)
 - [050-tmux-split-window-fish-sidebar.md](adr/050-tmux-split-window-fish-sidebar.md)
 - [051-go-tmux-sidebar-tool.md](adr/051-go-tmux-sidebar-tool.md)
 - [052-ecc-orchestrate-for-tmux-sidebar.md](adr/052-ecc-orchestrate-for-tmux-sidebar.md)
 - [054-dispatch-skill-unified-entry-point.md](adr/054-dispatch-skill-unified-entry-point.md)
+- [056-sidebar-as-dispatch-and-monitor-ui.md](adr/056-sidebar-as-dispatch-and-monitor-ui.md)
+- [057-stacked-prs-dependency-management.md](adr/057-stacked-prs-dependency-management.md)
 
 ## Neovim プラグイン一覧
 
@@ -205,8 +229,24 @@ scripts/setup.sh --dry-run          # チェックのみ
 | kubernetes-sigs/kind | v0.22.0 |
 | kubernetes/kubectl | v1.30.0 |
 | ahmetb/kubectx | v0.9.5 |
+| ahmetb/kubectx/kubens | v0.9.5 |
 | istio/istio/istioctl | 1.21.2 |
 | helm/helm | v3.15.0 |
 | helmfile/helmfile | v0.164.0 |
 | derailed/k9s | v0.32.4 |
+| stern/stern | v1.30.0 |
 | mikefarah/yq | v4.52.4 |
+| ajeetdsouza/zoxide | v0.9.9 |
+| junegunn/fzf | v0.68.0 |
+| sharkdp/fd | v10.3.0 |
+| BurntSushi/ripgrep | 15.1.0 |
+| toshimaru/nyan | v1.2.5 |
+| nodejs/node | v22.7.0 |
+| hashicorp/terraform | v1.10.3 |
+| cli/cli | v2.69.0 |
+| docker/buildx | v0.32.1 |
+| mike-engel/jwt-cli | 6.2.0 |
+| knative/client | knative-v1.14.0 |
+| kubernetes-sigs/kubebuilder | v4.0.0 |
+| kubernetes-sigs/kwok/kwokctl | v0.6.1 |
+| a8m/envsubst | v1.4.3 |
