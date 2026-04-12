@@ -36,28 +36,47 @@ dispatch/orchestrate の起動 UI を **独立した popup ランチャー** と
 | `cmd+s` | tmux-sidebar トグル（既存・変更なし） |
 | `cmd+shift+s` | popup ランチャーを開く（新規。旧 `tmw_pick` を置換） |
 
-### popup ランチャー
+### popup ランチャー（2段階フロー）
 
-`cmd+shift+s` で tmux popup を表示し、dispatch / orchestrate を起動する:
+入力エリアがリポジトリフィルタとタスク記述で競合するため、2段階の popup で構成する:
+
+**Step 1: リポジトリ選択 popup**
 
 ```
 ┌─────────────────────────────────────────┐
 │  [dispatch] [orchestrate]       j/k 切替│
 │─────────────────────────────────────────│
-│  ▶ dotfiles                             │
-│    tmux-sidebar                         │
-│    myapp                                │
-│    infra                                │
+│  > dotf                          filter │
 │─────────────────────────────────────────│
-│  > タスク記述を入力...                  │
+│  ▶ dotfiles                             │
+│    dotfiles-private                     │
 └─────────────────────────────────────────┘
 ```
 
+- ghq リポジトリ一覧を fzf スタイルでフィルタ選択
+- `j`/`k` で dispatch / orchestrate を切替（デフォルト: dispatch）
+- リポジトリ選択 + `Enter` で Step 2 に遷移
+
+**Step 2: タスク記述 popup**
+
+```
+┌─────────────────────────────────────────┐
+│  dispatch > dotfiles                    │
+│─────────────────────────────────────────│
+│  > タスク記述を入力...                  │
+│                                         │
+└─────────────────────────────────────────┘
+```
+
+- 選択済みのリポジトリとモードをヘッダに表示
+- タスク記述を入力して `Enter` で実行
+- `/dispatch --repo <repo> "<prompt>"` または `/orchestrate --repo <repo> "<prompt>"` を実行
+
 フロー:
-1. `cmd+shift+s` で popup 表示
-2. ghq 管理リポジトリ一覧を表示。`j`/`k` で dispatch / orchestrate を切替（デフォルト: dispatch）
-3. リポジトリ選択 + `Enter` で入力欄にフォーカス移動
-4. prompt 入力 + `Enter` で `/dispatch --repo <repo> "<prompt>"` または `/orchestrate --repo <repo> "<prompt>"` を実行
+1. `cmd+shift+s` で Step 1 popup 表示
+2. リポジトリをフィルタ選択 + dispatch/orchestrate 切替
+3. `Enter` で Step 2 popup に遷移
+4. タスク記述入力 + `Enter` で実行
 
 ### 実装方針
 
