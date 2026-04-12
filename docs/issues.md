@@ -50,6 +50,8 @@
 | ✔ | ○ | claude | 1M context モデルで auto-compaction 閾値が高すぎ推論品質が劣化する — デフォルト 80%+ では MRCR 17pt 低下、推論の捏造・修正無視が発生 | [ADR-048](adr/048-claude-autocompact-threshold-override.md) |
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
 | - | ○ | claude | Skill ツールの呼び出し回数が把握できない — どのスキルが頻繁に使われているか分からず、改善優先度の判断ができない | — |
+| - | ○ | tmux / claude | tmux-sidebar（→ tmux-hub にリネーム予定）がモニタリング専用で操作起動ができない — sidebar ペイン（監視）+ popup ランチャー（dispatch/orchestrate 起動）に分離して一元化する | [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md) |
+| - | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -616,4 +618,38 @@
 - [ ] `~/.claude/scripts/skill-stats.sh` を実行するとスキル別呼び出し回数が降順で表示される
 - [ ] `configs/claude/settings.json` の PostToolUse フックに Skill マッチャーが追加されている
 - [ ] フックスクリプト `~/.claude/scripts/skill-call-counter.sh` が実行可能ファイルとして配置されている
+
+---
+
+### ADR-060: orchestrate v4 — エージェントチェーンの復元
+
+**コンポーネント**: claude | **ADR**: [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md)
+
+**受け入れ条件**:
+
+- [ ] `/orchestrate feature "タスク"` でワークフロータイプに応じたエージェントチェーン（planner → tdd-guide → code-reviewer → security-reviewer）が順次起動される
+- [ ] 各エージェントが完了時にハンドオフ文書（`.outputs/claude/handoffs/HANDOFF-<prev>-to-<next>.md`）を生成する
+- [ ] `tmux wait-for` により前エージェント完了後に次エージェントが自動起動される（ポーリング待機なし）
+- [ ] 各エージェントが専用の tmux ウィンドウで実行され、進捗が視覚的に確認できる
+- [ ] orchestrate.sh のマニフェストに `workflow`・`chain`（agents, current_phase, phases）が記録される
+- [ ] 最後のエージェントが `FINAL-REPORT.md` を生成して `creation_state` が `complete` に更新される
+- [ ] `/orchestrate cleanup <session>` で advance ループの PID kill を含む全リソースが削除される
+- [ ] `/orchestrate --dry-run feature "タスク"` でエージェントチェーンと計画が表示される（実行はしない）
+
+---
+
+### ADR-056: tmux-hub を並列作業の監視・操作ハブとして使用する
+
+**コンポーネント**: tmux / claude | **ADR**: [ADR-056](adr/056-tmux-hub-as-unified-management-ui.md)
+
+**受け入れ条件**:
+
+- [ ] tmux-sidebar を tmux-hub にリネームする（リポジトリ名・バイナリ名・設定参照）
+- [ ] sidebar ペインが ghq 管理下の全リポジトリを既存セッションツリーにマージ表示する（未起動 repo は `—` マークで区別）
+- [ ] sidebar ペインで未起動 repo に `Enter` すると新規 tmux session を作成して移動する
+- [ ] sidebar ペインで `d` キーにより選択中の dispatch session を cleanup できる
+- [ ] `cmd+shift+s` で popup ランチャーが開き、ghq リポジトリ一覧 + dispatch/orchestrate 切替が表示される
+- [ ] popup ランチャーでリポジトリ選択 → prompt 入力 → Enter で dispatch or orchestrate が実行される
+- [ ] `tmw_pick.fish` が廃止される
+- [ ] sidebar（監視・移動・cleanup）+ popup ランチャー（dispatch/orchestrate 起動）で並列作業管理が完結する
 

@@ -44,20 +44,25 @@ Tab:filter  ^C:quit
 
 ### 設計判断
 
-tmux-hub を「並列作業の統合管理ハブ」として位置づけ、リポジトリ選択・監視・移動・dispatch 起動を集約する。ただし task description のテキスト入力は sidebar ペインの幅（30〜40 文字）では不便なため、`n` キー押下時のみ `display-popup -w 80%` でフルサイズ popup を呼び出す。
+tmux-hub の責務を「監視」と「操作」に明確に分離する:
 
-`tmw_pick` popup は廃止し、tmux-hub からの popup 呼び出しに一本化する。`cmd+shift+s` は tmux-hub の表示トグルに変更する。
+- **sidebar ペイン** (`cmd+s`): 状態モニター + セッションナビゲーション（既存機能の拡張）
+- **popup ランチャー** (`cmd+shift+s`): dispatch / orchestrate の起動 UI（新規）
+
+sidebar からの操作起動（旧 `n` キー）は廃止し、popup ランチャーに一本化する。sidebar は ghq 統合による未起動 repo 表示を追加するが、操作系は持たない。
+
+`tmw_pick` popup は廃止し、popup ランチャーに置き換える。
 
 ## 設計
 
 ### UI 構造
 
-| レイヤー | 実装 | 責務 |
-|---|---|---|
-| sidebar ペイン | tmux-hub が常駐描画 | 状態モニター + セッションセレクター |
-| popup | tmux-hub が `display-popup` で起動 | テキスト入力（dispatch 起動時の task description） |
+| レイヤー | キーバインド | 実装 | 責務 |
+|---|---|---|---|
+| sidebar ペイン | `cmd+s` | tmux-hub が常駐描画 | 状態モニター + セッション移動 |
+| popup ランチャー | `cmd+shift+s` | tmux-hub が `display-popup` で起動 | dispatch / orchestrate の起動 |
 
-### 表示内容（sidebar ペイン）
+### sidebar ペイン（監視）
 
 現在の「セッション → ウィンドウ」ツリー表示を拡張し、ghq 管理リポジトリをマージする:
 
@@ -78,24 +83,31 @@ myapp                    —        # 未起動 repo（ghq のみ）
 
 - active session: 既存の表示（ウィンドウツリー + バッジ + PR）
 - 未起動 repo: セッション名レベルのみ表示、`—` マークで区別
+- `Enter`: active session は switch-client で移動（既存）/ 未起動 repo は session 作成 + 移動（新規）
+- `d`: 選択中の dispatch session を cleanup（`/dispatch cleanup <session-id>` 相当）
 
-### キーバインドとフロー
+### popup ランチャー（操作）
 
-既存のキーバインド（j/k/Enter/Tab）に加えて:
+`cmd+shift+s` で tmux popup を表示し、dispatch / orchestrate を起動する:
 
-| キー | 動作 |
-|---|---|
-| `Enter` | active session: switch-client で移動（既存）/ 未起動 repo: session 作成 + 移動（新規） |
-| `n` | `display-popup -w 80%` でテキスト入力 popup を開き task description を入力 → `/dispatch --repo <selected-repo> "<desc>"` を実行 |
-| `d` | 選択中の dispatch session を cleanup（`/dispatch cleanup <session-id>` 相当） |
-
-`n` のフロー:
 ```
-sidebar ペイン (narrow)     popup (80% 幅)
-  dotfiles ──── n ────────→ dispatch> タスク記述を入力...
-  tmux-hub                             ↓ Enter
-  myapp                      /dispatch --repo dotfiles "..."
+┌─────────────────────────────────────────┐
+│  [dispatch] [orchestrate]       j/k 切替│
+│─────────────────────────────────────────│
+│  ▶ dotfiles                             │
+│    tmux-hub                             │
+│    myapp                                │
+│    infra                                │
+│─────────────────────────────────────────│
+│  > タスク記述を入力...                  │
+└─────────────────────────────────────────┘
 ```
+
+フロー:
+1. `cmd+shift+s` で popup 表示
+2. ghq 管理リポジトリ一覧を表示。`j`/`k` で dispatch / orchestrate を切替（デフォルト: dispatch）
+3. リポジトリ選択 + `Enter` で入力欄にフォーカス移動
+4. prompt 入力 + `Enter` で `/dispatch --repo <repo> "<prompt>"` または `/orchestrate --repo <repo> "<prompt>"` を実行
 
 ### リネーム計画
 
@@ -110,8 +122,8 @@ sidebar ペイン (narrow)     popup (80% 幅)
 
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
-| `ishii1648/tmux-hub`（別リポ） | tmux-hub | ghq 統合・未起動 repo 表示・`n`/`d` キーバインド（`n` は popup 呼び出し） |
-| `configs/tmux/tmux.conf` | dotfiles | `cmd+shift+s` を tmux-hub トグルに変更（popup binding 削除） |
+| `ishii1648/tmux-hub`（別リポ） | tmux-hub | ghq 統合・未起動 repo 表示・popup ランチャーモード追加 |
+| `configs/tmux/tmux.conf` | dotfiles | `cmd+shift+s` を popup ランチャーに変更（`tmw_pick` binding 削除） |
 | `configs/fish/functions/tmw_pick.fish` | dotfiles | 廃止 |
 
 ## 受け入れ条件
