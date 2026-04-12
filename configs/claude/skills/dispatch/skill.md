@@ -174,6 +174,30 @@ worktrees リストの各エントリについて順番に実行する:
 
 4. `.gitignore` に `.dispatch/` が含まれていない場合は追記する
 
+5. **セッションマニフェストを書き込む**（部分失敗時の復旧・cleanup の基盤）:
+   - パス: `.dispatch/<session-name>/manifest.json`
+   - 各リソース作成後に都度更新し、cleanup はこのファイルを参照する
+   - フォーマット:
+     ```json
+     {
+       "session_name": "<session-name>",
+       "repo_root": "<repo-root>",
+       "created_at": "<ISO8601-timestamp>",
+       "strategy": "<strategy>",
+       "task_summary": "<task_summary>",
+       "worktrees": [
+         {
+           "name": "<worktree-name>",
+           "path": "<repo-root>/.dispatch/<session-name>/<worktree-name>",
+           "branch": "dispatch/<session-name>/<worktree-name>",
+           "created": true
+         }
+       ],
+       "tmux_session": "<session-name>"
+     }
+     ```
+   - マニフェストが存在するセッションのみが cleanup 対象として安全に識別できる
+
 全 worktree 作成後、`planning` ウィンドウを削除する:
 ```
 tmux kill-window -t <session-name>:planning
@@ -216,15 +240,18 @@ worktree:
 
 `/dispatch cleanup <session-name>` が指定された場合:
 
-1. tmux セッションを削除する: `tmux kill-session -t <session-name>`
-2. git worktree をすべて削除する:
-   - `git worktree list` で `.dispatch/<session-name>/` を含む worktree を特定する
-   - 各 worktree を `git worktree remove --force <path>` で削除する
-3. dispatch ブランチを削除する:
-   - `git branch | grep "dispatch/<session-name>/"` でブランチを特定する
-   - 各ブランチを `git branch -D <branch>` で削除する
-4. worktree ディレクトリを削除する: `rm -r <repo-root>/.dispatch/<session-name>`
-5. 計画 YAML を削除する: `rm <repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
+**マニフェストからリソース情報を取得する（存在する場合）:**
+- `.dispatch/<session-name>/manifest.json` を Read して `repo_root`・`worktrees`・`tmux_session` を取得する
+- マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と警告を表示して続行する
+
+**リソースを削除する（マニフェストのリソース一覧を基準とする）:**
+1. tmux セッションを削除する: `tmux kill-session -t <tmux_session>`
+2. マニフェストの `worktrees[].path` に記載された各 worktree を削除する:
+   - `git worktree remove --force <path>`
+3. マニフェストの `worktrees[].branch` に記載された各ブランチを削除する:
+   - `git -C <repo_root> branch -D <branch>`
+4. worktree ディレクトリ（マニフェスト含む）を削除する: `rm -r <repo_root>/.dispatch/<session-name>`
+5. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
 6. role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約

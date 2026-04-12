@@ -43,13 +43,16 @@
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 | stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft） | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
 
-dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS-XXXX` 形式、XXXX は衝突回避用4桁ランダム英数字）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。
+dispatch 実行の識別子はセッション名（`dispatch-YYYYMMDD-HHMMSS-XXXX` 形式、XXXX は衝突回避用4桁ランダム英数字）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる（例: `dispatch/<session-name>/<worktree-name>`）。各セッションは `.dispatch/<session-name>/manifest.json` にリソース一覧（repo_root・worktree パス・ブランチ名・tmux セッション名）を記録し、cleanup はこのマニフェストを参照して安全にリソースを特定する。
 
-**既知の設計上の制限（並列スケール運用の阻害要因）:**
-- 起動は複数リソース（branch・worktree・tmux セッション）を順次作成するが、中断時の補償処理（ロールバック）が未定義。実行中マニフェストがないため、部分失敗後に安全に削除できるリソースと継続中のリソースを区別できない。
-- cleanup は `--force` 強制削除のみ。オペレータが状態を確認する手段がなく、誤削除リスクを持つ。
-- stacked PR 管理のスキーマは dispatch skill の `depends_on`（実行順依存）と ADR-057 の `base_branch`/`merge_order`（PR マージ順）で分離されているが、monitoring agent との統合インタフェースは未確定。
-- これらは現時点で**信頼性上のリスク**として認識されており、ADR-057 以降の後続 ADR で対処する。
+**依存モデルの分離（設計上の意図）:**
+- `depends_on`: dispatch 内の実行順依存（worktree A が完了してから B を起動する）
+- `base_branch` + `merge_order`（ADR-057 で定義）: PR のマージ順序（monitoring agent が参照）
+- 現時点では dispatch skill が出力する計画 YAML に `base_branch`/`merge_order` フィールドは未実装。monitoring agent との統合インタフェースは ADR-057 以降で確定する。
+
+**残存する設計上の制限（ADR-057 以降で対処予定）:**
+- 部分起動中断時のロールバック手順が未定義（マニフェストで状態は把握できるが補償処理の手順がない）
+- stacked PR の `base_branch`/`merge_order` と monitoring agent との統合インタフェースが未確定
 
 目標アーキテクチャ（monitoring agent は未実装）:
 
