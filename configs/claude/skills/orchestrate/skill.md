@@ -1,30 +1,38 @@
 ---
 name: orchestrate
-description: タスク記述（または issue 番号・GitHub issue URL・TODO.md）を受け取り、meta planner が計画を立ててから単一 worktree で実行する。parent が worktree を事前作成し、planning Claude が計画→実行を担当する。「/orchestrate "タスク記述"」「/orchestrate --issue 53」「/orchestrate --from-todo TODO.md」「/orchestrate --dry-run "タスク"」「/orchestrate cleanup <session>」で起動。
-argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --from-todo [path] | --dry-run "<タスク記述>" | cleanup <session>'
-version: 3.0.0
+description: ワークフロータイプに応じたエージェントチェーンを順次実行する。feature/bugfix/refactor/security/custom を指定し、各エージェントがハンドオフ文書で引き継ぎながら計画→TDD→レビューを実行する。「/orchestrate feature "新機能追加"」「/orchestrate bugfix --issue 53」「/orchestrate --dry-run feature "タスク"」「/orchestrate cleanup <session>」で起動。
+argument-hint: '<workflow-type> "<タスク記述>" | <workflow-type> --issue <番号> | <workflow-type> <GitHub-issue-URL> | custom --agents <a,b,c> "<タスク記述>" | --dry-run <workflow-type> "<タスク記述>" | cleanup <session>'
+version: 4.0.0
 ---
 
 # orchestrate
 
-タスク記述または issue 番号を受け取り、meta planner が計画を立ててから単一 worktree で実行する。parent が worktree・tmux セッションを事前作成し、planning Claude が計画策定→実装を一貫して担当する。
+ワークフロータイプに応じたエージェントチェーンを順次実行する。各エージェントは専用 tmux ウィンドウで起動し、ハンドオフ文書で引き継ぎながら作業を進める。`tmux wait-for` によるゼロコスト待機で前のエージェント完了後に自動的に次のエージェントを起動する。
 
-単一ブランチで完結する小規模作業には `/dispatch`（軽量版・planning なし）を使用する。
+単一ブランチで完結する小規模作業には `/dispatch`（軽量版・エージェントチェーンなし）を使用する。
 
-コアロジック（worktree 作成・tmux セッション・Claude 起動・cleanup）は `~/.claude/skills/orchestrate/orchestrate.sh` に委譲する。
+コアロジック（worktree 作成・tmux セッション・エージェント起動・advance ループ・cleanup）は `~/.claude/skills/orchestrate/orchestrate.sh` に委譲する。
+
+## ワークフロータイプ
+
+| タイプ | エージェントチェーン |
+|--------|---------------------|
+| `feature` | planner → tdd-guide → code-reviewer → security-reviewer |
+| `bugfix` | planner → tdd-guide → code-reviewer |
+| `refactor` | architect → code-reviewer → tdd-guide |
+| `security` | security-reviewer → code-reviewer → architect |
+| `custom` | `--agents a,b,c` で任意指定 |
 
 ## 引数フォーマット
 
 ```
-/orchestrate "<タスク記述>"
-/orchestrate --issue <番号>
-/orchestrate <GitHub-issue-URL>
-/orchestrate <owner/repo>#<number>
-/orchestrate --repo <owner/repo> "<タスク記述>"
-/orchestrate --repo <owner/repo> --issue <番号>
-/orchestrate --from-todo [path]
-/orchestrate --dry-run "<タスク記述>"
-/orchestrate --dry-run --issue <番号>
+/orchestrate <workflow-type> "<タスク記述>"
+/orchestrate <workflow-type> --issue <番号>
+/orchestrate <workflow-type> <GitHub-issue-URL>
+/orchestrate <workflow-type> <owner/repo>#<number>
+/orchestrate <workflow-type> --repo <owner/repo> "<タスク記述>"
+/orchestrate custom --agents planner,code-reviewer "<タスク記述>"
+/orchestrate --dry-run <workflow-type> "<タスク記述>"
 /orchestrate cleanup <session-name|session-id>
 ```
 
@@ -35,22 +43,24 @@ version: 3.0.0
 1. 第1引数でサブコマンドを判定する
    - `cleanup` の場合は Step 4 へジャンプ
 2. `--dry-run` フラグを検出してフラグ変数に保持する
-3. `--repo <owner/repo>` フラグを検出してリポジトリ変数に保持する
-4. `--from-todo [path]` フラグを検出した場合は Step 1-5 へ
-5. 残り引数から以下を順に検出する:
+3. ワークフロータイプを取得する（feature / bugfix / refactor / security / custom）
+   - `custom` の場合は `--agents <a,b,c>` を検出してエージェントリスト変数に保持する
+4. `--repo <owner/repo>` フラグを検出してリポジトリ変数に保持する
+5. `--from-todo [path]` フラグを検出した場合は Step 1-5 へ
+6. 残り引数から以下を順に検出する:
    a. `https://github.com/` で始まる文字列（GitHub issue URL）→ Step 1-4 へ（URL から owner/repo も自動設定）
    b. `<owner/repo>#<number>` パターン（例: `ishii1648/tmux-sidebar#2`）→ Step 1-4 へ（owner/repo を自動設定）
    c. `--issue <番号>` フラグ → Step 1-3 へ
    d. その他の文字列をタスク記述として使用する
-6. リポジトリルートを決定する:
+7. リポジトリルートを決定する:
    - `--repo <owner/repo>` が指定された場合:
      - **Bash ツール**で `ghq list -p <owner/repo>` でローカルパスを検索する
      - 見つかればそのパスを `repo-root` として使用する
      - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません」と表示して終了する
    - 指定なしの場合: **Bash ツール**で `git rev-parse --show-toplevel` を実行
-7. session-slug を生成する: repo の `owner/repo` 形式から `/` を `-` に置換（例: `ishii1648-tmux-sidebar`）
-8. session-name を決定する: `owner/repo` 形式（例: `ishii1648/tmux-sidebar`）。指定なしの場合は `git remote get-url origin` から抽出、取得できなければディレクトリ名を使用
-9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS`（**Bash ツール**で `date +%Y%m%d-%H%M%S` で取得）
+8. session-slug を生成する: repo の `owner/repo` 形式から `/` を `-` に置換（例: `ishii1648-tmux-sidebar`）
+9. session-name を決定する: `owner/repo` 形式（例: `ishii1648/tmux-sidebar`）。指定なしの場合は `git remote get-url origin` から抽出、取得できなければディレクトリ名を使用
+10. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS`（**Bash ツール**で `date +%Y%m%d-%H%M%S` で取得）
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -88,74 +98,17 @@ version: 3.0.0
    各タスクをサブタスクとして順番に実装してください。
    ```
 
-### Step 2: 計画プロンプトファイルを書き込み、orchestrate.sh launch を実行（dry-run 以外）
+### Step 2: タスクファイルを書き込み、orchestrate.sh launch を実行（dry-run 以外）
 
 `--dry-run` の場合はこのステップをスキップして Step 3 へ進む。
 
-1. **Write ツール**で計画プロンプトファイルを `<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md` に書き込む:
-
-   ````markdown
-   # orchestrate: 計画 → 実行
-
-   以下のタスクを分析し、計画を立ててからこの worktree 内で実装してください。
-
-   ## コンテキスト
-
-   - session-id: <session-id>
-   - session-name: <session-name>
-   - repo-root: <repo-root>
-   - worktree-path: <repo-root>@orchestrate-<session-id>-work
-   - branch: orchestrate/<session-id>/work
-   - plan-yaml-path: <repo-root>/.outputs/claude/orchestrate-plan-<session-slug>.yaml
-   - manifest-path: ~/.orchestrate/<session-id>/manifest.json
-
-   あなたは worktree 内（`<repo-root>@orchestrate-<session-id>-work`）で起動されています。すべてのファイル操作はこの worktree 内で行ってください。
-
-   ## Bash ツール使用の制約
-
-   以下の制約はすべての Bash 呼び出しに適用される（PreToolUse hook が強制）:
-   - `&&`/`||`/`;` での複数コマンド連結は**禁止**。各コマンドを個別の Bash 呼び出しに分割すること
-   - `$()` コマンド置換は**禁止**。前の Bash 呼び出し結果の出力から値を読み取ること
-   - ファイル書き込みには Write ツールを使用すること（`echo >` や `cat >` は禁止）
-   - `mkdir` は禁止。Write ツールはディレクトリを自動作成する
-   - Bash から `/tmp/` へのリダイレクト（`> /tmp/...`）は禁止（Write ツールは使用可）
-
-   ## Phase 1: 計画
-
-   1. コードベースを読んでタスクの影響範囲を把握する
-   2. サブタスクに分解する（実装順序を決定）
-   3. **Write ツール**で以下の YAML を `<plan-yaml-path>` に書き込む:
-
-   ```yaml
-   session_name: "<session-name>"
-   task_summary: "<30字以内の要約>"
-   subtasks:
-     - name: "<サブタスク名>"
-       description: "<サブタスクの説明>"
-       files: ["<対象ファイル>"]
-     - name: "<サブタスク名>"
-       description: "<サブタスクの説明>"
-       files: ["<対象ファイル>"]
-   ```
-
-   ## Phase 2: 実装
-
-   計画 YAML を書き込んだ後、この worktree 内でサブタスクを順番に実装する。
-
-   1. 各サブタスクを順番に実装する
-   2. テストがあれば実行して確認する
-   3. 実装完了後、変更を git commit する（コミットメッセージはタスク内容を反映）
-   4. **Write ツール**でマニフェストの `creation_state` を `"complete"` に更新する
-
-   ## タスク記述
-
-   <タスク記述（全文）>
-   ````
+1. **Write ツール**でタスクファイルを `<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md` に書き込む。タスク記述の全文のみを含める（エージェントプロンプトは orchestrate.sh が生成する）。
 
 2. **Bash ツール**で `orchestrate.sh launch` を実行する:
    ```
-   bash ~/.claude/skills/orchestrate/orchestrate.sh launch "<repo-root>" --session-id "<session-id>" --session-name "<session-name>" --session-slug "<session-slug>" --prompt-file "<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md" --inherit-size
+   bash ~/.claude/skills/orchestrate/orchestrate.sh launch "<repo-root>" --session-id "<session-id>" --session-name "<session-name>" --session-slug "<session-slug>" --workflow "<workflow-type>" --task-file "<repo-root>/.outputs/claude/orchestrate-task-<session-slug>.md" [--agents "<a,b,c>"] --inherit-size
    ```
+   - `custom` ワークフローの場合のみ `--agents` を追加する
 
 3. STATUS に応じて分岐する:
 
@@ -167,32 +120,43 @@ version: 3.0.0
 4. 完了報告を表示する:
    ```
    session 作成: <SESSION>  [session-id: <SESSION_ID>]
+   workflow: <WORKFLOW>
+   agents: <AGENTS>
    worktree: <WORKTREE>
-   計画→実行中...  (tmux attach -t <SESSION> で確認できます)
+
+   エージェントチェーン実行中:
+     1. <agent1> → 2. <agent2> → 3. <agent3> → ...
+   各エージェント完了時に自動的に次のエージェントが起動します。
+
+   確認: tmux attach -t <SESSION>
    クリーンアップ: /orchestrate cleanup <SESSION_ID>  (または <SESSION>)
    ```
 
    **元セッションの orchestrate skill はここで終了する。**
 
-### Step 3: 計画 YAML の生成と表示（dry-run 専用）
+### Step 3: dry-run（エージェントチェーンの表示のみ）
 
 `--dry-run` の場合のみ実行する。
 
-1. 自身でタスクを分析して計画 YAML を生成し、`<repo-root>/.outputs/claude/orchestrate-plan-<session-slug>.yaml` に Write ツールで書き込む（tmux セッション・worktree は作成しない）。
-2. YAML を Read して以下の形式で **現在のターミナル** に全文表示する:
+1. ワークフロータイプからエージェントチェーンを決定する
+2. 以下の形式で表示する:
 
    ```
-   orchestrate 計画:
+   orchestrate dry-run:
      セッション: <session-name>
-     タスク: <task_summary>
+     ワークフロー: <workflow-type>
      worktree: orchestrate/<session-id>/work
 
-     サブタスク:
-       1. <name>: <description>
-          files: <files>
-       2. <name>: <description>
-          files: <files>
+     エージェントチェーン:
+       1. <agent1>: <役割説明>
+       2. <agent2>: <役割説明>
        ...
+
+     ハンドオフ:
+       <agent1> → HANDOFF-<agent1>-to-<agent2>.md → <agent2>
+       <agent2> → HANDOFF-<agent2>-to-<agent3>.md → <agent3>
+       ...
+       <agentN> → FINAL-REPORT.md
    ```
 
 3. ここで終了する。
