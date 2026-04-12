@@ -1,7 +1,7 @@
 ---
 name: dispatch
-description: タスク記述（または issue 番号）を受け取り、実行戦略を動的に決定して worktree + Claude セッションを起動する統合エントリポイント。「/dispatch "認証ミドルウェアを修正"」「/dispatch --issue 53」「/dispatch --dry-run "タスク"」「/dispatch cleanup <session>」で起動。
-argument-hint: '"<タスク記述>" | --issue <番号> | --dry-run "<タスク記述>" | cleanup <session>'
+description: タスク記述（または issue 番号・GitHub issue URL）を受け取り、実行戦略を動的に決定して worktree + Claude セッションを起動する統合エントリポイント。「/dispatch "認証ミドルウェアを修正"」「/dispatch --issue 53」「/dispatch <GitHub-issue-URL>」「/dispatch --repo ishii1648/tmux-sidebar "タスク"」「/dispatch cleanup <session>」で起動。
+argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --dry-run "<タスク記述>" | cleanup <session>'
 version: 0.1.0
 ---
 
@@ -14,6 +14,10 @@ version: 0.1.0
 ```
 /dispatch "<タスク記述>"
 /dispatch --issue <番号>
+/dispatch <GitHub-issue-URL>
+/dispatch <owner/repo>#<number>
+/dispatch --repo <owner/repo> "<タスク記述>"
+/dispatch --repo <owner/repo> --issue <番号>
 /dispatch --dry-run "<タスク記述>"
 /dispatch --dry-run --issue <番号>
 /dispatch cleanup <session-name>
@@ -21,6 +25,9 @@ version: 0.1.0
 
 - `<タスク記述>`: 実行したいタスクの自然言語説明
 - `--issue <番号>`: `docs/issues.md` の ADR 番号を参照してタスクを起動（例: `--issue 53`）
+- `<GitHub-issue-URL>`: `https://github.com/<owner>/<repo>/issues/<number>` 形式。issue title + body をタスク記述として使用し、owner/repo を自動設定する
+- `<owner/repo>#<number>`: GitHub issue の shorthand 形式（例: `ishii1648/tmux-sidebar#2`）
+- `--repo <owner/repo>`: 作業リポジトリを明示指定する。`ghq` のローカルパスを使用（例: `--repo ishii1648/tmux-sidebar`）
 - `--dry-run`: 実行計画を表示するが実際の起動は行わない
 - `cleanup <session-name>`: 指定セッションのリソースをすべて削除
 
@@ -31,18 +38,36 @@ version: 0.1.0
 1. 第1引数でサブコマンドを判定する
    - `cleanup` の場合は Step 6 へジャンプ
 2. `--dry-run` フラグを検出してフラグ変数に保持する
-3. `--issue <番号>` フラグを検出した場合は Step 1-3 へ
-4. タスク記述を取得する（引数から `--dry-run` / `--issue` フラグを除いた残り）
+3. `--repo <owner/repo>` フラグを検出してリポジトリ変数に保持する
+4. 残り引数から以下を順に検出する:
+   a. `https://github.com/` で始まる文字列（GitHub issue URL）→ Step 1-4 へ（URL から owner/repo も自動設定）
+   b. `<owner/repo>#<number>` パターン（例: `ishii1648/tmux-sidebar#2`）→ Step 1-4 へ（owner/repo を自動設定）
+   c. `--issue <番号>` フラグ → Step 1-3 へ
+   d. その他の文字列をタスク記述として使用する
 5. tmux セッション外かチェック:
    - `tmux display-message -p '#{session_name}' 2>/dev/null` が空なら「tmux セッション外では動作しません」と表示して終了
-6. git リポジトリ外かチェック:
-   - `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
+6. リポジトリルートを決定する:
+   - `--repo` が指定された場合は Step 4 のリポジトリ解決を使用する（事前チェックは不要）
+   - 指定なしの場合: `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
 1. 番号を3桁ゼロ埋めして `docs/issues.md` の `ADR-NNN` セクションを Read して取得する
 2. セクションの `**受け入れ条件**` と課題タイトルをタスク記述として使用する
 3. 取得できない場合は「issues.md に ADR-NNN セクションが見つかりません」と表示して終了
+
+#### Step 1-4: GitHub issue URL / shorthand からタスク記述を取得
+
+1. URL 形式（`https://github.com/<owner>/<repo>/issues/<number>`）の場合:
+   - URL から `<owner>/<repo>` を抽出する
+   - `--repo` が未指定であれば自動設定する
+   - `gh issue view <URL> --json title,body` で issue 情報を取得する
+2. shorthand 形式（`<owner/repo>#<number>`）の場合:
+   - `gh issue view <number> --repo <owner/repo> --json title,body` で取得する
+   - `--repo` が未指定であれば `owner/repo` を自動設定する
+3. issue の title と body を結合してタスク記述として使用する:
+   - タスク記述 = `<title>\n\n<body の内容>`
+4. 取得できない場合は「GitHub issue の取得に失敗しました」と表示して終了する
 
 ### Step 2: meta planner によるタスク分析
 
@@ -103,7 +128,12 @@ dispatch 計画:
 
 ### Step 4: worktree と tmux ウィンドウの作成
 
-リポジトリルートを取得する: `git rev-parse --show-toplevel`
+リポジトリルートを決定する:
+- `--repo <owner/repo>` が指定された場合:
+  - `ghq list -p <owner/repo>` でローカルパスを検索する
+  - 見つかればそのパスを `repo-root` として使用する
+  - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
+- 指定なしの場合: `git rev-parse --show-toplevel` で取得する
 
 worktrees リストの各エントリについて順番に実行する:
 
