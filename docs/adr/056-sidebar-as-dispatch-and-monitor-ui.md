@@ -1,7 +1,7 @@
 # ADR-056: tmux-sidebar をタスク起動・進捗監視の統合 UI として使用する
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 依存: ADR-051（Go 製 tmux-sidebar ツール — UI の実装基盤）
@@ -61,3 +61,6 @@ tmux-sidebar に新しいキーバインドを追加し、sidebar 内から直�
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-056 セクション）
+
+## 実装 Issue
+- ishii1648/tmux-sidebar#2
