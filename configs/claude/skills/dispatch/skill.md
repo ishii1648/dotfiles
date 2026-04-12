@@ -2,7 +2,7 @@
 name: dispatch
 description: タスク記述（または issue 番号・GitHub issue URL）を受け取り、実行戦略を動的に決定して worktree + Claude セッションを起動する統合エントリポイント。「/dispatch "認証ミドルウェアを修正"」「/dispatch --issue 53」「/dispatch <GitHub-issue-URL>」「/dispatch --repo ishii1648/tmux-sidebar "タスク"」「/dispatch cleanup <session>」で起動。
 argument-hint: '"<タスク記述>" | --issue <番号> | <GitHub-issue-URL> | <owner/repo>#<number> | --repo <owner/repo> | --dry-run "<タスク記述>" | cleanup <session>'
-version: 0.1.0
+version: 0.2.0
 ---
 
 # dispatch
@@ -47,8 +47,14 @@ version: 0.1.0
 5. tmux セッション外かチェック:
    - `tmux display-message -p '#{session_name}' 2>/dev/null` が空なら「tmux セッション外では動作しません」と表示して終了
 6. リポジトリルートを決定する:
-   - `--repo` が指定された場合は Step 4 のリポジトリ解決を使用する（事前チェックは不要）
+   - `--repo <owner/repo>` が指定された場合:
+     - `ghq list -p <owner/repo>` でローカルパスを検索する
+     - 見つかればそのパスを `repo-root` として使用する
+     - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
    - 指定なしの場合: `git rev-parse --show-toplevel 2>/dev/null` が空なら「git リポジトリ外では動作しません」と表示して終了
+7. session-name を生成する: `dispatch-YYYYMMDD-HHMMSS`（以降のステップで使用）
+8. 計画 YAML の出力先を決定する: `<repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
+   - `.outputs/claude/` ディレクトリが存在しない場合は作成する
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -69,7 +75,23 @@ version: 0.1.0
    - タスク記述 = `<title>\n\n<body の内容>`
 4. 取得できない場合は「GitHub issue の取得に失敗しました」と表示して終了する
 
-### Step 2: meta planner によるタスク分析
+### Step 2: tmux session の作成（dry-run 以外）
+
+`--dry-run` の場合はこのステップをスキップする。
+
+`planning` ウィンドウを持つ dispatch セッションを作成する:
+
+```
+tmux new-session -d -s <session-name> -n planning -c <repo-root>
+```
+
+作成後、ユーザに以下を表示する:
+
+```
+session 作成: <session-name>  (planning ウィンドウで分析中...)
+```
+
+### Step 3: meta planner によるタスク分析
 
 以下の処理を subagent（subagent_type=Explore）として実行し、計画 YAML を生成する。
 
@@ -88,11 +110,11 @@ version: 0.1.0
      - ブランチ名形式: `dispatch/<session-name>/<worktree-name>`
   5. **ワーカー指示書作成**: 各 Claude セッションへ送るプロンプトを生成する
      - pipeline/hybrid の場合、待機するハンドオフファイルパスを明示する
-- 出力は以下の YAML 形式で `/tmp/dispatch-plan-<timestamp>.yaml` に書き込む:
+- 出力は以下の YAML 形式で `<repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml` に書き込む:
 
 ```yaml
 strategy: parallel        # single / parallel / pipeline / hybrid
-session_name: dispatch-YYYYMMDD-HHMMSS-XXXX  # XXXX は4桁ランダム英数字（同一秒起動の衝突回避）
+session_name: dispatch-YYYYMMDD-HHMMSS
 task_summary: "<タスクの短い要約（30字以内）>"
 worktrees:
   - name: "<worktree-name>"
@@ -102,7 +124,7 @@ worktrees:
       <このワーカーへ送信するプロンプト>
 ```
 
-### Step 3: 計画の表示と確認
+### Step 4: 計画の表示と確認
 
 meta planner が生成した YAML を Read して以下の形式で表示する:
 
@@ -124,16 +146,11 @@ dispatch 計画:
 **`--dry-run` の場合はここで終了する。**
 
 それ以外の場合は AskUserQuestion で「上記の計画で起動しますか？（yes/no）」を確認する。
-- `no` の場合は「キャンセルしました」と表示して終了する。
+- `no` の場合:
+  - `tmux kill-session -t <session-name>` で session を削除する
+  - 「キャンセルしました」と表示して終了する。
 
-### Step 4: worktree と tmux ウィンドウの作成
-
-リポジトリルートを決定する:
-- `--repo <owner/repo>` が指定された場合:
-  - `ghq list -p <owner/repo>` でローカルパスを検索する
-  - 見つかればそのパスを `repo-root` として使用する
-  - 見つからない場合は「ローカルに `<owner/repo>` が見つかりません。`ghq get <owner/repo>` で取得してください」と表示して終了する
-- 指定なしの場合: `git rev-parse --show-toplevel` で取得する
+### Step 5: worktree と tmux ウィンドウの作成・Claude 起動
 
 worktrees リストの各エントリについて順番に実行する:
 
@@ -143,11 +160,7 @@ worktrees リストの各エントリについて順番に実行する:
    ```
 
 2. **tmux ウィンドウを作成する**（ウィンドウ名 = worktree name）:
-   - 最初のエントリ: セッションごと作成
-     ```
-     tmux new-session -d -s <session-name> -n <name> -c <worktree-path>
-     ```
-   - 2番目以降:
+   - session はすでに存在するため、すべてのエントリで `new-window` を使用する:
      ```
      tmux new-window -t <session-name> -n <name> -c <worktree-path>
      ```
@@ -161,9 +174,12 @@ worktrees リストの各エントリについて順番に実行する:
 
 4. `.gitignore` に `.dispatch/` が含まれていない場合は追記する
 
-### Step 5: Claude の起動とプロンプト送信
+全 worktree 作成後、`planning` ウィンドウを削除する:
+```
+tmux kill-window -t <session-name>:planning
+```
 
-各 worktree ウィンドウで:
+各 worktree ウィンドウで Claude を起動してプロンプトを送信する:
 
 1. Claude Code を起動する:
    ```
@@ -208,7 +224,7 @@ worktree:
    - `git branch | grep "dispatch/<session-name>/"` でブランチを特定する
    - 各ブランチを `git branch -D <branch>` で削除する
 4. worktree ディレクトリを削除する: `rm -r <repo-root>/.dispatch/<session-name>`
-5. 計画 YAML を削除する: `rm -f /tmp/dispatch-plan-*.yaml`（該当セッション分のみ）
+5. 計画 YAML を削除する: `rm <repo-root>/.outputs/claude/dispatch-plan-<session-name>.yaml`
 6. role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
