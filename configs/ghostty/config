@@ -1,7 +1,6 @@
 command = ~/.local/bin/ghostty-tmux-init
 font-family = "BIZ UDGothic Bold"
 adjust-cell-height = 20%
-adjust-box-thickness = 20%
 theme = Dracula
 
 # 背景を暗くして壁紙透過時の視認性を確保
