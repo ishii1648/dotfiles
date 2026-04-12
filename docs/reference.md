@@ -44,13 +44,15 @@
 | タスク並列分散実行 | `/spawn` skill | 実装済み | — |
 | 全 session・worktree の監視 UI | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み（sidebar→dispatch 連携は設計中） | [ADR-051](adr/051-go-tmux-sidebar-tool.md), [ADR-056](adr/056-sidebar-as-dispatch-and-monitor-ui.md) |
 
-dispatch 実行の識別子はセッション名（`<owner>/<repo>` 形式、同名衝突時は `-2`・`-3` サフィックスで回避）で、ブランチ・worktree・tmux セッションすべてがこのキーでスコープされる。各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-slug>/manifest.json` に記録される（エージェントによる改ざんを防ぐため）。cleanup はマニフェストを fail-closed 検証した上で、**実際の `git worktree list` および `git branch` と照合する reconciliation** を実行し、マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収する。
+dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
+
+各セッションのマニフェストはリポジトリ外の `~/.dispatch/<session-id>/manifest.json` に記録される（エージェントによる改ざんを防ぐため）。**最初の副作用（git worktree 作成）より前に全リソースを `created: false` で事前宣言して書き込む**（manifest-first）。cleanup は manifest の `repo_root` を参照して呼び出し元の CWD に依存せずどこからでも動作し、`git worktree list` および `git branch` との reconciliation でクラッシュ直前に作成されたリソースも回収する。
 
 **部分起動中断時の手動復旧手順:**
-1. `/dispatch cleanup <session-name>` を実行する（reconciliation で実際の状態も確認して削除）
-2. 原因を確認してから `/dispatch` で再実行する（新規セッション名で起動）
+1. `/dispatch cleanup <session-name>` を実行する（manifest の `repo_root` と reconciliation で安全に削除）
+2. 原因を確認してから `/dispatch` で再実行する（新規 session-id で起動）
 
-> **既知の制限**: セッション名は `<owner>/<repo>` 形式だが、衝突回避の `-2`・`-3` サフィックスが別リポジトリ名と一致する可能性がある（例: `owner/repo-2` は `owner/repo` の 2 回目とも `owner/repo-2` リポジトリとも解釈できる）。この場合はセッション名を手動指定して衝突を回避する。自動再試行・自動調整は未実装。
+> 注: 自動再試行・自動調整は未実装。
 
 現行の並列実行アーキテクチャ:
 

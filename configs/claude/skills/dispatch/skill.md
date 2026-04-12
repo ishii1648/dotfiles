@@ -59,6 +59,9 @@ version: 0.4.0
 8. session-slug を生成する: session-name の `/` を `-` に置換したファイルシステム安全な識別子（例: `ishii1648-tmux-sidebar`）
    - 計画 YAML の出力先: `<repo-root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
    - `.outputs/claude/` ディレクトリが存在しない場合は Write ツールで `.outputs/claude/.gitkeep` を作成して対応する
+9. session-id を生成する: `<session-slug>-YYYYMMDD-HHMMSS-XXXX`（XXXX は4桁ランダム英数字）
+   - **表示名（session-name）とは別の不変識別子**。後続のマニフェストパス・ブランチプレフィックス・worktree パスはすべて session-id でスコープする
+   - マニフェストパス: `~/.dispatch/<session-id>/manifest.json`
 
 #### Step 1-3: issue 番号からタスク記述を取得
 
@@ -188,7 +191,7 @@ worktrees リストの各エントリについて順番に実行する:
 
 1. **git worktree を作成する**:
    ```
-   git -C <repo-root> worktree add .dispatch/<session-slug>/<name> -b <branch>
+   git -C <repo-root> worktree add .dispatch/<session-id>/<name> -b dispatch/<session-id>/<name>
    ```
 
 2. **tmux ウィンドウを作成する**（ウィンドウ名 = worktree name）:
@@ -206,12 +209,14 @@ worktrees リストの各エントリについて順番に実行する:
 
 4. `.gitignore` に `.dispatch/` が含まれていない場合は追記する
 
-5. **セッションマニフェストを書き込む**（部分失敗時の復旧・cleanup の基盤）:
-   - パス: `~/.dispatch/<session-slug>/manifest.json`（リポジトリ外に配置しエージェントによる改ざんを防ぐ）
-   - 各リソース作成後に都度更新し、cleanup はこのファイルを参照する
+5. **セッションマニフェストを事前に書き込む**（manifest-first: 副作用より前に書く）:
+   - **最初の `git worktree add` より前に必ず書き込む**（クラッシュ時の回収基盤）
+   - パス: `~/.dispatch/<session-id>/manifest.json`（session-id 形式でスコープ、エージェントから独立）
+   - 書き込みタイミング: すべての worktree を `created: false` で事前宣言してから作成を開始する
    - フォーマット:
      ```json
      {
+       "session_id": "<session-id>",
        "session_name": "<session-name>",
        "session_slug": "<session-slug>",
        "repo_root": "<repo-root>",
@@ -222,8 +227,8 @@ worktrees リストの各エントリについて順番に実行する:
        "worktrees": [
          {
            "name": "<worktree-name>",
-           "path": "<repo-root>/.dispatch/<session-slug>/<worktree-name>",
-           "branch": "dispatch/<session-name>/<worktree-name>",
+           "path": "<repo-root>/.dispatch/<session-id>/<worktree-name>",
+           "branch": "dispatch/<session-id>/<worktree-name>",
            "created": false
          }
        ],
@@ -231,8 +236,7 @@ worktrees リストの各エントリについて順番に実行する:
      }
      ```
    - `creation_state` は起動開始時 `"partial"` で書き込み、全ウィンドウ起動完了後に `"complete"` へ更新する
-   - 各 worktree の `"created"` は worktree 作成成功後に `true` へ更新する
-   - 中断時は `creation_state: "partial"` のまま残り、復旧時の基準となる
+   - 各 worktree の `"created"` は worktree 作成成功後に `true` へ更新する（事前宣言済みのため未作成は `false` のまま）
    - マニフェストが存在するセッションのみが cleanup 対象として安全に識別できる
 
 全 worktree 作成後、`planning` ウィンドウを削除する:
@@ -277,31 +281,34 @@ worktree:
 
 `/dispatch cleanup <session-name>` が指定された場合:
 
-**Step 6-1: マニフェストの読み込みと検証（fail-closed）**
-- session-slug = session-name の `/` を `-` に置換して求める（例: `ishii1648/tmux-sidebar` → `ishii1648-tmux-sidebar`）
-- `~/.dispatch/<session-slug>/manifest.json` を Read する（リポジトリ外の dispatcher-owned ファイル）
-- マニフェストが存在しない場合は「マニフェストが見つかりません。手動で以下を確認してください: git worktree list, git branch -l 'dispatch/<session-name>/*'」と表示して**中断する**
+**Step 6-1: マニフェストの読み込みと検証（fail-closed・呼び出し元リポジトリに依存しない）**
+- session-slug = session-name の `/` を `-` に置換して求める
+- `~/.dispatch/` 以下を走査して `session_name == <session-name>` のマニフェストを探す:
+  - `ls ~/.dispatch/` でサブディレクトリを列挙し、各 `manifest.json` の `session_name` フィールドを確認する
+  - 一致するものを対象マニフェストとする
+- マニフェストが見つからない場合は「マニフェストが見つかりません」と表示して**中断する**
+- 複数見つかった場合は一覧を表示してユーザに選択させる
+- マニフェストから `repo_root` と `session_id` を取得する（呼び出し元の CWD は使用しない）
 - 以下の検証をすべて通過しない場合は「マニフェスト検証失敗: <理由>」と表示して**中断する**:
-  1. `repo_root` が現在の `git rev-parse --show-toplevel` と一致すること
-  2. `worktrees[].path` がすべて `<repo_root>/.dispatch/<session-slug>/` 配下であること
-  3. `worktrees[].branch` がすべて `dispatch/<session-name>/` プレフィックスを持つこと
-  4. `tmux_session` が `<session-name>` と一致すること
+  1. `worktrees[].path` がすべて `<manifest.repo_root>/.dispatch/<session_id>/` 配下であること
+  2. `worktrees[].branch` がすべて `dispatch/<session_id>/` プレフィックスを持つこと
+  3. `tmux_session` が `<session-name>` と一致すること
 
 **Step 6-2: 実際の状態との reconciliation（クラッシュ時に manifest 未更新のリソースを回収）**
-- `git -C <repo_root> worktree list --porcelain` で `<repo_root>/.dispatch/<session-slug>/` 配下のすべての worktree を列挙する
-- `git -C <repo_root> branch --list "dispatch/<session-name>/*"` でセッションに属するすべてのブランチを列挙する
-- これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session-slug>` スコープに属するリソースをすべて削除対象とする
+- `git -C <manifest.repo_root> worktree list --porcelain` で `<manifest.repo_root>/.dispatch/<session_id>/` 配下のすべての worktree を列挙する
+- `git -C <manifest.repo_root> branch --list "dispatch/<session_id>/*"` でセッションに属するすべてのブランチを列挙する
+- これらを manifest の `worktrees[]` と照合し、**manifest の有無に関わらず** `<session_id>` スコープに属するリソースをすべて削除対象とする
   - マニフェスト未記録のリソース（クラッシュ直前に作成されたもの）も確実に回収できる
 
 **Step 6-3: リソースの削除**
 1. tmux セッションを削除する: `tmux kill-session -t <tmux_session>`
 2. reconciliation で特定したすべての worktree を削除する:
-   - `git worktree remove --force <path>`
+   - `git -C <manifest.repo_root> worktree remove --force <path>`
 3. reconciliation で特定したすべてのブランチを削除する:
-   - `git -C <repo_root> branch -D <branch>`
-4. worktree ディレクトリを削除する: `rm -r <repo_root>/.dispatch/<session-slug>`
-5. マニフェストファイルを削除する: `rm -r ~/.dispatch/<session-slug>`
-6. 計画 YAML を削除する: `rm <repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
+   - `git -C <manifest.repo_root> branch -D <branch>`
+4. worktree ディレクトリを削除する: `rm -r <manifest.repo_root>/.dispatch/<session_id>`
+5. マニフェストファイルを削除する: `rm -r ~/.dispatch/<session_id>`
+6. 計画 YAML を削除する: `rm <manifest.repo_root>/.outputs/claude/dispatch-plan-<session-slug>.yaml`
 7. role ファイルを削除する（該当セッションのペイン分のみ）
 
 ## 制約
