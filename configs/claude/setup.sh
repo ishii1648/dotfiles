@@ -70,6 +70,26 @@ fi
 SKILLS_SRC="$SCRIPT_DIR/skills"
 SKILLS_DEST="$HOME/.claude/skills"
 
+# ~/.claude/skills がディレクトリ symlink の場合、実ディレクトリに変換して
+# 中の各 skill を個別 symlink として再作成する（dotfiles 側で上書き可能にするため）
+if [[ -L "$SKILLS_DEST" && -d "$SKILLS_DEST" ]]; then
+    old_target=$(readlink "$SKILLS_DEST")
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "  skills dir: WARN: directory symlink → $old_target (needs conversion)"
+    else
+        rm "$SKILLS_DEST"
+        mkdir -p "$SKILLS_DEST"
+        # 旧リンク先の各 skill を個別 symlink として復元
+        shopt -s nullglob
+        for sd in "$old_target"/*/; do
+            sn=$(basename "$sd")
+            ln -s "$sd" "$SKILLS_DEST/$sn"
+        done
+        shopt -u nullglob
+        echo "  skills dir: converted directory symlink → individual symlinks (from $old_target)"
+    fi
+fi
+
 if [[ -d "$SKILLS_SRC" ]]; then
     if [[ "$DRY_RUN" == "true" ]]; then
         shopt -s nullglob
@@ -91,8 +111,12 @@ if [[ -d "$SKILLS_SRC" ]]; then
         for skill_dir in "$SKILLS_SRC"/*/; do
             skill_name=$(basename "$skill_dir")
             link="$SKILLS_DEST/$skill_name"
-            if [[ -L "$link" ]]; then
+            if [[ -L "$link" && "$(readlink "$link")" == "$skill_dir" ]]; then
                 echo "  skill symlink: ✓ OK ($skill_name)"
+            elif [[ -L "$link" ]]; then
+                rm "$link"
+                ln -s "$skill_dir" "$link"
+                echo "  skill symlink: updated → $skill_name (dotfiles overrides)"
             else
                 ln -s "$skill_dir" "$link"
                 echo "  skill symlink: created → $skill_name"
@@ -129,6 +153,11 @@ PLIST_NAME="com.user.session-index-backfill.plist"
 PLIST_SRC="$SCRIPT_DIR/launchd/$PLIST_NAME"
 LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
 PLIST_DEST="$LAUNCH_AGENTS_DIR/$PLIST_NAME"
+
+if [[ ! -f "$PLIST_SRC" ]]; then
+    echo "  launchd agent: SKIP (source not found: $PLIST_SRC)"
+    exit 0
+fi
 
 if [[ "$(uname)" != "Darwin" ]]; then
     echo "  launchd agent: SKIP (not macOS)"
