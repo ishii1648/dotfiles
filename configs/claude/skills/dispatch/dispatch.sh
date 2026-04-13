@@ -178,7 +178,7 @@ cmd_launch() {
     if [ -z "$branch_name" ]; then
       die "--branch が指定されていません（--no-worktree でない場合は必須）"
     fi
-    notify "[1/2] creating worktree: $branch_name"
+    notify "creating worktree: $branch_name"
     work_dir=$(create_worktree "$repo_path" "$branch_name")
   fi
 
@@ -222,11 +222,7 @@ cmd_launch() {
   pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
 
   # pane のシェルが起動するのを待ってから claude を send-keys で起動
-  if [ "$no_worktree" = true ]; then
-    notify "[1/2] launching claude in: $session_name"
-  else
-    notify "[2/2] launching claude in: $session_name"
-  fi
+  notify "launching claude: $session_name"
   sleep 0.5
   tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
 
