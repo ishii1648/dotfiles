@@ -12,19 +12,20 @@ function __dl_pr_cache_refresh --description 'gh search prs + gh pr list で PR 
 
     set -l repos (echo $search_json | jq -r '[.[].repository.nameWithOwner] | unique | .[]')
 
-    # Step 2: 各リポジトリの gh pr list で headRefName を取得しローカル worktree とマッチング
+    # Step 2: 各リポジトリの gh pr list（全状態）で worktree とマッチング
+    # cache format: wt_path\tpr_number\tpr_state\trepo_name\tbranch
+    # pr_state: draft / open / merged / closed
     for repo_full in $repos
-        set -l pr_json (gh pr list --repo $repo_full --author @me --state open --json headRefName,number,isDraft --limit 100 2>/dev/null)
+        set -l pr_json (gh pr list --repo $repo_full --author @me --state all --json headRefName,number,isDraft,state --limit 100 2>/dev/null)
         test $status -ne 0; and continue
 
-        echo $pr_json | jq -r '.[] | [.headRefName, (.number | tostring), (.isDraft | tostring)] | @tsv' | while read -l branch pr_number is_draft
+        echo $pr_json | jq -r '.[] | [.headRefName, (.number | tostring), (if .isDraft then "draft" elif .state == "MERGED" then "merged" elif .state == "CLOSED" then "closed" else "open" end)] | @tsv' | while read -l branch pr_number pr_state
             set -l wt_dir_name (string replace -a '/' '-' $branch)
             set -l repo_name (string split '/' $repo_full)[-1]
-            # ghq 配下の全ホスト候補を探索
             for host_dir in $ghq_root/*/
                 set -l wt_path "$host_dir$repo_full@$wt_dir_name"
                 if test -d "$wt_path"
-                    printf '%s\t%s\t%s\t%s\t%s\n' $wt_path $pr_number $is_draft $repo_name $branch >> $tmp_file
+                    printf '%s\t%s\t%s\t%s\t%s\n' $wt_path $pr_number $pr_state $repo_name $branch >> $tmp_file
                     break
                 end
             end

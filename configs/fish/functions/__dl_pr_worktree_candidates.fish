@@ -19,23 +19,26 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
 
     set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null)
     set -l yellow (printf '\e[33m')
-    set -l cyan (printf '\e[36m')
-    set -l dim (printf '\e[2m')
+    set -l green (printf '\e[32m')
+    set -l purple (printf '\e[35m')
+    set -l red (printf '\e[31m')
+    set -l dim (printf '\e[90m')
     set -l reset (printf '\e[0m')
 
-    # cache format: wt_path\tpr_number\tis_draft\trepo_name\tbranch
-    while read -l wt_path pr_number is_draft repo_name branch
+    # cache format: wt_path\tpr_number\tpr_state\trepo_name\tbranch
+    while read -l wt_path pr_number pr_state repo_name branch
         set -l session_name (basename $wt_path)
 
-        # PR番号: draft=dim, open=cyan
+        # PR番号の色: draft=灰, open=緑, merged=紫, closed=赤
         set -l pr_tag
-        if test "$is_draft" = true
-            set pr_tag "$dim#$pr_number$reset"
-        else
-            set pr_tag "$cyan#$pr_number$reset"
+        switch $pr_state
+            case draft;  set pr_tag "$dim#$pr_number$reset"
+            case open;   set pr_tag "$green#$pr_number$reset"
+            case merged; set pr_tag "$purple#$pr_number$reset"
+            case closed; set pr_tag "$red#$pr_number$reset"
+            case '*';    set pr_tag "#$pr_number"
         end
 
-        # セッション有無で repo_name の色を変える
         if contains $session_name $existing_sessions
             printf '%s\t%s %s  %s\n' $wt_path "$yellow$repo_name$reset" $pr_tag $branch
         else
