@@ -93,7 +93,7 @@ cmd_list_repos() {
 
 # --- サブコマンド: launch ---
 cmd_launch() {
-  local repo="" prompt="" session_name="" window_name="" branch_name="" no_worktree=false
+  local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false
 
   # 引数パース
   while [ $# -gt 0 ]; do
@@ -114,6 +114,10 @@ cmd_launch() {
         no_worktree=true
         shift
         ;;
+      --prompt-file)
+        prompt_file_arg="$2"
+        shift 2
+        ;;
       *)
         if [ -z "$repo" ]; then
           repo="$1"
@@ -124,6 +128,15 @@ cmd_launch() {
         ;;
     esac
   done
+
+  # --prompt-file があればそちらを優先して読み込む
+  if [ -n "$prompt_file_arg" ]; then
+    if [ ! -f "$prompt_file_arg" ]; then
+      die "prompt-file が見つかりません: $prompt_file_arg"
+    fi
+    prompt=$(cat "$prompt_file_arg")
+    rm -f "$prompt_file_arg"
+  fi
 
   # バリデーション
   if [ -z "$repo" ]; then

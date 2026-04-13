@@ -67,7 +67,9 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     end
 
     set -l repo_name (basename $selected)
-    set -l slug (echo $prompt_text | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
+    # 改行を含むペーストに対応: 最初の1行のみをslug生成に使用
+    set -l first_line (string split \n -- $prompt_text)[1]
+    set -l slug (echo $first_line | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
     set -l branch_name "feat/$slug"
 
     # tmux run-shell で popup 外で実行（popup 終了後も生存する）
@@ -76,7 +78,10 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     if test "$mode" = dispatch
         set -l wt_name (string replace -a '/' '-' $branch_name)
         set -l target_session "$repo_name@$wt_name"
-        tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' '$prompt_text' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+        # prompt を tmpfile 経由で渡す（改行・シングルクォートによるshell injection対策）
+        set -l prompt_file (mktemp /tmp/dispatch-prompt-XXXXXX)
+        printf '%s' "$prompt_text" > $prompt_file
+        tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
     else
         # orchestrate: orchestrate.sh launch を直接呼び出す
         # worktree + tmux session + claude 起動を一括実行
