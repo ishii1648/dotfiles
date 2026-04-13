@@ -2,8 +2,8 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
     set -l cache_file /tmp/dl-pr-worktrees.cache
     set -l cache_ttl 3600
 
-    # キャッシュ鮮度チェック → stale なら bg refresh
     if test -f $cache_file
+        # キャッシュあり: stale なら bg refresh（現キャッシュは即使う）
         set -l now (date +%s)
         set -l mtime (stat -f %m $cache_file)
         if test (math $now - $mtime) -gt $cache_ttl
@@ -11,8 +11,8 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
             disown
         end
     else
-        fish -c __dl_pr_cache_refresh &
-        disown
+        # キャッシュなし: 同期的にリフレッシュ（初回のみ待つ）
+        __dl_pr_cache_refresh
     end
 
     if not test -f $cache_file; or test (stat -f %s $cache_file) -eq 0
