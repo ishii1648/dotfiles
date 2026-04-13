@@ -9,9 +9,9 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         --ansi \
         --delimiter '\t' --with-nth 2 \
         --prompt '> ' \
-        --header '  [repos]  PRs          tab: switch' \
+        --header '  ▌repos▐  PRs          tab: switch' \
         --layout=reverse --cycle \
-        --bind 'tab:transform:if test -f /tmp/dl-fzf-pr-mode; then rm /tmp/dl-fzf-pr-mode; echo "reload(fish -c __dl_repo_candidates)+change-prompt(> )+change-header(  [repos]  PRs          tab: switch)"; else touch /tmp/dl-fzf-pr-mode; echo "reload(fish -c __dl_pr_worktree_candidates)+change-prompt(> )+change-header(  repos  [PRs]          tab: switch)"; fi')
+        --bind 'tab:transform(fish -c __dl_fzf_toggle)')
     rm -f /tmp/dl-fzf-pr-mode
 
     if test -z "$fzf_output"
