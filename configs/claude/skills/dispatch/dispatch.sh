@@ -195,14 +195,6 @@ cmd_launch() {
     session_name="$(basename "$work_dir")"
   fi
 
-  local step_prefix
-  if [ "$no_worktree" = true ]; then
-    step_prefix="[1/2]"
-  else
-    step_prefix="[2/3]"
-  fi
-
-  notify "$step_prefix creating tmux session: $session_name"
   if ! tmux has-session -t "=$session_name" 2>/dev/null; then
     # session が存在しない → 新規作成（最初の window として window_name を使う）
     # 現在のターミナルサイズを渡す（デタッチ作成後の比例拡大による sidebar 幅崩れを防止）
@@ -230,13 +222,11 @@ cmd_launch() {
   pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
 
   # pane のシェルが起動するのを待ってから claude を send-keys で起動
-  local launch_step
   if [ "$no_worktree" = true ]; then
-    launch_step="[2/2]"
+    notify "[1/2] launching claude in: $session_name"
   else
-    launch_step="[3/3]"
+    notify "[2/2] launching claude in: $session_name"
   fi
-  notify "$launch_step launching claude in: $session_name"
   sleep 0.5
   tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
 
