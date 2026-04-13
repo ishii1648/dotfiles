@@ -49,8 +49,6 @@ components:
         target: configs/ghostty/config
       - link: ~/.local/bin/ghostty-tmux-init
         target: configs/ghostty/ghostty-tmux-init.sh
-      - link: ~/.local/bin/prtrack-popup
-        target: configs/ghostty/prtrack-popup.sh
 
   tmux:
     symlinks:
