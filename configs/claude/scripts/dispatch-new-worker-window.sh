@@ -20,10 +20,17 @@ if [ -z "$SESSION" ] || [ -z "$WINDOW" ] || [ -z "$WORKTREE" ]; then
   exit 1
 fi
 
-PANE_ID=$(tmux new-window -t "$SESSION" -n "$WINDOW" -c "$WORKTREE" -P -F "#{pane_id}")
+# 呼び出し元のウィンドウを記録（popup 等からの呼び出しでフォーカスを戻すため）
+CURRENT_WINDOW=$(tmux display-message -p "#{window_id}" 2>/dev/null || true)
+
+PANE_ID=$(tmux new-window -t "$SESSION" -n "$WINDOW" -c "$WORKTREE" -d -P -F "#{pane_id}")
 # after-new-window フックがサイドバーを作成しフォーカスを奪う場合があるため、
 # メインペインを明示的にアクティブにする
 tmux select-pane -t "$PANE_ID"
+# フォーカスを呼び出し元ウィンドウに戻す（popup からの dispatch でフォーカスが移らないようにする）
+if [ -n "$CURRENT_WINDOW" ]; then
+  tmux select-window -t "$CURRENT_WINDOW" 2>/dev/null || true
+fi
 PANE_NUM="${PANE_ID#%}"
 
 mkdir -p /tmp/claude-pane-state
