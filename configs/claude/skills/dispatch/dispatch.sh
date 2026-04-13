@@ -178,7 +178,7 @@ cmd_launch() {
     if [ -z "$branch_name" ]; then
       die "--branch が指定されていません（--no-worktree でない場合は必須）"
     fi
-    notify "[1/3] creating worktree: $branch_name"
+    notify "[1/2] creating worktree: $branch_name"
     work_dir=$(create_worktree "$repo_path" "$branch_name")
   fi
 
