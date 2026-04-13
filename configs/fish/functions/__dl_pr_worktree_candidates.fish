@@ -3,7 +3,6 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
     set -l cache_ttl 3600
 
     if test -f $cache_file
-        # キャッシュあり: stale なら bg refresh（現キャッシュは即使う）
         set -l now (date +%s)
         set -l mtime (stat -f %m $cache_file)
         if test (math $now - $mtime) -gt $cache_ttl
@@ -11,7 +10,6 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
             disown
         end
     else
-        # キャッシュなし: 同期的にリフレッシュ（初回のみ待つ）
         __dl_pr_cache_refresh
     end
 
@@ -25,17 +23,23 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
     set -l dim (printf '\e[2m')
     set -l reset (printf '\e[0m')
 
-    while read -l wt_path pr_number is_draft repo_short
+    # cache format: wt_path\tpr_number\tis_draft\trepo_name\tbranch
+    while read -l wt_path pr_number is_draft repo_name branch
         set -l session_name (basename $wt_path)
-        set -l pr_badge "$cyan#$pr_number$reset"
+
+        # PR番号: draft=dim, open=cyan
+        set -l pr_tag
         if test "$is_draft" = true
-            set pr_badge "$dim#$pr_number draft$reset"
+            set pr_tag "$dim#$pr_number$reset"
+        else
+            set pr_tag "$cyan#$pr_number$reset"
         end
 
+        # セッション有無で repo_name の色を変える
         if contains $session_name $existing_sessions
-            printf '%s\t%s  %s\n' $wt_path "$yellow$repo_short$reset" $pr_badge
+            printf '%s\t%s %s  %s\n' $wt_path "$yellow$repo_name$reset" $pr_tag $branch
         else
-            printf '%s\t%s  %s\n' $wt_path "$dim$repo_short$reset" $pr_badge
+            printf '%s\t%s %s  %s\n' $wt_path "$dim$repo_name$reset" $pr_tag $branch
         end
     end < $cache_file
 end

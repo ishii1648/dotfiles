@@ -24,8 +24,7 @@ function __dl_pr_cache_refresh --description 'gh search prs + gh pr list で PR 
             for host_dir in $ghq_root/*/
                 set -l wt_path "$host_dir$repo_full@$wt_dir_name"
                 if test -d "$wt_path"
-                    set -l repo_short "$repo_name@$wt_dir_name"
-                    printf '%s\t%s\t%s\t%s\n' $wt_path $pr_number $is_draft $repo_short >> $tmp_file
+                    printf '%s\t%s\t%s\t%s\t%s\n' $wt_path $pr_number $is_draft $repo_name $branch >> $tmp_file
                     break
                 end
             end
