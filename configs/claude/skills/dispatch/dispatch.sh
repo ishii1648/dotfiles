@@ -12,7 +12,13 @@ GHQ_ROOT="$(ghq root 2>/dev/null || echo "$HOME/ghq")"
 die() {
   echo "STATUS: ERROR"
   echo "MESSAGE: $1"
+  tmux display-message -d 5000 "dispatch: ERROR: $1" 2>/dev/null || true
   exit 1
+}
+
+notify() {
+  echo "STATUS: $1"
+  tmux display-message -d 3000 "dispatch: $1" 2>/dev/null || true
 }
 
 # repo パス解決: フルパス or ghq 短縮名（C-FO/sandbox-ishii1648）
@@ -172,6 +178,7 @@ cmd_launch() {
     if [ -z "$branch_name" ]; then
       die "--branch が指定されていません（--no-worktree でない場合は必須）"
     fi
+    notify "[1/3] creating worktree: $branch_name"
     work_dir=$(create_worktree "$repo_path" "$branch_name")
   fi
 
@@ -188,6 +195,14 @@ cmd_launch() {
     session_name="$(basename "$work_dir")"
   fi
 
+  local step_prefix
+  if [ "$no_worktree" = true ]; then
+    step_prefix="[1/2]"
+  else
+    step_prefix="[2/3]"
+  fi
+
+  notify "$step_prefix creating tmux session: $session_name"
   if ! tmux has-session -t "=$session_name" 2>/dev/null; then
     # session が存在しない → 新規作成（最初の window として window_name を使う）
     # 現在のターミナルサイズを渡す（デタッチ作成後の比例拡大による sidebar 幅崩れを防止）
@@ -215,6 +230,13 @@ cmd_launch() {
   pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
 
   # pane のシェルが起動するのを待ってから claude を send-keys で起動
+  local launch_step
+  if [ "$no_worktree" = true ]; then
+    launch_step="[2/2]"
+  else
+    launch_step="[3/3]"
+  fi
+  notify "$launch_step launching claude in: $session_name"
   sleep 0.5
   tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
 
@@ -225,6 +247,8 @@ cmd_launch() {
   echo "PANE_ID: $pane_id"
   echo "REPO: $repo_path"
   echo "WORK_DIR: $work_dir"
+
+  tmux display-message -d 5000 "dispatch: launched [$session_name]" 2>/dev/null || true
 }
 
 # --- メイン ---

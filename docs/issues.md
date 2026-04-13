@@ -639,6 +639,18 @@
 
 ---
 
+### dispatch 起動中ステータス通知
+
+**コンポーネント**: fish / tmux
+
+**受け入れ条件**:
+
+- [ ] dispatch 実行中、worktree 作成・tmux session 作成・claude 起動の各ステップで `tmux display-message` にステータスが表示される
+- [ ] エラー発生時に `tmux display-message` でエラー内容が表示される（サイレント失敗しない）
+- [ ] 完了時に `tmux display-message` で成功通知（session 名）が表示される
+
+---
+
 ### dispatch 後フォーカス自動遷移
 
 **コンポーネント**: fish / tmux
