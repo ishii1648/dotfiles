@@ -3,20 +3,15 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     # Step 1: リポジトリ選択（fzf）
     # Step 2: タスク記述入力（read） + tab で dispatch/orchestrate 切替
 
-    set -l ghq_root (ghq root)
-
-    # repos 候補コマンド（key 列を空にして \t 区切りで統一）
-    set -l repo_cmd "ghq list -p | while read -l repo; string match -q '*@*' \$repo; and continue; string replace '$ghq_root/' '' \$repo; end | while read -l r; printf '\\t%s\\n' \$r; end"
-
     # Step 1: リポジトリ選択（Tab で PR worktree 切り替え）
     rm -f /tmp/dl-fzf-pr-mode
-    set -l fzf_output (fish -c "$repo_cmd" | fzf \
+    set -l fzf_output (fish -c __dl_repo_candidates | fzf \
         --ansi \
         --delimiter '\t' --with-nth 2 \
-        --prompt 'repo > ' \
-        --header 'tab: PR worktrees' \
+        --prompt '> ' \
+        --header '  [repos]  PRs          tab: switch' \
         --layout=reverse --cycle \
-        --bind "tab:transform:test -f /tmp/dl-fzf-pr-mode && rm /tmp/dl-fzf-pr-mode && echo 'reload(fish -c \"$repo_cmd\")+change-prompt(repo > )+change-header(tab: PR worktrees)' || touch /tmp/dl-fzf-pr-mode && echo 'reload(fish -c __dl_pr_worktree_candidates)+change-prompt(PR > )+change-header(tab: repos)'")
+        --bind 'tab:transform:if test -f /tmp/dl-fzf-pr-mode; then rm /tmp/dl-fzf-pr-mode; echo "reload(fish -c __dl_repo_candidates)+change-prompt(> )+change-header(  [repos]  PRs          tab: switch)"; else touch /tmp/dl-fzf-pr-mode; echo "reload(fish -c __dl_pr_worktree_candidates)+change-prompt(> )+change-header(  repos  [PRs]          tab: switch)"; fi')
     rm -f /tmp/dl-fzf-pr-mode
 
     if test -z "$fzf_output"
