@@ -222,7 +222,6 @@ cmd_launch() {
   pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
 
   # pane のシェルが起動するのを待ってから claude を send-keys で起動
-  notify "launching claude: $session_name"
   sleep 0.5
   tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
 
