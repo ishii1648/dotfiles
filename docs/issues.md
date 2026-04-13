@@ -51,6 +51,7 @@
 | ✔ | ○ | tmux / ghostty | prtrack popup の状態が毎回リセットされ操作モデルが非対称 — display-popup はスクロール履歴を失い、他 session と異なる操作感 | [ADR-049](adr/049-prtrack-permanent-session-instead-of-popup.md) |
 | - | ○ | claude | Skill ツールの呼び出し回数が把握できない — どのスキルが頻繁に使われているか分からず、改善優先度の判断ができない | — |
 | ✔ | ○ | tmux / claude | dispatch/orchestrate の起動に毎回ターミナルで手入力が必要 — popup ランチャーでリポジトリ選択・モード切替・prompt 入力を一箇所に集約する | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
+| - | ○ | fish / tmux | dispatch 後にフォーカスが自動遷移する — `dispatch_launcher.fish` の `run-shell -b` 内 `switch-client` が popup 閉幕後にワーカーセッションへ強制移動する | — |
 | ✔ | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
@@ -635,6 +636,17 @@
 - [x] 最後のエージェントが `FINAL-REPORT.md` を生成して `creation_state` が `complete` に更新される
 - [x] `/orchestrate cleanup <session>` で advance ループの PID kill を含む全リソースが削除される
 - [x] `/orchestrate --dry-run feature "タスク"` でエージェントチェーンと計画が表示される（実行はしない）
+
+---
+
+### dispatch 後フォーカス自動遷移
+
+**コンポーネント**: fish / tmux
+
+**受け入れ条件**:
+
+- [ ] `dispatch_launcher` 実行後、フォーカスが呼び出し元のウィンドウ/セッションに留まる
+- [ ] dispatch で作成されたワーカーセッションには自動遷移しない
 
 ---
 

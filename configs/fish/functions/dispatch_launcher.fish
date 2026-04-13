@@ -92,10 +92,10 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         if test "$use_worktree" = true
             set -l wt_name (string replace -a '/' '-' $branch_name)
             set -l target_session "$repo_name@$wt_name"
-            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1"
         else
             set -l target_session "$repo_name"
-            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --no-worktree > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --no-worktree > /dev/null 2>&1"
         end
     else
         # orchestrate: orchestrate.sh launch を直接呼び出す
