@@ -5,11 +5,15 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
 
     # Step 1: リポジトリ選択（Tab で PR worktree 切り替え）
     rm -f /tmp/dl-fzf-pr-mode
+    set -l bold_green (printf '\e[1;92m')
+    set -l dim (printf '\e[90m')
+    set -l reset (printf '\e[0m')
+    set -l init_header (printf '  %stab: switch  %srepos%s / %sPRs%s' $dim $bold_green $reset $dim $reset)
     set -l fzf_output (fish -c __dl_repo_candidates | fzf \
         --ansi \
         --delimiter '\t' --with-nth 2 \
         --prompt '> ' \
-        --header '  ▌repos▐  PRs          tab: switch' \
+        --header "$init_header" \
         --layout=reverse --cycle \
         --bind 'tab:transform(fish -c __dl_fzf_toggle)')
     rm -f /tmp/dl-fzf-pr-mode
