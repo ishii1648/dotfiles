@@ -619,6 +619,9 @@ cmd_launch() {
   advance_loop "$session_id" "$resolved_name" "$worktree_path" "$session_slug" \
     "$workflow" "$task_file" "$repo_root" "${agents[@]}" &
   local advance_pid=$!
+  # tmux run-shell -b から呼ばれた場合、親 bash 終了時に advance_loop が
+  # SIGHUP で終了しないよう disown で切り離す
+  disown "$advance_pid"
   update_manifest "$session_id" ".advance_pid = $advance_pid"
 
   # 構造化出力
