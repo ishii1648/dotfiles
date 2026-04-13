@@ -5,17 +5,42 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
 
     set -l ghq_root (ghq root)
 
-    # Step 1: リポジトリ選択
-    set -l selected (ghq list -p | while read -l repo
-        string match -q '*@*' $repo; and continue
-        string replace "$ghq_root/" '' $repo
-    end | fzf \
-        --prompt 'repo > ' \
-        --layout=reverse --cycle)
+    # repos 候補コマンド（key 列を空にして \t 区切りで統一）
+    set -l repo_cmd "ghq list -p | while read -l repo; string match -q '*@*' \$repo; and continue; string replace '$ghq_root/' '' \$repo; end | while read -l r; printf '\\t%s\\n' \$r; end"
 
-    if test -z "$selected"
+    # Step 1: リポジトリ選択（Tab で PR worktree 切り替え）
+    rm -f /tmp/dl-fzf-pr-mode
+    set -l fzf_output (fish -c "$repo_cmd" | fzf \
+        --ansi \
+        --delimiter '\t' --with-nth 2 \
+        --prompt 'repo > ' \
+        --header 'tab: PR worktrees' \
+        --layout=reverse --cycle \
+        --bind "tab:transform:test -f /tmp/dl-fzf-pr-mode && rm /tmp/dl-fzf-pr-mode && echo 'reload(fish -c \"$repo_cmd\")+change-prompt(repo > )+change-header(tab: PR worktrees)' || touch /tmp/dl-fzf-pr-mode && echo 'reload(fish -c __dl_pr_worktree_candidates)+change-prompt(PR > )+change-header(tab: repos)'")
+    rm -f /tmp/dl-fzf-pr-mode
+
+    if test -z "$fzf_output"
         return 0
     end
+
+    set -l key (string split \t $fzf_output)[1]
+    set -l selected (string split \t $fzf_output)[2]
+
+    # PR worktree 選択 → セッション切り替え + Claude 起動
+    if string match -q '/*' -- $key
+        set -l session_name (basename $key)
+        if not tmux has-session -t $session_name 2>/dev/null
+            set -l win_w (tmux display-message -p '#{window_width}')
+            set -l win_h (tmux display-message -p '#{window_height}')
+            tmux new-session -d -s $session_name -c $key -x $win_w -y $win_h
+        end
+        tmux send-keys -t $session_name "claude" Enter
+        tmux switch-client -t $session_name
+        return 0
+    end
+
+    # repos 選択 → selected を string trim して従来フローへ
+    set selected (string trim $selected)
 
     # Step 2: タスク記述 + tab でモード切替
     set -g _dl_mode dispatch
