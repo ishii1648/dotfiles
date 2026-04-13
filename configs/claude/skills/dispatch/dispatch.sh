@@ -150,6 +150,17 @@ cmd_launch() {
   local repo_path
   repo_path=$(resolve_repo "$repo") || die "リポジトリが見つかりません: $repo"
 
+  # no-worktree 設定ファイルによる自動判定
+  # ~/.config/dispatch/no-worktree-repos に "owner/repo" 形式で列挙されたリポジトリは worktree を作成しない
+  local no_worktree_config="$HOME/.config/dispatch/no-worktree-repos"
+  if [ "$no_worktree" = false ] && [ -f "$no_worktree_config" ]; then
+    local repo_short
+    repo_short=$(echo "$repo_path" | sed "s|$GHQ_ROOT/||")
+    if grep -qxF "$repo_short" "$no_worktree_config" 2>/dev/null; then
+      no_worktree=true
+    fi
+  fi
+
   # デフォルト window 名
   if [ -z "$window_name" ]; then
     window_name="$(basename "$repo_path")"

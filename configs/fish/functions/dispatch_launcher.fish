@@ -76,12 +76,27 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     tmux display-message "$mode: $repo_name ... launching"
 
     if test "$mode" = dispatch
-        set -l wt_name (string replace -a '/' '-' $branch_name)
-        set -l target_session "$repo_name@$wt_name"
+        # no-worktree 設定ファイルによる自動判定（$selected は ghq root 除去済みの短縮パス）
+        set -l no_worktree_config "$HOME/.config/dispatch/no-worktree-repos"
+        set -l use_worktree true
+        if test -f "$no_worktree_config"
+            if grep -qxF "$selected" "$no_worktree_config" 2>/dev/null
+                set use_worktree false
+            end
+        end
+
         # prompt を tmpfile 経由で渡す（改行・シングルクォートによるshell injection対策）
         set -l prompt_file (mktemp /tmp/dispatch-prompt-XXXXXX)
         printf '%s' "$prompt_text" > $prompt_file
-        tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+
+        if test "$use_worktree" = true
+            set -l wt_name (string replace -a '/' '-' $branch_name)
+            set -l target_session "$repo_name@$wt_name"
+            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+        else
+            set -l target_session "$repo_name"
+            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --no-worktree > /dev/null 2>&1; tmux switch-client -t '=$target_session' 2>/dev/null"
+        end
     else
         # orchestrate: orchestrate.sh launch を直接呼び出す
         # worktree + tmux session + claude 起動を一括実行
