@@ -4,20 +4,31 @@
 #   state:  running | permission | ask | idle | end
 #   source: post (PostToolUse 経由の場合のみ指定)
 
-# stdin を消費（hook がパイプで渡す JSON を読み捨てる）
-cat > /dev/null
+# stdin を読み取り（session_id 抽出用に保持）
+INPUT=$(cat)
 
 # tmux 外では何もしない
 [ -z "$TMUX_PANE" ] && exit 0
 
 STATE_DIR="/tmp/claude-pane-state"
-PANE_FILE="$STATE_DIR/pane_${TMUX_PANE#%}"
-STARTED_FILE="$STATE_DIR/pane_${TMUX_PANE#%}_started"
+PANE_NUM="${TMUX_PANE#%}"
+PANE_FILE="$STATE_DIR/pane_${PANE_NUM}"
+STARTED_FILE="$STATE_DIR/pane_${PANE_NUM}_started"
+SESSION_ID_FILE="$STATE_DIR/pane_${PANE_NUM}_session_id"
 STATE="${1:-unknown}"
 SOURCE="${2:-}"
 
+# stdin JSON から session_id を抽出して書き出す
+if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
+    SID=$(printf '%s' "$INPUT" | jq -r '.session_id // empty' 2>/dev/null)
+    if [ -n "$SID" ]; then
+        mkdir -p "$STATE_DIR"
+        printf '%s' "$SID" > "$SESSION_ID_FILE"
+    fi
+fi
+
 if [ "$STATE" = "end" ]; then
-    rm -f "$PANE_FILE" "$STARTED_FILE"
+    rm -f "$PANE_FILE" "$STARTED_FILE" "$SESSION_ID_FILE"
     exit 0
 fi
 
