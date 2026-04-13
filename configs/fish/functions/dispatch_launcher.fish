@@ -83,6 +83,6 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         set -l prompt_file (mktemp /tmp/dispatch-orch-prompt-XXXXXX)
         printf '%s' "$prompt_text" > $prompt_file
 
-        tmux run-shell -b "bash ~/.config/fish/functions/_dl_orchestrate_launch.sh '$selected' '$prompt_file'"
+        tmux run-shell -b "bash ~/.claude/skills/orchestrate/_dl_orchestrate_launch.sh '$selected' '$prompt_file'"
     end
 end
