@@ -18,7 +18,7 @@ die() {
 
 notify() {
   echo "STATUS: $1"
-  tmux display-message -d 3000 "dispatch: $1" 2>/dev/null || true
+  tmux display-message -d 0 "dispatch: $1" 2>/dev/null || true
 }
 
 # repo パス解決: フルパス or ghq 短縮名（C-FO/sandbox-ishii1648）
