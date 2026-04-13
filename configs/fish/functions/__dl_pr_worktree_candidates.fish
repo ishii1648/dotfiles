@@ -15,7 +15,7 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
         __dl_pr_cache_refresh
     end
 
-    if not test -f $cache_file; or test (stat -f %s $cache_file) -eq 0
+    if not test -f $cache_file; or test (stat -f '%z' $cache_file) -eq 0
         return 0
     end
 
