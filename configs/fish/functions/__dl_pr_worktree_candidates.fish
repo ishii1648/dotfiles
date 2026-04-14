@@ -20,7 +20,7 @@ function __dl_pr_worktree_candidates --description 'PR付き worktree の fzf �
     set -l existing_sessions (tmux list-sessions -F '#{session_name}' 2>/dev/null)
     set -l yellow (printf '\e[33m')
     set -l green (printf '\e[32m')
-    set -l purple (printf '\e[35m')
+    set -l purple (printf '\e[38;5;141m')
     set -l red (printf '\e[31m')
     set -l dim (printf '\e[90m')
     set -l reset (printf '\e[0m')

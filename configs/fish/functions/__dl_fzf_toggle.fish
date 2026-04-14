@@ -3,7 +3,7 @@ function __dl_fzf_toggle --description 'dispatch_launcher fzf タブトグル（
     set -l bold_green (printf '\e[1;92m')
     set -l bold_cyan (printf '\e[1;96m')
     set -l green (printf '\e[32m')
-    set -l purple (printf '\e[35m')
+    set -l purple (printf '\e[38;5;141m')
     set -l red (printf '\e[31m')
     set -l dim (printf '\e[90m')
     set -l reset (printf '\e[0m')
