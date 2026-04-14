@@ -28,11 +28,13 @@ disable-model-invocation: true
 |---|---|---|
 | repo + prompt | `/dispatch C-FO/sandbox-ishii1648 "hello"` | → Step 3 |
 | repo のみ | `/dispatch C-FO/sandbox-ishii1648` | → Step 2（prompt を聞く） |
-| prompt のみ | `/dispatch "テストを実行して"` | → Step 2（repo を聞く） |
+| prompt のみ | `/dispatch "テストを実行して"` | → Step 3（カレントリポジトリ + 現在の session を使用） |
 | 引数なし | `/dispatch` | → Step 2（両方聞く） |
 | --in-session あり | `/dispatch repo "prompt" --in-session` | → 現在の tmux session に window を追加 |
 
 デフォルト（フラグなし）では新規 tmux session を作成する。`--in-session` を指定した場合は現在の tmux session に window を追加する。
+
+**repo 省略時の特殊動作**: prompt のみが指定された場合、カレントディレクトリの git リポジトリルートを repo として使用し、現在の tmux session に window を追加する（`--in-session` と同じ動作）。
 
 引数が1つだけの場合の判別: ghq 短縮名パターン（`org/repo`）やパスなら repo、それ以外なら prompt として扱う。
 
@@ -73,12 +75,14 @@ prompt の内容からタスクに適したブランチ名を決定する。
 bash ~/.claude/skills/dispatch/dispatch.sh launch "<repo>" "<prompt>" --branch "<branch_name>"
 ```
 
-`--in-session` が指定されている場合、現在の tmux session 名を取得して `--session` に渡す:
+`--in-session` が指定されている場合、または **repo を省略して prompt のみ指定した場合**、現在の tmux session 名を取得して `--session` に渡す:
 
 ```bash
 current_session=$(tmux display-message -p '#{session_name}')
 bash ~/.claude/skills/dispatch/dispatch.sh launch "<repo>" "<prompt>" --branch "<branch_name>" --session "$current_session"
 ```
+
+**repo 省略時**: `<repo>` には `git rev-parse --show-toplevel` で取得したカレントリポジトリのルートパスを使用する。
 
 オプション引数:
 - `--session <name>`: 既存の tmux session に window を追加

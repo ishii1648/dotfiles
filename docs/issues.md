@@ -651,6 +651,18 @@
 
 ---
 
+### dispatch repo 省略時にカレントリポジトリで worktree 実行
+
+**コンポーネント**: claude
+
+**受け入れ条件**:
+
+- [ ] `/dispatch "prompt"` で repo を省略した場合、カレントディレクトリのリポジトリで worktree が作成される
+- [ ] worktree 作成後、現在の tmux session 内に新しい window が追加されて claude が起動する
+- [ ] `/dispatch repo "prompt"` の既存動作（別リポジトリ指定）は変更されない
+
+---
+
 ### dispatch 後フォーカス自動遷移
 
 **コンポーネント**: fish / tmux
