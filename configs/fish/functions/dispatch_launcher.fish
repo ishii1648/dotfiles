@@ -47,7 +47,7 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
 
     function _dl_prompt
         set_color brblack
-        printf '  tab: モード切替  enter: 実行\n'
+        printf '  tab: モード切替  enter: 実行  `:<branch>` で既存 remote branch を checkout\n'
         set_color normal
         printf '  '
         if test "$_dl_mode" = dispatch
@@ -93,8 +93,25 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
     set -l repo_name (basename $selected)
     # 改行を含むペーストに対応: 最初の1行のみをslug生成に使用
     set -l first_line (string split \n -- $prompt_text)[1]
-    set -l slug (echo $first_line | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
-    set -l branch_name "feat/$slug"
+
+    # `:<branch>` プレフィックス → 既存 remote branch を checkout するモード（dispatch のみ）
+    set -l checkout_mode false
+    set -l branch_name
+    if string match -q ':*' -- $first_line
+        if test "$mode" != dispatch
+            tmux display-message "dispatch: ':' branch checkout は dispatch モード専用です"
+            return 1
+        end
+        set branch_name (string sub -s 2 -- $first_line | string trim)
+        if test -z "$branch_name"
+            tmux display-message "dispatch: branch 名が空です"
+            return 1
+        end
+        set checkout_mode true
+    else
+        set -l slug (echo $first_line | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
+        set branch_name "feat/$slug"
+    end
 
     # tmux run-shell で popup 外で実行（popup 終了後も生存する）
     tmux display-message "$mode: $repo_name ... launching"
@@ -109,17 +126,22 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
             end
         end
 
-        # prompt を tmpfile 経由で渡す（改行・シングルクォートによるshell injection対策）
-        set -l prompt_file (mktemp /tmp/dispatch-prompt-XXXXXX)
-        printf '%s' "$prompt_text" > $prompt_file
-
-        if test "$use_worktree" = true
-            set -l wt_name (string replace -a '/' '-' $branch_name)
-            set -l target_session "$repo_name@$wt_name"
-            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1"
+        if test "$checkout_mode" = true
+            # checkout モード: prompt なしで worktree 作成 + claude idle 起動
+            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --branch '$branch_name' --no-prompt > /dev/null 2>&1"
         else
-            set -l target_session "$repo_name"
-            tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --no-worktree > /dev/null 2>&1"
+            # 通常モード: prompt を tmpfile 経由で渡す（改行・シングルクォートによるshell injection対策）
+            set -l prompt_file (mktemp /tmp/dispatch-prompt-XXXXXX)
+            printf '%s' "$prompt_text" > $prompt_file
+
+            if test "$use_worktree" = true
+                set -l wt_name (string replace -a '/' '-' $branch_name)
+                set -l target_session "$repo_name@$wt_name"
+                tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --branch '$branch_name' > /dev/null 2>&1"
+            else
+                set -l target_session "$repo_name"
+                tmux run-shell -b "bash ~/.claude/skills/dispatch/dispatch.sh launch '$selected' --prompt-file '$prompt_file' --no-worktree > /dev/null 2>&1"
+            end
         end
     else
         # orchestrate: orchestrate.sh launch を直接呼び出す

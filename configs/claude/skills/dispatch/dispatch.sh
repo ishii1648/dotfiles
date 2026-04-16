@@ -99,7 +99,7 @@ cmd_list_repos() {
 
 # --- サブコマンド: launch ---
 cmd_launch() {
-  local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false
+  local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false no_prompt=false
 
   # 引数パース
   while [ $# -gt 0 ]; do
@@ -118,6 +118,10 @@ cmd_launch() {
         ;;
       --no-worktree)
         no_worktree=true
+        shift
+        ;;
+      --no-prompt)
+        no_prompt=true
         shift
         ;;
       --prompt-file)
@@ -148,7 +152,7 @@ cmd_launch() {
   if [ -z "$repo" ]; then
     die "repo が指定されていません"
   fi
-  if [ -z "$prompt" ]; then
+  if [ "$no_prompt" = false ] && [ -z "$prompt" ]; then
     die "prompt が指定されていません"
   fi
 
@@ -183,11 +187,13 @@ cmd_launch() {
   fi
 
   # prompt を一時ファイルに書き出し（worktree 側に配置）
-  local output_dir="$work_dir/.outputs/claude"
-  mkdir -p "$output_dir"
-  local prompt_file
-  prompt_file=$(mktemp "$output_dir/dispatch-prompt-XXXXXX")
-  printf '%s' "$prompt" > "$prompt_file"
+  local prompt_file=""
+  if [ "$no_prompt" = false ]; then
+    local output_dir="$work_dir/.outputs/claude"
+    mkdir -p "$output_dir"
+    prompt_file=$(mktemp "$output_dir/dispatch-prompt-XXXXXX")
+    printf '%s' "$prompt" > "$prompt_file"
+  fi
 
   # tmux session/window 作成
   # session 名が未指定の場合、worktree のディレクトリ名をセッション名にする
@@ -223,7 +229,11 @@ cmd_launch() {
 
   # pane のシェルが起動するのを待ってから claude を send-keys で起動
   sleep 0.5
-  tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
+  if [ "$no_prompt" = true ]; then
+    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude" Enter
+  else
+    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
+  fi
 
   # 構造化出力
   echo "STATUS: LAUNCHED"
