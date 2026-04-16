@@ -74,13 +74,28 @@ create_worktree() {
   local remote_branch_exists
   remote_branch_exists=$(git -C "$repo_path" ls-remote --heads origin "$branch_name" 2>/dev/null || true)
 
+  local wt_add_ok=true
   if [ -n "$remote_branch_exists" ]; then
     git -C "$repo_path" fetch origin "$branch_name":"$branch_name" 2>/dev/null || true
     git -C "$repo_path" worktree add "$worktree_path" "$branch_name" >&2 \
-      || die "worktree の作成に失敗しました: $worktree_path"
+      || wt_add_ok=false
   else
     git -C "$repo_path" worktree add "$worktree_path" -b "$branch_name" "origin/${default_branch}" >&2 \
-      || die "worktree の作成に失敗しました: $worktree_path"
+      || wt_add_ok=false
+  fi
+
+  # worktree add 失敗時: ブランチが別ディレクトリ名の worktree で既にチェックアウトされている可能性
+  if [ "$wt_add_ok" = false ]; then
+    local existing_path
+    existing_path=$(git -C "$repo_path" worktree list --porcelain \
+      | awk -v b="$branch_name" '/^worktree /{sub(/^worktree /,""); p=$0} /^branch refs\/heads\//{sub(/^branch /,""); if($0=="refs/heads/"b) print p}')
+    if [ -n "$existing_path" ] && [ -d "$existing_path" ]; then
+      echo "$existing_path" >&2
+      echo "warn: ブランチ '$branch_name' は別名の worktree に存在します: $existing_path" >&2
+      echo "$existing_path"
+      return
+    fi
+    die "worktree の作成に失敗しました: $worktree_path"
   fi
 
   # .claude/settings.local.json をコピー（gw_add と同じ）
