@@ -602,7 +602,7 @@
 **受け入れ条件**:
 
 - [x] Cmd+g で prtrack session が存在しなければ作成・prtrack 起動、存在すれば直接 switch-client される
-- [x] prtrack session 内で ESC を押すと直前の session に戻る（`switch-client -l`）
+- [x] ~~prtrack session 内で ESC を押すと直前の session に戻る（`switch-client -l`）~~（2026-04-17 撤回: prtrack ツールの ESC 操作と競合するため削除）
 - [x] cmd+s の session 一覧に prtrack session が表示されない
 - [x] prtrack 終了後も session が残り、再度 Cmd+g で prtrack が再起動される
 

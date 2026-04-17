@@ -2,7 +2,11 @@
 
 ## ステータス
 
-採用済み
+採用済み（ESC → `switch-client -l` バインディングは 2026-04-17 に撤回）
+
+## 撤回された決定
+
+- **ESC → `switch-client -l`**: 常駐 session への切替自体は有効のまま、prtrack session 内で ESC を `switch-client -l` にリマップする設計を取りやめ、ESC 本来のキー送出に戻した。理由は prtrack ツール側が ESC を UI 操作（リスト解除・モード終了等）に使うため、session 切替への横取りがツール操作を阻害していたこと。session を離れるには `prefix+m`（`switch-client -l`）や Cmd+1〜9 のウィンドウ切替を使う。
 
 ## 関連 ADR
 
