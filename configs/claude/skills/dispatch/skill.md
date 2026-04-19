@@ -26,8 +26,8 @@ disable-model-invocation: true
 
 | 引数パターン | 例 | 対応 |
 |---|---|---|
-| repo + prompt | `/dispatch C-FO/sandbox-ishii1648 "hello"` | → Step 3 |
-| repo のみ | `/dispatch C-FO/sandbox-ishii1648` | → Step 2（prompt を聞く） |
+| repo + prompt | `/dispatch your-org/your-sandbox "hello"` | → Step 3 |
+| repo のみ | `/dispatch your-org/your-sandbox` | → Step 2（prompt を聞く） |
 | prompt のみ | `/dispatch "テストを実行して"` | → Step 3（カレントリポジトリ + 現在の session を使用） |
 | 引数なし | `/dispatch` | → Step 2（両方聞く） |
 | --in-session あり | `/dispatch repo "prompt" --in-session` | → 現在の tmux session に window を追加 |

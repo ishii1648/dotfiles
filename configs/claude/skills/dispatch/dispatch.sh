@@ -21,7 +21,7 @@ notify() {
   tmux display-message -d 600000 "dispatch: $1" 2>/dev/null || true
 }
 
-# repo パス解決: フルパス or ghq 短縮名（C-FO/sandbox-ishii1648）
+# repo パス解決: フルパス or ghq 短縮名（your-org/your-sandbox）
 resolve_repo() {
   local repo="$1"
   if [ -d "$repo" ]; then
