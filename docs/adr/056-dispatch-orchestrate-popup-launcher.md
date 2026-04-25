@@ -1,12 +1,15 @@
 # ADR-056: dispatch/orchestrate popup ランチャー
 
 ## ステータス
-採用済み（改訂: 2026-04-13）
+部分廃止（ADR-061 で一部変更）
+
+> Step 1（リポジトリ選択トップレベル UI）の設計は ADR-061 で claude/codex の二値モードに置き換えられた（旧 PRs モードも廃止）。Step 2（claude モード時の dispatch/orchestrate 切替）と全体方針は本 ADR を維持。
 
 ## 関連 ADR
 - 依存: ADR-054（dispatch skill — ランチャーが呼び出すエントリポイント）
 - 依存: ADR-059（dispatch/orchestrate 分離 — ランチャーが両方をサポート）
 - 関連: ADR-051（tmux-sidebar — 監視 UI。本 ADR のスコープ外）
+- Superseded by (部分): ADR-061（Step 1 を claude/codex モードに再構成）
 
 ## コンテキスト
 

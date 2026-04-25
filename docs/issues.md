@@ -53,6 +53,7 @@
 | ✔ | ○ | tmux / claude | dispatch/orchestrate の起動に毎回ターミナルで手入力が必要 — popup ランチャーでリポジトリ選択・モード切替・prompt 入力を一箇所に集約する | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
 | - | ○ | fish / tmux | dispatch 後にフォーカスが自動遷移する — `dispatch_launcher.fish` の `run-shell -b` 内 `switch-client` が popup 閉幕後にワーカーセッションへ強制移動する | — |
 | ✔ | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
+| ✔ | ○ | tmux / fish / claude | popup ランチャーのトップレベルが repos/PRs で利用頻度が偏る — claude/codex の二値モードに整理し、codex 起動を素早くできるようにする | [ADR-061](adr/061-popup-launcher-claude-codex-modes.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -683,4 +684,23 @@
 - [x] `cmd+shift+s` で popup ランチャーが開き、ghq リポジトリ一覧 + dispatch/orchestrate 切替が表示される
 - [x] popup ランチャーでリポジトリ選択 → prompt 入力 → Enter で dispatch or orchestrate が実行される
 - [x] `tmw_pick.fish` が廃止され、`cmd+shift+s` が popup ランチャーに置き換わる
+
+---
+
+### ADR-061: popup ランチャーのトップレベルモードを claude / codex に再構成する
+
+**コンポーネント**: tmux / fish / claude | **ADR**: [ADR-061](adr/061-popup-launcher-claude-codex-modes.md)
+
+**受け入れ条件**:
+
+- [x] `cmd+shift+s` の Step 1 で `tab` を押すとモードが `claude` ↔ `codex` で切り替わる
+- [x] Step 1 ヘッダーにアクティブモードがハイライト表示される（`claude / codex` のいずれかが強調）
+- [x] `claude` モード（デフォルト）で候補一覧が `ghq list` 由来のリポジトリ（worktree ディレクトリ除外）になる
+- [x] `codex` モードで候補一覧が `ghq list` 由来のリポジトリ（worktree ディレクトリ除外）になる
+- [x] `claude` モードで選択 → Enter すると、既存の Step 2（dispatch/orchestrate 切替・prompt 入力）に遷移する
+- [x] `codex` モードで選択 → Enter すると、選択リポジトリ名のセッションが存在しなければ ghq パスを cwd として新規作成される
+- [x] `codex` モードで選択 → Enter すると `codex` CLI が `send-keys` で投入され、`tmux switch-client` でそのセッションに切り替わる
+- [x] `codex` モードでは worktree 作成・prompt 投入・モード切替（dispatch 相当）が行われない
+- [x] 旧 `PRs` モード（PR worktree 一覧の表示と直接切替）が popup ランチャーから削除される
+- [x] ADR-056 のステータスが `部分廃止（ADR-061 で一部変更）` に更新され、Step 1 が ADR-061 で上書きされた旨が注記されている
 

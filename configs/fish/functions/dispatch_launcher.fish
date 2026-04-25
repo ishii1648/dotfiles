@@ -1,14 +1,14 @@
-function dispatch_launcher --description 'dispatch/orchestrate popup ランチャー（2段階フロー）'
-    # ADR-056: dispatch/orchestrate popup ランチャー
-    # Step 1: リポジトリ選択（fzf）
-    # Step 2: タスク記述入力（read） + tab で dispatch/orchestrate 切替
+function dispatch_launcher --description 'dispatch/orchestrate popup ランチャー（claude/codex モード切替）'
+    # ADR-056 / ADR-061: トップレベルを claude / codex モードに再構成
+    # claude モード（デフォルト）: ghq リポジトリ選択 → Step 2（dispatch/orchestrate 切替 + prompt）
+    # codex モード: ghq リポジトリ選択 → 選択リポジトリで session 作成・切替 + codex CLI 起動
 
-    # Step 1: リポジトリ選択（Tab で PR worktree 切り替え）
-    rm -f /tmp/dl-fzf-pr-mode
+    set -l mode_file /tmp/dl-fzf-codex-mode
+    rm -f $mode_file
     set -l bold_green (printf '\e[1;92m')
     set -l dim (printf '\e[90m')
     set -l reset (printf '\e[0m')
-    set -l init_header (printf '  %stab: switch  %srepos%s / %sPRs%s' $dim $bold_green $reset $dim $reset)
+    set -l init_header (printf '  %stab: switch  %sclaude%s / %scodex%s' $dim $bold_green $reset $dim $reset)
     set -l fzf_output (fish -c __dl_repo_candidates | fzf \
         --ansi \
         --delimiter '\t' --with-nth 2 \
@@ -16,32 +16,35 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         --header "$init_header" \
         --layout=reverse --cycle \
         --bind 'tab:transform(fish -c __dl_fzf_toggle)')
-    rm -f /tmp/dl-fzf-pr-mode
+    set -l codex_mode 0
+    if test -f $mode_file
+        set codex_mode 1
+    end
+    rm -f $mode_file
 
     if test -z "$fzf_output"
         return 0
     end
 
-    set -l key (string split \t $fzf_output)[1]
     set -l selected (string split \t $fzf_output)[2]
+    set selected (string trim $selected)
 
-    # PR worktree 選択 → セッション切り替え + Claude 起動
-    if string match -q '/*' -- $key
-        set -l session_name (basename $key)
+    # codex モード: session 作成 + codex 起動 + switch-client
+    if test "$codex_mode" = 1
+        set -l ghq_root (ghq root)
+        set -l repo_path "$ghq_root/$selected"
+        set -l session_name (basename $selected)
         if not tmux has-session -t $session_name 2>/dev/null
             set -l win_w (tmux display-message -p '#{window_width}')
             set -l win_h (tmux display-message -p '#{window_height}')
-            tmux new-session -d -s $session_name -c $key -x $win_w -y $win_h
+            tmux new-session -d -s $session_name -c $repo_path -x $win_w -y $win_h
         end
-        tmux send-keys -t $session_name "claude" Enter
+        tmux send-keys -t $session_name "codex" Enter
         tmux switch-client -t $session_name
         return 0
     end
 
-    # repos 選択 → selected を string trim して従来フローへ
-    set selected (string trim $selected)
-
-    # Step 2: タスク記述 + tab でモード切替
+    # claude モード: 既存の Step 2（dispatch/orchestrate 切替 + prompt 入力）
     set -g _dl_mode dispatch
     set -g _dl_repo (basename $selected)
 
