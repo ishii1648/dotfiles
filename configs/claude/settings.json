@@ -14,7 +14,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh idle"
+            "command": "~/.claude/scripts/agent-pane-state.sh idle claude"
           },
           {
             "type": "command",
@@ -32,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh running"
+            "command": "~/.claude/scripts/agent-pane-state.sh running claude"
           },
           {
             "type": "command",
@@ -51,7 +51,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh permission"
+            "command": "~/.claude/scripts/agent-pane-state.sh permission claude"
           },
           {
             "type": "command",
@@ -68,7 +68,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh ask"
+            "command": "~/.claude/scripts/agent-pane-state.sh ask claude"
           }
         ]
       }
@@ -83,7 +83,7 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh idle"
+            "command": "~/.claude/scripts/agent-pane-state.sh idle claude"
           },
           {
             "type": "command",
@@ -97,7 +97,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh end"
+            "command": "~/.claude/scripts/agent-pane-state.sh end claude"
           }
         ]
       }
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh running post"
+            "command": "~/.claude/scripts/agent-pane-state.sh running claude post"
           }
         ]
       },

@@ -2,11 +2,21 @@
 
 ## ステータス
 
-採用済み
+部分廃止（ADR-063 で一部変更）
+
+> **ADR-063 での変更点**: pane_state 機構を Claude Code 専用から Claude / Codex 共通に汎用化したため、以下が変更された。本 ADR の設計上の意図（hook → 状態ファイル → fzf 一覧でのバッジ表示）は維持されているが、ファイル名・関数名・ディレクトリパスは ADR-063 の表記が現行。
+>
+> | 旧（本 ADR） | 新（ADR-063） |
+> |---|---|
+> | `claude-pane-state.sh` | `agent-pane-state.sh`（第3引数で agent 種別） |
+> | `__tm_claude_state.fish` | `__tm_agent_state.fish`（出力に agent 種別を含む） |
+> | `/tmp/claude-pane-state/` | `/tmp/agent-pane-state/` |
+> | 状態ファイルは 1 行（status のみ） | 1 行目=status、2 行目=agent 種別 |
 
 ## 関連 ADR
 
 - [ADR-003](./003-tmux-notification-click.md) — 通知の仕組みを状態バッジに発展
+- [ADR-063](./063-tmux-codex-pane-state.md) — pane_state 機構を Codex CLI にも適用するため汎用化
 
 ## コンテキスト
 
@@ -18,12 +28,12 @@ tmux の `prefix+s` で表示される fzf セッション/ウィンドウリス
 
 ### 構成
 
-| コンポーネント | パス |
-|---------------|------|
-| 状態書き出しスクリプト | `configs/claude/scripts/claude-pane-state.sh` → `~/.claude/scripts/` (symlink) |
-| 状態読み取り関数 | `configs/fish/functions/__tm_claude_state.fish` |
-| 表示統合 | `configs/fish/functions/__tm_candidates.fish` |
-| Hook 登録 | `~/.claude/settings.json` の hooks |
+| コンポーネント | パス（ADR-007 当時） | 現行（ADR-063 後） |
+|---------------|------|------|
+| 状態書き出しスクリプト | `configs/claude/scripts/claude-pane-state.sh` | `configs/claude/scripts/agent-pane-state.sh` |
+| 状態読み取り関数 | `configs/fish/functions/__tm_claude_state.fish` | `configs/fish/functions/__tm_agent_state.fish` |
+| 表示統合 | `configs/fish/functions/__tm_candidates.fish` | 同左（呼び出し先のみ更新） |
+| Hook 登録 | `~/.claude/settings.json` の hooks | 同左（command に `claude` 引数追加） |
 
 ### 状態遷移
 

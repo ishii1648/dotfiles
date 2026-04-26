@@ -14,6 +14,7 @@ profiles:
     - ghostty
     - tmux
     - claude
+    - codex
     - aqua
     - git
     - vim
@@ -22,6 +23,7 @@ profiles:
     - nvim
     - tmux
     - claude
+    - codex
     - aqua
     - git
     - vim
@@ -30,6 +32,7 @@ profiles:
     - nvim
     - tmux
     - claude
+    - codex
     - aqua
     - git
     - vim
@@ -79,6 +82,13 @@ components:
       - type: json
         src: configs/claude/settings.json
         dest: ~/.claude/settings.json
+
+  codex:
+    setup: configs/codex/setup.sh
+    validate:
+      - type: toml-hooks
+        src: configs/codex/config.toml
+        dest: ~/.codex/config.toml
 
   aqua:
     setup: configs/aqua/setup.sh

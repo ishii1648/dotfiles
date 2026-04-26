@@ -9,8 +9,9 @@
 | Neovim 設定 | `configs/nvim/` | エディタ設定（lazy.nvim） |
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
-| Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
+| Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト（pane_state は `agent-pane-state.sh` で Claude/Codex 共通） |
 | Claude Code skills | `configs/claude/skills/` | dispatch（軽量版）・orchestrate（エージェントチェーン順次実行）など |
+| Codex CLI 設定 | `configs/codex/` | hooks ブロックを dotfiles で managed-keys 同期（ADR-063） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）

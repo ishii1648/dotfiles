@@ -1,0 +1,32 @@
+# Codex CLI hooks 設定
+# ADR-063: tmux pane_state を Claude Code と共通化し、tmux セッションリストで
+# codex のランタイム状態（running / permission / idle）バッジを表示する。
+#
+# このファイルは dotfiles 管理の最小設定。ユーザー固有の approval_policy /
+# sandbox_mode / [projects.*] 等は別途 ~/.codex/config.toml.local（または
+# 直接 ~/.codex/config.toml）に記載し、setup スクリプトが既存設定を保護する。
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "~/.claude/scripts/agent-pane-state.sh running codex"
+
+[[hooks.PostToolUse]]
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "~/.claude/scripts/agent-pane-state.sh running codex post"
+
+[[hooks.PermissionRequest]]
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = "~/.claude/scripts/agent-pane-state.sh permission codex"
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = "~/.claude/scripts/agent-pane-state.sh idle codex"
+
+[[hooks.SessionStart]]
+[[hooks.SessionStart.hooks]]
+type = "command"
+command = "~/.claude/scripts/agent-pane-state.sh idle codex"

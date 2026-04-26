@@ -78,6 +78,44 @@ validate_json() {
     fi
 }
 
+# validate: toml-hooks 型チェック (~/.codex/config.toml の [[hooks.*]] 用)
+validate_toml_hooks() {
+    local src="$1"
+    local dest="$2"
+    local display_name
+    display_name=$(basename "$dest")
+
+    if [[ ! -e "$dest" ]]; then
+        echo -e "  ${YELLOW}$display_name${NC}\tWARN: dest not found (validate skipped)"
+        warn_count=$((warn_count + 1))
+        return
+    fi
+
+    if ! command -v yq >/dev/null 2>&1; then
+        echo -e "  ${YELLOW}$display_name${NC}\tWARN: yq not found (validate skipped)"
+        warn_count=$((warn_count + 1))
+        return
+    fi
+
+    # hooks ブロックの全 command を抽出してスクリプト存在チェック
+    local hook_errors=0
+    while IFS= read -r cmd; do
+        [[ -z "$cmd" ]] && continue
+        local script_path
+        script_path=$(echo "$cmd" | awk '{print $1}' | sed "s|~|$HOME|g")
+        if { [[ "$script_path" == "$HOME/.claude/scripts/"* ]] || [[ "$script_path" == "$HOME/.claude/claudedog/"* ]]; } && [[ ! -f "$script_path" ]]; then
+            echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook script not found: $cmd"
+            hook_errors=$((hook_errors + 1))
+        fi
+    done < <(yq -p toml -o json '.hooks // {} | .. | select(has("command")) | .command' "$dest" 2>/dev/null | tr -d '"')
+
+    if [[ $hook_errors -eq 0 ]]; then
+        echo -e "  ${GREEN}$display_name${NC}\t✓ validate OK"
+    else
+        warn_count=$((warn_count + hook_errors))
+    fi
+}
+
 # validate ディスパッチ
 process_validate() {
     local type="$1"
@@ -90,6 +128,9 @@ process_validate() {
             ;;
         json)
             validate_json "$src" "$dest"
+            ;;
+        toml-hooks)
+            validate_toml_hooks "$src" "$dest"
             ;;
         *)
             echo -e "  ${YELLOW}Unknown validate type: $type${NC}"
