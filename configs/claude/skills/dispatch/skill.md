@@ -85,10 +85,13 @@ bash ~/.claude/skills/dispatch/dispatch.sh launch "<repo>" "<prompt>" --branch "
 **repo 省略時**: `<repo>` には `git rev-parse --show-toplevel` で取得したカレントリポジトリのルートパスを使用する。
 
 オプション引数:
+- `--launcher <claude|codex>`: 起動する CLI を切替（既定: `claude`）。`codex` 指定時は `codex -C $work_dir "$(/bin/cat $prompt_file)"` 形式で位置引数として prompt を渡す（codex の TUI は stdin redirect 不可、絶対パスで fish abbreviation/alias を回避）
 - `--session <name>`: 既存の tmux session に window を追加
 - `--window <name>`: window 名を指定
 - `--branch <name>`: worktree のブランチ名（**必須**）
 - `--no-worktree`: worktree を作成せず repo 直下で作業する（`--branch` 不要になる）
+- `--no-prompt`: prompt 投入をスキップして launcher のみ起動する（`--branch` と組み合わせて remote branch checkout フローで使う）
+- `--prompt-file <path>`: prompt を直接渡す代わりにファイル経由で渡す（読み込み後に削除される）
 
 ### Step 5: STATUS に応じて分岐
 

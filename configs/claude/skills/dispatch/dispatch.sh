@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# dispatch.sh - 別リポジトリで tmux window を作り claude を起動する軽量ツール
+# dispatch.sh - 別リポジトリで tmux window を作り launcher（claude / codex）を起動する軽量ツール
 #
 # サブコマンド:
-#   launch <repo> "<prompt>" [--session <name>] [--window <name>] [--branch <name>] [--no-worktree]
+#   launch <repo> "<prompt>" [--launcher claude|codex] [--session <name>] [--window <name>] [--branch <name>] [--no-worktree] [--no-prompt] [--prompt-file <path>]
 #   list-repos
 
 GHQ_ROOT="$(ghq root 2>/dev/null || echo "$HOME/ghq")"
@@ -114,11 +114,15 @@ cmd_list_repos() {
 
 # --- サブコマンド: launch ---
 cmd_launch() {
-  local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false no_prompt=false
+  local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false no_prompt=false launcher="claude"
 
   # 引数パース
   while [ $# -gt 0 ]; do
     case "$1" in
+      --launcher)
+        launcher="$2"
+        shift 2
+        ;;
       --session)
         session_name="$2"
         shift 2
@@ -170,6 +174,10 @@ cmd_launch() {
   if [ "$no_prompt" = false ] && [ -z "$prompt" ]; then
     die "prompt が指定されていません"
   fi
+  case "$launcher" in
+    claude|codex) ;;
+    *) die "--launcher は claude または codex のみ対応です: $launcher" ;;
+  esac
 
   # repo パス解決
   local repo_path
@@ -242,12 +250,23 @@ cmd_launch() {
   window_index=$(tmux display-message -t "=$session_name:=$window_name" -p '#{window_index}' 2>/dev/null || echo "unknown")
   pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
 
-  # pane のシェルが起動するのを待ってから claude を send-keys で起動
+  # pane のシェルが起動するのを待ってから launcher を send-keys で起動
   sleep 0.5
   if [ "$no_prompt" = true ]; then
-    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude" Enter
+    # launcher 名のみ送る（claude も codex も同様）
+    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; $launcher" Enter
   else
-    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
+    case "$launcher" in
+      claude)
+        tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
+        ;;
+      codex)
+        # codex の TUI は stdin redirect 不可のため、位置引数で prompt を渡す
+        # 改行を含む prompt は $(/bin/cat ...) でそのまま読ませる（shell quote で injection 対策）
+        # 絶対パス指定で fish の abbreviation/alias（例: cat → nyan）を確実に回避する
+        tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; codex -C '$work_dir' \"\$(/bin/cat '$prompt_file')\"" Enter
+        ;;
+    esac
   fi
 
   # 構造化出力

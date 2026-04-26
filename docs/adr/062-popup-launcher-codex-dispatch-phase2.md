@@ -1,7 +1,7 @@
 # ADR-062: popup ランチャーの codex モードを dispatch 化する（フェーズ2）
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 依存: ADR-061（codex モードのフェーズ1 仕様（worktree なし・prompt 投入なし）を上書き）
