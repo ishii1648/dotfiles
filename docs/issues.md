@@ -55,6 +55,7 @@
 | ✔ | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーのトップレベルが repos/PRs で利用頻度が偏る — claude/codex の二値モードに整理し、codex 起動を素早くできるようにする | [ADR-061](adr/061-popup-launcher-claude-codex-modes.md) |
 | - | ○ | tmux / fish / claude | popup ランチャーの codex モードが起動のみで dispatch 挙動を伴わない — claude モードと同等の worktree 作成 + 初期プロンプト投入を `--launcher` フラグで共通化する | [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md) |
+| - | ○ | tmux / fish / claude / codex | tmux セッションリストで codex 起動中ペインの状態が分からない — Claude 用の pane_state 機構を汎用化し codex hooks で同等に扱う | [ADR-063](adr/063-tmux-codex-pane-state.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -726,4 +727,38 @@
 - [ ] `configs/claude/skills/dispatch/skill.md` に `--launcher` 引数の説明が追記される
 - [ ] 既存 claude モードの dispatch 挙動（worktree 作成・prompt 投入・`:branch-name` プレフィックス・no-worktree 設定）に regression がない
 - [ ] ADR-061 のステータスが `部分廃止（ADR-062 で一部変更）` に更新され、codex モードのフェーズ1 仕様が ADR-062 で上書きされた旨が注記されている
+
+---
+
+### ADR-063: tmux セッションリストに Codex ランタイム状態を表示
+
+**コンポーネント**: tmux / fish / claude / codex | **ADR**: [ADR-063](adr/063-tmux-codex-pane-state.md)
+
+**受け入れ条件**:
+
+- [ ] `configs/claude/scripts/agent-pane-state.sh` が新規作成され、第3引数で agent 種別（`claude` | `codex`）を受け取る
+- [ ] `configs/claude/scripts/claude-pane-state.sh` が削除される（`git rm`）
+- [ ] 状態ディレクトリが `/tmp/agent-pane-state/` に変更され、状態ファイルに agent 種別が記録される
+- [ ] `configs/claude/settings.json` の hooks の command が `agent-pane-state.sh <state> claude [post]` に書き換えられる
+- [ ] ADR-041 の managed-keys sync により `~/.claude/settings.json` の hooks command が自動更新される
+- [ ] `configs/fish/functions/__tm_agent_state.fish` が新規作成され、agent 種別を含む形で状態を返す
+- [ ] `configs/fish/functions/__tm_claude_state.fish` が削除される（`git rm`）
+- [ ] `configs/fish/functions/__tm_candidates.fish` が `__tm_agent_state` を呼び出し、agent 種別ごとにバッジ色を分岐する（claude=purple、codex=cyan 等）
+- [ ] `configs/codex/config.toml` が新規作成され、`hooks.UserPromptSubmit` / `PostToolUse` / `PermissionRequest` / `Stop` / `SessionStart` で `agent-pane-state.sh <state> codex` が登録される
+- [ ] `configs/codex/setup.sh` が新規作成され、`~/.codex/config.toml` への配布が実装される（既存ユーザー設定のマージ方針が確定している）
+- [ ] `scripts/setup-manifest.yml` に codex コンポーネントが追加される
+- [ ] `scripts/lib/validate.sh` が `~/.codex/config.toml` の `[[hooks.*]]` のスクリプト存在チェックを行う
+- [ ] tmux ペインで codex 起動中に `prefix+s` の fzf 一覧で `[running]` / `[idle]` バッジが表示される
+- [ ] codex の権限要求発生時に `[perm]` バッジが表示される（`PermissionRequest` hook が発火することを実機で確認）
+- [ ] Claude セッションでも従来通り `[running]` / `[idle]` / `[perm]` / `[ask]` バッジが表示され regression がない
+- [ ] codex 終了後、ペインのフォアグラウンドが shell に戻ると状態ファイルが自動削除される（`__tm_agent_state.fish` の stale 検知ロジックでカバー）
+- [ ] running 状態の経過時間表示（`[running(Nm)]`）が codex でも動作する
+- [ ] ADR-007 のステータスが `部分廃止（ADR-063 で一部変更）` に更新され、スクリプト名・関数名・状態ディレクトリパスが ADR-063 で変更された旨が注記されている
+- [ ] `docs/reference.md` の pane_state 関連の記述がリネーム後の名称（`agent-pane-state.sh` / `__tm_agent_state.fish` / `/tmp/agent-pane-state/`）に更新されている
+- [ ] v0.125.0 で `[features] codex_hooks = true` の指定要否が実機で検証されている
+- [ ] `ishii1648/tmux-sidebar` の `internal/state/state.go` の `DefaultStateDir` が `/tmp/agent-pane-state` に変更され、`PaneState` に `Agent` フィールド（`claude` / `codex`）が追加され、状態ファイル 2 行目を agent 種別としてパースする
+- [ ] `ishii1648/tmux-sidebar` の `internal/ui/model.go` で agent 種別ごとにバッジ色／表記が分岐し、`__tm_candidates.fish` と同じ配色（claude=purple、codex=cyan 等）になる
+- [ ] `ishii1648/tmux-sidebar` の改修版が新 version でタグ付けされ、dotfiles `aqua.yaml` が当該 version に bump されている
+- [ ] 移行順序が守られている: tmux-sidebar リリース → `aqua.yaml` bump → dotfiles 本体改修 の順で merge され、状態ディレクトリ切替時に tmux-sidebar が「全 pane 状態不明」状態にならない（実機で確認）
+- [ ] tmux-sidebar 上で codex 起動中のペインが含まれるウィンドウに `[running]` / `[idle]` / `[perm]` バッジが表示される（claude 起動中のウィンドウと並べて色／文字で識別できる）
 
