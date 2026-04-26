@@ -54,6 +54,7 @@
 | - | ○ | fish / tmux | dispatch 後にフォーカスが自動遷移する — `dispatch_launcher.fish` の `run-shell -b` 内 `switch-client` が popup 閉幕後にワーカーセッションへ強制移動する | — |
 | ✔ | ○ | claude | orchestrate がフェーズ分離を構造的に強制できない — v2.0/v3.0 の簡素化で dispatch と実質同じになり、エージェントチェーンとハンドオフ文書が失われている | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーのトップレベルが repos/PRs で利用頻度が偏る — claude/codex の二値モードに整理し、codex 起動を素早くできるようにする | [ADR-061](adr/061-popup-launcher-claude-codex-modes.md) |
+| - | ○ | tmux / fish / claude | popup ランチャーの codex モードが起動のみで dispatch 挙動を伴わない — claude モードと同等の worktree 作成 + 初期プロンプト投入を `--launcher` フラグで共通化する | [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -703,4 +704,26 @@
 - [x] `codex` モードでは worktree 作成・prompt 投入・モード切替（dispatch 相当）が行われない
 - [x] 旧 `PRs` モード（PR worktree 一覧の表示と直接切替）が popup ランチャーから削除される
 - [x] ADR-056 のステータスが `部分廃止（ADR-061 で一部変更）` に更新され、Step 1 が ADR-061 で上書きされた旨が注記されている
+
+---
+
+### ADR-062: popup ランチャーの codex モードを dispatch 化する（フェーズ2）
+
+**コンポーネント**: tmux / fish / claude | **ADR**: [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md)
+
+**受け入れ条件**:
+
+- [ ] `dispatch.sh launch` に `--launcher claude|codex` フラグが実装され、未指定時の既定値が `claude` である
+- [ ] `dispatch.sh launch --launcher codex --branch feat/x --prompt-file <file> <repo>` で worktree 作成 + tmux session/window 作成 + `codex -C $work_dir "$(cat $prompt_file)"` の `send-keys` 投入が実行される
+- [ ] `dispatch.sh launch --launcher codex --no-prompt --branch feat/x <repo>` で worktree 作成 + `cd $work_dir; codex` のみが投入される（プロンプトなし）
+- [ ] `dispatch.sh launch --launcher codex --no-worktree <repo>` で worktree 作成をスキップし、リポジトリ root で codex が起動する
+- [ ] `~/.config/dispatch/no-worktree-repos` の設定が codex モードでも反映される（claude モードと同じ判定ロジック）
+- [ ] popup ランチャーで `codex` モードを選び repo を選択 → Enter すると Step 2（prompt 入力）UI が表示される
+- [ ] codex モードの Step 2 では `tab` キーが無効化され、`dispatch / orchestrate` 切替トグルが表示されない
+- [ ] codex モードの Step 2 で `:branch-name` プレフィックスを入力すると、既存 remote branch の checkout フロー（`--no-prompt` + worktree 作成）で codex が起動する
+- [ ] codex モードで session 命名が claude モードと同じ `<repo>@<wt-name>` 形式になる
+- [ ] `configs/fish/functions/dispatch_launcher.fish` から旧 codex モード分岐ブロック（直接 session 作成 + `codex` 起動の簡易フロー）が削除される
+- [ ] `configs/claude/skills/dispatch/skill.md` に `--launcher` 引数の説明が追記される
+- [ ] 既存 claude モードの dispatch 挙動（worktree 作成・prompt 投入・`:branch-name` プレフィックス・no-worktree 設定）に regression がない
+- [ ] ADR-061 のステータスが `部分廃止（ADR-062 で一部変更）` に更新され、codex モードのフェーズ1 仕様が ADR-062 で上書きされた旨が注記されている
 

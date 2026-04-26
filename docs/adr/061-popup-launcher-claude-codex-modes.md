@@ -1,12 +1,16 @@
 # ADR-061: popup ランチャーのトップレベルモードを claude / codex に再構成する
 
 ## ステータス
-採用済み
+部分廃止（ADR-062 で一部変更）
+
+- 変更された決定: codex モードの「worktree 作成なし、prompt 投入なし」というフェーズ1 仕様、および「codex モードの初期実装（フェーズ1）」セクション全体は ADR-062 で上書きされた（`dispatch.sh` の `--launcher codex` 経由で worktree 作成 + prompt 投入を行うフェーズ2 実装に移行）
+- 引き続き有効な決定: トップレベルを claude / codex の 2 値モードとする方針、PRs モード廃止、候補ソース統一（`ghq list`）、`tab` でモード切替
 
 ## 関連 ADR
 - 依存: ADR-056（dispatch/orchestrate popup ランチャー — 本 ADR が Step 1 のモード設計を上書き）
 - 関連: ADR-054（dispatch skill — claude モードの実体）
 - 関連: ADR-059（dispatch/orchestrate 分離 — claude モードの Step 2 で利用）
+- 関連: ADR-062（codex モードの dispatch 化 — フェーズ2 仕様）
 
 ## コンテキスト
 
