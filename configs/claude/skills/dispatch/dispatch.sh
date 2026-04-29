@@ -307,6 +307,23 @@ cmd_launch() {
 
   # pane のシェルが起動するのを待ってから launcher を send-keys で起動
   sleep 0.5
+
+  # codex は起動時に OSC 11 で背景色 query を送るが、tmux 3.4+ は attached client
+  # にしか query を passthrough しない。dispatch は detached session で起動する
+  # ため、attach 前に codex を起こすと入力エリアの背景色が描画されないモードで
+  # 初期化されてしまう。attached client が来るまで待ってから send-keys する。
+  # 関連: ADR-065, openai/codex#4744
+  if [ "$launcher" = codex ]; then
+    local wait_iter=0
+    while [ "$(tmux list-clients -t "=$session_name" 2>/dev/null | wc -l | tr -d ' ')" -eq 0 ]; do
+      if [ "$wait_iter" -ge 600 ]; then
+        break
+      fi
+      sleep 0.5
+      wait_iter=$((wait_iter + 1))
+    done
+  fi
+
   if [ "$no_prompt" = true ]; then
     # launcher 名のみ送る（claude も codex も同様）
     tmux send-keys -t "$target_pane_id" "cd '$work_dir'; $launcher" Enter

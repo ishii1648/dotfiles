@@ -57,6 +57,7 @@
 | ✔ | ○ | tmux / fish / claude | popup ランチャーの codex モードが起動のみで dispatch 挙動を伴わない — claude モードと同等の worktree 作成 + 初期プロンプト投入を `--launcher` フラグで共通化する | [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md) |
 | - | ○ | tmux / fish / claude / codex | tmux セッションリストで codex 起動中ペインの状態が分からない — Claude 用の pane_state 機構を汎用化し codex hooks で同等に扱う | [ADR-063](adr/063-tmux-codex-pane-state.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | [ADR-064](adr/064-dispatch-no-worktree-default-branch.md) |
+| ✔ | ○ | tmux / fish / claude / codex | popup 経由の codex 起動で入力エリアの背景色が描画されない — codex は OSC 11 で背景色 query するが detached session には tmux が応答を返さないため、attached client が来るまで起動を遅延させる | [ADR-065](adr/065-dispatch-codex-wait-for-attached-client.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -773,9 +774,24 @@
 
 - [x] `~/.config/dispatch/no-worktree-repos` に登録されたリポジトリを popup ランチャー経由で起動すると、`work_dir` がメインworktree（`git worktree list --porcelain | head -n1` の結果）になる
 - [x] そのとき作業ツリーが clean なら、デフォルトブランチ（`origin/HEAD` 解決、フォールバック `main` → `master`）に checkout される
-- [x] 作業ツリーに変更がある場合はブランチ切替をスキップし、現在のブランチで起動する（警告を `tmux display-message` に表示）
+- [x] 作業ツリーに変更がある場合はブランチ切替をスキップし、現在のブランチで起動する(警告を `tmux display-message` に表示)
 - [x] 既に HEAD がデフォルトブランチに乗っている場合は checkout を実行せず冪等に動作する
 - [x] `dispatch.sh launch --no-worktree` を直接呼んだ場合でも、リポジトリが `no-worktree-repos` に含まれていれば同じロジックで起動する
 - [x] `no-worktree-repos` に含まれないリポジトリで `--no-worktree` を直接渡した場合の挙動には regression がない（ブランチ切替が発生しない）
 - [x] worktree モード（`no-worktree-repos` 対象外）の挙動には regression がない
+
+---
+
+### ADR-065: dispatch 経由の codex 起動を attached client が来るまで遅延させる
+
+**コンポーネント**: tmux / fish / claude / codex | **ADR**: [ADR-065](adr/065-dispatch-codex-wait-for-attached-client.md)
+
+**受け入れ条件**:
+
+- [x] `dispatch.sh launch --launcher codex` で起動した codex が、target session に attached client が出現するまで `send-keys` を待機する
+- [x] attached client 待機は `tmux list-clients -t "=$session_name"` の行数を 0.5 秒間隔でポーリングし、1 以上になった時点で待機を抜ける
+- [x] 待機の上限は 300 秒で、タイムアウト後も `send-keys` は実行される（dispatch がサイレントハングしない）
+- [x] `--launcher claude` の場合は待機ロジックが適用されず、従来通り `sleep 0.5` 後即 send-keys される（既存 claude フローへの regression なし）
+- [x] popup ランチャー経由で codex を起動 → 新 session に switch すると、入力エリアに背景色 SGR (`[48;2;51;53;67m`) が描画された状態で表示される
+- [x] `--no-prompt` オプション付きの codex 起動でも待機ロジックが同様に適用される
 
