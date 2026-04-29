@@ -64,10 +64,23 @@ create_worktree() {
   git -C "$repo_path" fetch origin 2>/dev/null || true
 
   # デフォルトブランチを特定
+  # 1. origin/HEAD の symbolic-ref があればそれを使う
+  # 2. 無ければ remote set-head --auto で自動検出を試みる
+  # 3. それでも取れなければ origin/main → origin/master の順で probe
   local default_branch
   default_branch=$(git -C "$repo_path" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
   if [ -z "$default_branch" ]; then
-    default_branch="main"
+    git -C "$repo_path" remote set-head origin --auto >/dev/null 2>&1 || true
+    default_branch=$(git -C "$repo_path" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+  fi
+  if [ -z "$default_branch" ]; then
+    if git -C "$repo_path" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
+      default_branch="main"
+    elif git -C "$repo_path" rev-parse --verify --quiet origin/master >/dev/null 2>&1; then
+      default_branch="master"
+    else
+      die "デフォルトブランチを特定できません（origin/HEAD 未設定 かつ origin/main / origin/master が存在しない）"
+    fi
   fi
 
   # リモートブランチの存在確認
