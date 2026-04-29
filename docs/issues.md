@@ -56,7 +56,7 @@
 | ✔ | ○ | tmux / fish / claude | popup ランチャーのトップレベルが repos/PRs で利用頻度が偏る — claude/codex の二値モードに整理し、codex 起動を素早くできるようにする | [ADR-061](adr/061-popup-launcher-claude-codex-modes.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーの codex モードが起動のみで dispatch 挙動を伴わない — claude モードと同等の worktree 作成 + 初期プロンプト投入を `--launcher` フラグで共通化する | [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md) |
 | - | ○ | tmux / fish / claude / codex | tmux セッションリストで codex 起動中ペインの状態が分からない — Claude 用の pane_state 機構を汎用化し codex hooks で同等に扱う | [ADR-063](adr/063-tmux-codex-pane-state.md) |
-| - | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | — |
+| ✔ | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | [ADR-064](adr/064-dispatch-no-worktree-default-branch.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -765,17 +765,17 @@
 
 ---
 
-### no-worktree-repos の popup 起動はメインworktree+デフォルトブランチに揃える
+### ADR-064: no-worktree-repos の popup 起動はメインworktree+デフォルトブランチに揃える
 
-**コンポーネント**: tmux / fish / claude
+**コンポーネント**: tmux / fish / claude | **ADR**: [ADR-064](adr/064-dispatch-no-worktree-default-branch.md)
 
 **受け入れ条件**:
 
-- [ ] `~/.config/dispatch/no-worktree-repos` に登録されたリポジトリを popup ランチャー経由で起動すると、`work_dir` がメインworktree（`git worktree list --porcelain | head -n1` の結果）になる
-- [ ] そのとき作業ツリーが clean なら、デフォルトブランチ（`origin/HEAD` 解決、フォールバック `main` → `master`）に checkout される
-- [ ] 作業ツリーに変更がある場合はブランチ切替をスキップし、現在のブランチで起動する（警告を `tmux display-message` に表示）
-- [ ] 既に HEAD がデフォルトブランチに乗っている場合は checkout を実行せず冪等に動作する
-- [ ] `dispatch.sh launch --no-worktree` を直接呼んだ場合でも、リポジトリが `no-worktree-repos` に含まれていれば同じロジックで起動する
-- [ ] `no-worktree-repos` に含まれないリポジトリで `--no-worktree` を直接渡した場合の挙動には regression がない（ブランチ切替が発生しない）
-- [ ] worktree モード（`no-worktree-repos` 対象外）の挙動には regression がない
+- [x] `~/.config/dispatch/no-worktree-repos` に登録されたリポジトリを popup ランチャー経由で起動すると、`work_dir` がメインworktree（`git worktree list --porcelain | head -n1` の結果）になる
+- [x] そのとき作業ツリーが clean なら、デフォルトブランチ（`origin/HEAD` 解決、フォールバック `main` → `master`）に checkout される
+- [x] 作業ツリーに変更がある場合はブランチ切替をスキップし、現在のブランチで起動する（警告を `tmux display-message` に表示）
+- [x] 既に HEAD がデフォルトブランチに乗っている場合は checkout を実行せず冪等に動作する
+- [x] `dispatch.sh launch --no-worktree` を直接呼んだ場合でも、リポジトリが `no-worktree-repos` に含まれていれば同じロジックで起動する
+- [x] `no-worktree-repos` に含まれないリポジトリで `--no-worktree` を直接渡した場合の挙動には regression がない（ブランチ切替が発生しない）
+- [x] worktree モード（`no-worktree-repos` 対象外）の挙動には regression がない
 
