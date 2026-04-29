@@ -59,6 +59,7 @@
 | ✔ | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | [ADR-064](adr/064-dispatch-no-worktree-default-branch.md) |
 | ✔ | ○ | tmux / fish / claude / codex | popup 経由の codex 起動で入力エリアの背景色が描画されない — codex は OSC 11 で背景色 query するが detached session には tmux が応答を返さないため、attached client が来るまで起動を遅延させる | [ADR-065](adr/065-dispatch-codex-wait-for-attached-client.md) |
 | ✔ | ○ | claude / codex | dotfiles 管理 skill が Codex CLI から利用できない — Claude 用に作った dispatch/orchestrate/session-log を Codex セッションでも使いたい | [ADR-066](adr/066-codex-skill-symlink-distribution.md) |
+| ✔ | ○ | claude / codex | dotfiles 外の skill（個人/プラグイン）を Codex CLI に伝播する手段がない — manifest 化できない skill を任意のタイミングで同期する skill が必要 | [ADR-067](adr/067-codex-sync-skill.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -812,4 +813,23 @@
 - [x] `configs/claude/skills/<name>/skill.md` が `SKILL.md`（大文字）にリネームされ、git index にも rename として記録されている（`core.ignorecase=true` 環境での二段階 `git mv` で実施）
 - [x] codex CLI が `dispatch` / `orchestrate` / `session-log` を認識する（`codex debug prompt-input` の `<skills_instructions>` に 3 件全てが追加されることを確認）
 - [x] `linux` profile では codex コンポーネント自体が対象外のままで、symlink エントリ追加による regression がない
+
+---
+
+### ADR-067: Claude Code skill を Codex CLI へ動的に同期する codex-sync skill を追加する
+
+**コンポーネント**: claude / codex | **ADR**: [ADR-067](adr/067-codex-sync-skill.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/skills/codex-sync/SKILL.md` が存在し、name / description / version / allowed-tools / argument-hint の frontmatter を持つ
+- [x] `configs/claude/skills/codex-sync/codex-sync.sh` が実行可能ビット付きで存在する
+- [x] `scripts/setup-manifest.yml` の `claude.symlinks` に `~/.claude/skills/codex-sync` のエントリが追加されている
+- [x] `bash scripts/setup.sh` 実行後、`~/.claude/skills/codex-sync` が `configs/claude/skills/codex-sync` への symlink として作成される
+- [x] `~/.claude/skills/codex-sync/codex-sync.sh --dry-run` で各 skill のステータス（CREATED / OK / SKIP / WARN / CONFLICT）と Summary 行が出力される
+- [x] `~/.claude/skills/codex-sync/codex-sync.sh` の通常実行で `~/.codex/skills/<name>` への symlink が冪等に作成される（再実行で `OK` のみ）
+- [x] broken symlink（`~/.claude/skills/spawn` 等）が SKIP として扱われ、エラーにならない
+- [x] `SKILL.md`（大文字）が無い skill は WARN を出して続行する（自動リネームしない）
+- [x] 既存 symlink が別の先を指す場合 / 通常ファイルが存在する場合は CONFLICT を出して exit 2 で終了する
+- [x] codex CLI が `codex-sync` 自身を skill として認識する（`codex debug prompt-input` の `<skills_instructions>` に出現することを確認）
 
