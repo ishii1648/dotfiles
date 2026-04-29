@@ -58,6 +58,7 @@
 | - | ○ | tmux / fish / claude / codex | tmux セッションリストで codex 起動中ペインの状態が分からない — Claude 用の pane_state 機構を汎用化し codex hooks で同等に扱う | [ADR-063](adr/063-tmux-codex-pane-state.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | [ADR-064](adr/064-dispatch-no-worktree-default-branch.md) |
 | ✔ | ○ | tmux / fish / claude / codex | popup 経由の codex 起動で入力エリアの背景色が描画されない — codex は OSC 11 で背景色 query するが detached session には tmux が応答を返さないため、attached client が来るまで起動を遅延させる | [ADR-065](adr/065-dispatch-codex-wait-for-attached-client.md) |
+| ✔ | ○ | claude / codex | dotfiles 管理 skill が Codex CLI から利用できない — Claude 用に作った dispatch/orchestrate/session-log を Codex セッションでも使いたい | [ADR-066](adr/066-codex-skill-symlink-distribution.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -794,4 +795,21 @@
 - [x] `--launcher claude` の場合は待機ロジックが適用されず、従来通り `sleep 0.5` 後即 send-keys される（既存 claude フローへの regression なし）
 - [x] popup ランチャー経由で codex を起動 → 新 session に switch すると、入力エリアに背景色 SGR (`[48;2;51;53;67m`) が描画された状態で表示される
 - [x] `--no-prompt` オプション付きの codex 起動でも待機ロジックが同様に適用される
+
+---
+
+### ADR-066: dotfiles 管理 skill を Codex CLI へ symlink 配布する
+
+**コンポーネント**: claude / codex | **ADR**: [ADR-066](adr/066-codex-skill-symlink-distribution.md)
+
+**受け入れ条件**:
+
+- [x] `scripts/setup-manifest.yml` の `components.codex` に `symlinks` セクションが追加され、`dispatch` / `orchestrate` / `session-log` の 3 エントリが定義されている
+- [x] `bash scripts/setup.sh` 実行後に `~/.codex/skills/dispatch` が `configs/claude/skills/dispatch` への symlink として作成されている
+- [x] `bash scripts/setup.sh` 実行後に `~/.codex/skills/orchestrate` が `configs/claude/skills/orchestrate` への symlink として作成されている
+- [x] `bash scripts/setup.sh` 実行後に `~/.codex/skills/session-log` が `configs/claude/skills/session-log` への symlink として作成されている
+- [x] `bash scripts/setup.sh --dry-run` で codex の symlink チェックが実行され、target 不在時に WARN が出力される
+- [x] `configs/claude/skills/<name>/skill.md` が `SKILL.md`（大文字）にリネームされ、git index にも rename として記録されている（`core.ignorecase=true` 環境での二段階 `git mv` で実施）
+- [x] codex CLI が `dispatch` / `orchestrate` / `session-log` を認識する（`codex debug prompt-input` の `<skills_instructions>` に 3 件全てが追加されることを確認）
+- [x] `linux` profile では codex コンポーネント自体が対象外のままで、symlink エントリ追加による regression がない
 
