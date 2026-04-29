@@ -235,36 +235,44 @@ cmd_launch() {
       || die "tmux session の作成に失敗しました: $session_name"
   else
     # session が存在する → window 追加
-    tmux new-window -t "=$session_name" -n "$window_name" -c "$work_dir" \
+    # trailing colon を付けないと tmux が target を window index と解釈して
+    # base-index 衝突（"index 1 in use"）で失敗するため "=$session_name:" を使う
+    tmux new-window -t "=$session_name:" -n "$window_name" -c "$work_dir" \
       || die "tmux window の作成に失敗しました"
   fi
+
+  # 作成直後の window の active pane id を取得し、以降の操作はすべてこれを target にする。
+  # window target だと sidebar 等の hook で auto-split された pane に send-keys が
+  # 飛ぶ可能性があるため、pane id で固定する。
+  local target_pane_id
+  target_pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}')
 
   # claude がターミナルタイトルを変更して window 名を上書きするのを防止
   tmux set-option -t "=$session_name:=$window_name" allow-rename off
 
   # pane タイトル設定
-  tmux select-pane -t "=$session_name:=$window_name" -T "$window_name"
+  tmux select-pane -t "$target_pane_id" -T "$window_name"
 
-  # window index と pane id を取得
-  local window_index pane_id
-  window_index=$(tmux display-message -t "=$session_name:=$window_name" -p '#{window_index}' 2>/dev/null || echo "unknown")
-  pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}' 2>/dev/null || echo "unknown")
+  # window index を取得
+  local window_index
+  window_index=$(tmux display-message -t "$target_pane_id" -p '#{window_index}' 2>/dev/null || echo "unknown")
+  local pane_id="$target_pane_id"
 
   # pane のシェルが起動するのを待ってから launcher を send-keys で起動
   sleep 0.5
   if [ "$no_prompt" = true ]; then
     # launcher 名のみ送る（claude も codex も同様）
-    tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; $launcher" Enter
+    tmux send-keys -t "$target_pane_id" "cd '$work_dir'; $launcher" Enter
   else
     case "$launcher" in
       claude)
-        tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; claude < '$prompt_file'" Enter
+        tmux send-keys -t "$target_pane_id" "cd '$work_dir'; claude < '$prompt_file'" Enter
         ;;
       codex)
         # codex の TUI は stdin redirect 不可のため、位置引数で prompt を渡す
         # 改行を含む prompt は $(/bin/cat ...) でそのまま読ませる（shell quote で injection 対策）
         # 絶対パス指定で fish の abbreviation/alias（例: cat → nyan）を確実に回避する
-        tmux send-keys -t "=$session_name:=$window_name" "cd '$work_dir'; codex -C '$work_dir' \"\$(/bin/cat '$prompt_file')\"" Enter
+        tmux send-keys -t "$target_pane_id" "cd '$work_dir'; codex -C '$work_dir' \"\$(/bin/cat '$prompt_file')\"" Enter
         ;;
     esac
   fi
