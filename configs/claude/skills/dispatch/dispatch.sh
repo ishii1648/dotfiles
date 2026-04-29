@@ -107,6 +107,46 @@ create_worktree() {
   echo "$worktree_path"
 }
 
+# メインworktree のパスを返し、作業ツリーが clean ならデフォルトブランチに checkout する。
+# no-worktree-repos 設定によるトリガー時のみ呼ばれる（明示 --no-worktree のみの場合は呼ばれない）。
+checkout_default_branch() {
+  local repo_path="$1"
+
+  local main_worktree
+  main_worktree=$(git -C "$repo_path" worktree list --porcelain 2>/dev/null | head -n1 | sed 's/^worktree //')
+  if [ -z "$main_worktree" ] || [ ! -d "$main_worktree" ]; then
+    echo "$repo_path"
+    return
+  fi
+
+  # デフォルトブランチを特定（origin/HEAD → main → master の順）
+  local default_branch
+  default_branch=$(git -C "$main_worktree" symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|refs/remotes/origin/||')
+  if [ -z "$default_branch" ]; then
+    if git -C "$main_worktree" show-ref --verify --quiet refs/heads/main 2>/dev/null; then
+      default_branch="main"
+    elif git -C "$main_worktree" show-ref --verify --quiet refs/heads/master 2>/dev/null; then
+      default_branch="master"
+    fi
+  fi
+
+  if [ -n "$default_branch" ]; then
+    local current_branch
+    current_branch=$(git -C "$main_worktree" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [ "$current_branch" != "$default_branch" ]; then
+      if git -C "$main_worktree" diff --quiet 2>/dev/null && git -C "$main_worktree" diff --cached --quiet 2>/dev/null; then
+        if ! git -C "$main_worktree" checkout "$default_branch" >/dev/null 2>&1; then
+          tmux display-message -d 5000 "dispatch: warn: failed to checkout $default_branch" 2>/dev/null || true
+        fi
+      else
+        tmux display-message -d 5000 "dispatch: dirty working tree, staying on $current_branch" 2>/dev/null || true
+      fi
+    fi
+  fi
+
+  echo "$main_worktree"
+}
+
 # --- サブコマンド: list-repos ---
 cmd_list_repos() {
   ghq list 2>/dev/null || die "ghq が利用できません"
@@ -186,11 +226,15 @@ cmd_launch() {
   # no-worktree 設定ファイルによる自動判定
   # ~/.config/dispatch/no-worktree-repos に "owner/repo" 形式で列挙されたリポジトリは worktree を作成しない
   local no_worktree_config="$HOME/.config/dispatch/no-worktree-repos"
-  if [ "$no_worktree" = false ] && [ -f "$no_worktree_config" ]; then
+  local config_match=false
+  if [ -f "$no_worktree_config" ]; then
     local repo_short
     repo_short=$(echo "$repo_path" | sed "s|$GHQ_ROOT/||")
     if grep -qxF "$repo_short" "$no_worktree_config" 2>/dev/null; then
-      no_worktree=true
+      config_match=true
+      if [ "$no_worktree" = false ]; then
+        no_worktree=true
+      fi
     fi
   fi
 
@@ -207,6 +251,9 @@ cmd_launch() {
     fi
     notify "creating worktree: $branch_name"
     work_dir=$(create_worktree "$repo_path" "$branch_name")
+  elif [ "$config_match" = true ]; then
+    # no-worktree-repos 設定によるトリガー: メインworktreeに移動しデフォルトブランチで開く
+    work_dir=$(checkout_default_branch "$repo_path")
   fi
 
   # prompt を一時ファイルに書き出し（worktree 側に配置）

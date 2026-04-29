@@ -56,6 +56,7 @@
 | ✔ | ○ | tmux / fish / claude | popup ランチャーのトップレベルが repos/PRs で利用頻度が偏る — claude/codex の二値モードに整理し、codex 起動を素早くできるようにする | [ADR-061](adr/061-popup-launcher-claude-codex-modes.md) |
 | ✔ | ○ | tmux / fish / claude | popup ランチャーの codex モードが起動のみで dispatch 挙動を伴わない — claude モードと同等の worktree 作成 + 初期プロンプト投入を `--launcher` フラグで共通化する | [ADR-062](adr/062-popup-launcher-codex-dispatch-phase2.md) |
 | - | ○ | tmux / fish / claude / codex | tmux セッションリストで codex 起動中ペインの状態が分からない — Claude 用の pane_state 機構を汎用化し codex hooks で同等に扱う | [ADR-063](adr/063-tmux-codex-pane-state.md) |
+| - | ○ | tmux / fish / claude | popup ランチャーで `no-worktree-repos` 対象を開くと直前のブランチで起動する — メインworktreeのデフォルトブランチに揃えたい | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -761,4 +762,20 @@
 - [ ] `ishii1648/tmux-sidebar` の改修版が新 version でタグ付けされ、dotfiles `aqua.yaml` が当該 version に bump されている
 - [ ] 移行順序が守られている: tmux-sidebar リリース → `aqua.yaml` bump → dotfiles 本体改修 の順で merge され、状態ディレクトリ切替時に tmux-sidebar が「全 pane 状態不明」状態にならない（実機で確認）
 - [ ] tmux-sidebar 上で codex 起動中のペインが含まれるウィンドウに `[running]` / `[idle]` / `[perm]` バッジが表示される（claude 起動中のウィンドウと並べて色／文字で識別できる）
+
+---
+
+### no-worktree-repos の popup 起動はメインworktree+デフォルトブランチに揃える
+
+**コンポーネント**: tmux / fish / claude
+
+**受け入れ条件**:
+
+- [ ] `~/.config/dispatch/no-worktree-repos` に登録されたリポジトリを popup ランチャー経由で起動すると、`work_dir` がメインworktree（`git worktree list --porcelain | head -n1` の結果）になる
+- [ ] そのとき作業ツリーが clean なら、デフォルトブランチ（`origin/HEAD` 解決、フォールバック `main` → `master`）に checkout される
+- [ ] 作業ツリーに変更がある場合はブランチ切替をスキップし、現在のブランチで起動する（警告を `tmux display-message` に表示）
+- [ ] 既に HEAD がデフォルトブランチに乗っている場合は checkout を実行せず冪等に動作する
+- [ ] `dispatch.sh launch --no-worktree` を直接呼んだ場合でも、リポジトリが `no-worktree-repos` に含まれていれば同じロジックで起動する
+- [ ] `no-worktree-repos` に含まれないリポジトリで `--no-worktree` を直接渡した場合の挙動には regression がない（ブランチ切替が発生しない）
+- [ ] worktree モード（`no-worktree-repos` 対象外）の挙動には regression がない
 
