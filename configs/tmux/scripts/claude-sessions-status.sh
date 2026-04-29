@@ -3,7 +3,7 @@
 # 使い方: claude-sessions-status.sh [session-name]
 #   session-name: 特定セッションのみ表示（省略時は全 orch-* セッション）
 
-STATE_DIR="/tmp/claude-pane-state"
+STATE_DIR="/tmp/agent-pane-state"
 target_session="${1:-}"
 
 purple=$(printf '\e[35m')

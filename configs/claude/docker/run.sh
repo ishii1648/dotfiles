@@ -14,7 +14,7 @@ CLAUDE_JSON_COPY="$HOME/.claude.json.sandbox-copy"
 cp "$HOME/.claude.json" "$CLAUDE_JSON_COPY"
 
 # Ensure pane state directory exists on host so the bind mount works
-mkdir -p /tmp/claude-pane-state
+mkdir -p /tmp/agent-pane-state
 
 # Compose mount arguments
 MOUNTS=(
@@ -25,7 +25,7 @@ MOUNTS=(
     -v "$HOME/.claude/scripts:/home/claude/.claude/scripts:ro"
     -v "$HOME/.ssh:/home/claude/.ssh-host:ro"
     -v "$CLAUDE_JSON_COPY:/home/claude/.claude.json"
-    -v "/tmp/claude-pane-state:/tmp/claude-pane-state"
+    -v "/tmp/agent-pane-state:/tmp/agent-pane-state"
 )
 
 # Optional mounts (only if exist on host)

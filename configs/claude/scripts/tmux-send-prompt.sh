@@ -15,7 +15,7 @@
 
 set -uo pipefail
 
-STATE_DIR="/tmp/claude-pane-state"
+STATE_DIR="/tmp/agent-pane-state"
 
 # ---------- ユーティリティ ----------
 

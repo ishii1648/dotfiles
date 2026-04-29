@@ -33,8 +33,8 @@ if [ -n "$CURRENT_WINDOW" ]; then
 fi
 PANE_NUM="${PANE_ID#%}"
 
-mkdir -p /tmp/claude-pane-state
-echo "$WINDOW" > "/tmp/claude-pane-state/pane_${PANE_NUM}_role"
+mkdir -p /tmp/agent-pane-state
+echo "$WINDOW" > "/tmp/agent-pane-state/pane_${PANE_NUM}_role"
 
 # Write pending context for SessionStart hook (Mode B)
 if [[ -n "$WORKFLOW_SESSION_ID" && -n "$REPO_ROOT" ]]; then

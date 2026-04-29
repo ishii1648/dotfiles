@@ -399,8 +399,8 @@ launch_agent() {
       tmux select-pane -t "$pane_id"
       local pane_num="${pane_id#%}"
 
-      mkdir -p /tmp/claude-pane-state
-      echo "$agent" > "/tmp/claude-pane-state/pane_${pane_num}_role"
+      mkdir -p /tmp/agent-pane-state
+      echo "$agent" > "/tmp/agent-pane-state/pane_${pane_num}_role"
 
       mkdir -p "$HOME/.workflow-sessions/pending"
       jq -n \
@@ -577,8 +577,8 @@ cmd_launch() {
   local pane_num="${pane_id#%}"
 
   if [ -n "$pane_num" ]; then
-    mkdir -p /tmp/claude-pane-state
-    echo "$first_agent" > "/tmp/claude-pane-state/pane_${pane_num}_role"
+    mkdir -p /tmp/agent-pane-state
+    echo "$first_agent" > "/tmp/agent-pane-state/pane_${pane_num}_role"
 
     mkdir -p "$HOME/.workflow-sessions/pending"
     jq -n \

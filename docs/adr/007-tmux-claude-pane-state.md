@@ -2,11 +2,19 @@
 
 ## ステータス
 
-採用済み
+部分廃止（ADR-063 で一部変更）
+
+> **ADR-063 Phase A での変更点**:
+> - スクリプト名 `claude-pane-state.sh` → `agent-pane-state.sh`
+> - 関数名 `__tm_claude_state.fish` → `__tm_agent_state.fish`
+> - 状態ディレクトリ `/tmp/claude-pane-state/` → `/tmp/agent-pane-state/`
+> - 状態ファイル形式: 1行目=state、2行目=agent (`claude` | `codex`) の 2 行形式に変更
+> 以下の本文は ADR-063 適用前の記述。最新の構成は ADR-063 を参照。
 
 ## 関連 ADR
 
 - [ADR-003](./003-tmux-notification-click.md) — 通知の仕組みを状態バッジに発展
+- [ADR-063](./063-tmux-codex-pane-state.md) — Codex ランタイム状態への対応で本 ADR の一部仕様を変更
 
 ## コンテキスト
 

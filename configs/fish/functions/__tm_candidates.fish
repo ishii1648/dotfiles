@@ -49,7 +49,7 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
                 set -l claude_badge ''
-                set -l cs_raw (__tm_claude_state $name $win_idx)
+                set -l cs_raw (__tm_agent_state $name $win_idx)
                 if test -n "$cs_raw"
                     set -l cs_parts (string split ' ' $cs_raw)
                     set -l cs $cs_parts[1]
@@ -92,7 +92,7 @@ function __tm_candidates --description 'tm用のセッション候補一覧を�
                 set -l win_idx (string replace -r ':.*' '' $win)
                 set -l win_name (string replace -r '^[^:]+:' '' $win)
                 set -l claude_badge ''
-                set -l cs_raw (__tm_claude_state $s $win_idx)
+                set -l cs_raw (__tm_agent_state $s $win_idx)
                 if test -n "$cs_raw"
                     set -l cs_parts (string split ' ' $cs_raw)
                     set -l cs $cs_parts[1]
