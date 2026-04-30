@@ -50,20 +50,32 @@ create_worktree() {
     die "メインworktreeのパスを取得できません: $repo_path"
   fi
 
+  # branch がいずれかの worktree でチェックアウト済みなら、そのパスを返す（resume）
+  local existing_path
+  existing_path=$(git -C "$repo_path" worktree list --porcelain \
+    | awk -v b="$branch_name" '/^worktree /{sub(/^worktree /,""); p=$0} /^branch refs\/heads\//{sub(/^branch /,""); if($0=="refs/heads/"b) print p}')
+  if [ -n "$existing_path" ] && [ -d "$existing_path" ]; then
+    echo "$existing_path"
+    return
+  fi
+
   local worktree_dir_name
   worktree_dir_name=$(echo "$branch_name" | tr '/' '-')
   local worktree_path="$main_worktree@$worktree_dir_name"
 
-  # 既存 worktree があれば、checked out branch が一致する場合のみ再利用する
-  # 一致しない場合は黙って乗っ取らず、明示的に die する
+  # 希望 path が別 branch の worktree で使用中の場合、suffix を付けて新規作成する
+  # （手動で別ブランチに切り替えた残骸などを乗っ取らないため）
   if [ -d "$worktree_path" ]; then
-    local existing_branch
-    existing_branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
-    if [ "$existing_branch" = "$branch_name" ]; then
-      echo "$worktree_path"
-      return
-    fi
-    die "worktree path '$worktree_path' は既に存在しますが branch が異なります (current=$existing_branch, requested=$branch_name)。:既存ブランチ名 で checkout モードを使うか、別の prompt で起動してください。"
+    local base="$worktree_path"
+    worktree_path="${base}-$(date +%H%M%S)"
+    local i=2
+    while [ -d "$worktree_path" ]; do
+      worktree_path="${base}-$(date +%H%M%S)-${i}"
+      i=$((i + 1))
+      if [ "$i" -gt 100 ]; then
+        die "worktree path の衝突を解決できません: $base"
+      fi
+    done
   fi
 
   # リモートの最新を取得
@@ -76,32 +88,25 @@ create_worktree() {
     default_branch="main"
   fi
 
-  # リモートブランチの存在確認
+  # branch の存在確認: ローカルにあるか / リモートにあるか
+  local local_branch_exists=no
+  if git -C "$repo_path" show-ref --verify --quiet "refs/heads/$branch_name" 2>/dev/null; then
+    local_branch_exists=yes
+  fi
   local remote_branch_exists
   remote_branch_exists=$(git -C "$repo_path" ls-remote --heads origin "$branch_name" 2>/dev/null || true)
 
-  local wt_add_ok=true
-  if [ -n "$remote_branch_exists" ]; then
-    git -C "$repo_path" fetch origin "$branch_name":"$branch_name" 2>/dev/null || true
-    git -C "$repo_path" worktree add "$worktree_path" "$branch_name" >&2 \
-      || wt_add_ok=false
-  else
-    git -C "$repo_path" worktree add "$worktree_path" -b "$branch_name" "origin/${default_branch}" >&2 \
-      || wt_add_ok=false
-  fi
-
-  # worktree add 失敗時: ブランチが別ディレクトリ名の worktree で既にチェックアウトされている可能性
-  if [ "$wt_add_ok" = false ]; then
-    local existing_path
-    existing_path=$(git -C "$repo_path" worktree list --porcelain \
-      | awk -v b="$branch_name" '/^worktree /{sub(/^worktree /,""); p=$0} /^branch refs\/heads\//{sub(/^branch /,""); if($0=="refs/heads/"b) print p}')
-    if [ -n "$existing_path" ] && [ -d "$existing_path" ]; then
-      echo "$existing_path" >&2
-      echo "warn: ブランチ '$branch_name' は別名の worktree に存在します: $existing_path" >&2
-      echo "$existing_path"
-      return
+  if [ "$local_branch_exists" = yes ] || [ -n "$remote_branch_exists" ]; then
+    # 既存ブランチを worktree にチェックアウト（remote にしか無ければ先に fetch）
+    if [ -n "$remote_branch_exists" ] && [ "$local_branch_exists" = no ]; then
+      git -C "$repo_path" fetch origin "$branch_name":"$branch_name" 2>/dev/null || true
     fi
-    die "worktree の作成に失敗しました: $worktree_path"
+    git -C "$repo_path" worktree add "$worktree_path" "$branch_name" >&2 \
+      || die "worktree の作成に失敗しました: $worktree_path"
+  else
+    # 新規 branch を作成
+    git -C "$repo_path" worktree add "$worktree_path" -b "$branch_name" "origin/${default_branch}" >&2 \
+      || die "worktree の作成に失敗しました: $worktree_path"
   fi
 
   # .claude/settings.local.json をコピー（gw_add と同じ）
