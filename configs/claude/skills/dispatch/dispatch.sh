@@ -161,6 +161,9 @@ cmd_list_repos() {
 # --- サブコマンド: launch ---
 cmd_launch() {
   local repo="" prompt="" prompt_file_arg="" session_name="" window_name="" branch_name="" no_worktree=false no_prompt=false launcher="claude"
+  # --session が明示的に渡されたかを追跡する。未指定なら衝突時に suffix を付けて
+  # 必ず新規 session を作成する（SKILL.md の "default = 新規作成" を守るため）。
+  local session_explicit=false
 
   # 引数パース
   while [ $# -gt 0 ]; do
@@ -171,6 +174,7 @@ cmd_launch() {
         ;;
       --session)
         session_name="$2"
+        session_explicit=true
         shift 2
         ;;
       --window)
@@ -275,6 +279,20 @@ cmd_launch() {
   # session 名が未指定の場合、worktree のディレクトリ名をセッション名にする
   if [ -z "$session_name" ]; then
     session_name="$(basename "$work_dir")"
+  fi
+
+  # --session 未指定時に既存 session 名と衝突したら suffix を付けて必ず新規作成する
+  if [ "$session_explicit" = false ] && tmux has-session -t "=$session_name" 2>/dev/null; then
+    local base="$session_name"
+    session_name="${base}-$(date +%H%M%S)"
+    local i=2
+    while tmux has-session -t "=$session_name" 2>/dev/null; do
+      session_name="${base}-$(date +%H%M%S)-${i}"
+      i=$((i + 1))
+      if [ "$i" -gt 100 ]; then
+        die "session 名の衝突を解決できません: $base"
+      fi
+    done
   fi
 
   # 作成直後の window の active pane id を tmux 自身に出力させて固定する。
