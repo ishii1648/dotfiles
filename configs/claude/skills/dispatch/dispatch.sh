@@ -54,10 +54,16 @@ create_worktree() {
   worktree_dir_name=$(echo "$branch_name" | tr '/' '-')
   local worktree_path="$main_worktree@$worktree_dir_name"
 
-  # 既存 worktree があればそのまま使う
+  # 既存 worktree があれば、checked out branch が一致する場合のみ再利用する
+  # 一致しない場合は黙って乗っ取らず、明示的に die する
   if [ -d "$worktree_path" ]; then
-    echo "$worktree_path"
-    return
+    local existing_branch
+    existing_branch=$(git -C "$worktree_path" rev-parse --abbrev-ref HEAD 2>/dev/null || true)
+    if [ "$existing_branch" = "$branch_name" ]; then
+      echo "$worktree_path"
+      return
+    fi
+    die "worktree path '$worktree_path' は既に存在しますが branch が異なります (current=$existing_branch, requested=$branch_name)。:既存ブランチ名 で checkout モードを使うか、別の prompt で起動してください。"
   fi
 
   # リモートの最新を取得
@@ -271,31 +277,33 @@ cmd_launch() {
     session_name="$(basename "$work_dir")"
   fi
 
+  # 作成直後の window の active pane id を tmux 自身に出力させて固定する。
+  # display-message で再取得すると、同名 window が複数あった場合に最初のものを
+  # 拾ってしまい send-keys が誤った pane に飛ぶ（特に sidebar plugin がある時）。
+  # -P -F '#{pane_id}' で new-session/new-window が作成した pane を直接取得する。
+  local target_pane_id
   if ! tmux has-session -t "=$session_name" 2>/dev/null; then
     # session が存在しない → 新規作成（最初の window として window_name を使う）
     # 現在のターミナルサイズを渡す（デタッチ作成後の比例拡大による sidebar 幅崩れを防止）
     local cur_width cur_height
     cur_width=$(tmux display-message -p '#{window_width}' 2>/dev/null || echo 200)
     cur_height=$(tmux display-message -p '#{window_height}' 2>/dev/null || echo 50)
-    tmux new-session -d -s "$session_name" -n "$window_name" -c "$work_dir" \
-      -x "$cur_width" -y "$cur_height" \
+    target_pane_id=$(tmux new-session -d -P -F '#{pane_id}' \
+      -s "$session_name" -n "$window_name" -c "$work_dir" \
+      -x "$cur_width" -y "$cur_height") \
       || die "tmux session の作成に失敗しました: $session_name"
   else
     # session が存在する → window 追加
     # trailing colon を付けないと tmux が target を window index と解釈して
     # base-index 衝突（"index 1 in use"）で失敗するため "=$session_name:" を使う
-    tmux new-window -t "=$session_name:" -n "$window_name" -c "$work_dir" \
+    target_pane_id=$(tmux new-window -P -F '#{pane_id}' \
+      -t "=$session_name:" -n "$window_name" -c "$work_dir") \
       || die "tmux window の作成に失敗しました"
   fi
 
-  # 作成直後の window の active pane id を取得し、以降の操作はすべてこれを target にする。
-  # window target だと sidebar 等の hook で auto-split された pane に send-keys が
-  # 飛ぶ可能性があるため、pane id で固定する。
-  local target_pane_id
-  target_pane_id=$(tmux display-message -t "=$session_name:=$window_name" -p '#{pane_id}')
-
   # claude がターミナルタイトルを変更して window 名を上書きするのを防止
-  tmux set-option -t "=$session_name:=$window_name" allow-rename off
+  # pane_id 経由で対象の window を一意に指定する（同名 window がある場合の保険）
+  tmux set-option -wt "$target_pane_id" allow-rename off
 
   # pane タイトル設定
   tmux select-pane -t "$target_pane_id" -T "$window_name"
