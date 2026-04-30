@@ -122,6 +122,10 @@ function dispatch_launcher --description 'dispatch/orchestrate popup ランチ�
         set checkout_mode true
     else
         set -l slug (echo $first_line | string replace -ar '[^a-zA-Z0-9]' '-' | string replace -ar -- '-+' '-' | string trim -c '-' | string sub -l 40 | string lower)
+        # slug が空（日本語のみ・記号のみ等）の場合は timestamp で fallback
+        if test -z "$slug"
+            set slug (date +%Y%m%d-%H%M%S)
+        end
         set branch_name "feat/$slug"
     end
 

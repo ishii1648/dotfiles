@@ -199,12 +199,12 @@ cmd_launch() {
   done
 
   # --prompt-file があればそちらを優先して読み込む
+  # 失敗時にプロンプト消失を防ぐため、削除は launcher 起動成功後まで遅延する
   if [ -n "$prompt_file_arg" ]; then
     if [ ! -f "$prompt_file_arg" ]; then
       die "prompt-file が見つかりません: $prompt_file_arg"
     fi
     prompt=$(cat "$prompt_file_arg")
-    rm -f "$prompt_file_arg"
   fi
 
   # バリデーション
@@ -339,6 +339,11 @@ cmd_launch() {
         tmux send-keys -t "$target_pane_id" "cd '$work_dir'; codex -C '$work_dir' \"\$(/bin/cat '$prompt_file')\"" Enter
         ;;
     esac
+  fi
+
+  # launcher 起動まで成功したので、ここで初めて元の prompt-file を削除する
+  if [ -n "$prompt_file_arg" ] && [ -f "$prompt_file_arg" ]; then
+    rm -f "$prompt_file_arg"
   fi
 
   # 構造化出力
