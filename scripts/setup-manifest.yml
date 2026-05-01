@@ -62,6 +62,9 @@ components:
         dest: ~/.tmux.local.conf
         profile: remote
         if_missing: true
+      - src: configs/tmux/hidden_sessions.example
+        dest: ~/.config/tmux-sidebar/hidden_sessions
+        if_missing: true
 
   claude:
     setup: configs/claude/setup.sh

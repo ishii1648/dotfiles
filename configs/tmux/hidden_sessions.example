@@ -1,0 +1,5 @@
+# tmux-sidebar で非表示にするセッション名（1 行 1 セッション）
+# ~/.config/tmux-sidebar/hidden_sessions にコピーして編集する
+#
+# デフォルトでは main セッションをサイドバーから除外する
+main
