@@ -6,7 +6,7 @@
 
 ### 前提条件
 
-- **macOS**: [Homebrew](https://brew.sh) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua を自動インストールする。
+- **macOS**: [Homebrew](https://brew.sh) と Python3 (PyYAML) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua を自動インストールする（`--profile remote` では追加で docker / colima / docker-compose も）。
 - **Linux**: 事前にパッケージのインストールが必要。Docker テスト用の `tests/Dockerfile` を参照。
 
 ### 事前設定（初回のみ）
@@ -40,15 +40,17 @@ bash scripts/setup.sh
 # 状態チェックのみ（変更しない）
 bash scripts/setup.sh --dry-run
 
-# リモート環境用セットアップ（ghostty を除外）
+# リモート環境用セットアップ（ghostty/codex を除外）
 bash scripts/setup.sh --profile remote
 
-# Linux 環境用セットアップ（ghostty を除外、Docker e2e テストで使用）
+# Linux 環境用セットアップ（ghostty/codex を除外、Docker e2e テストで使用）
 bash scripts/setup.sh --profile linux
 
 # 端末固有設定（端末固有リポジトリの setup script を実行）
 bash <端末固有リポジトリ>/setup.sh
 ```
+
+プロファイル別のコンポーネントは `scripts/setup-manifest.yml` の `profiles:` を参照。
 
 ### e2e テスト
 
@@ -68,7 +70,7 @@ SSH 先のマシンに dotfiles をデプロイする場合は `remote` プロ�
 # 1. dotfiles を clone
 git clone <repo> ~/dotfiles && cd ~/dotfiles
 
-# 2. remote プロファイルでセットアップ（fish, nvim, tmux, claude, aqua + tmux テンプレートコピー）
+# 2. remote プロファイルでセットアップ（fish, nvim, tmux, claude, aqua, git, vim + tmux テンプレートコピー）
 bash scripts/setup.sh --profile remote
 ```
 
@@ -83,7 +85,13 @@ tms lab dev       # セッション名を指定
 
 F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/tmux.local.conf.example` の F12 設定をコピーしておく）。
 
-## Claude Code Docker サンドボックス
+## Claude Code / Codex CLI
+
+`configs/claude/` 配下の設定・skill・statusline は `~/.claude/` に symlink される。skill は `dispatch` / `orchestrate` / `session-log` / `codex-sync` などを同梱しており、`codex` プロファイルでは Codex CLI 側 (`~/.codex/skills/`) にも同じ skill 実体が symlink される。
+
+並列開発の運用フロー（dispatch/orchestrate ランチャー、tmux-sidebar 連携、worktree 管理）は [docs/reference.md](docs/reference.md) を参照。
+
+### Docker サンドボックス
 
 Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付きで安全に自律実行する。詳細は [docs/claude-docker-sandbox.md](docs/claude-docker-sandbox.md) を参照。
 
@@ -91,13 +99,15 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 
 端末固有の設定（社内ツール・AWS 認証・端末固有 keybind・Git ユーザー情報等）は端末固有リポジトリで管理する。dotfiles には含めない。
 
-| ツール | 配置先 | 初期配布 |
+| ツール | 配置先 | 初期配布元 |
 |--------|--------|---------|
-| Git | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布。端末固有設定は直接編集 |
-| Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。端末固有設定は直接編集 |
-| Fish (tmw) | `~/.config/fish/conf.d/tmw_worktree_repos.conf` | `configs/fish/conf.d/tmw_worktree_repos.conf.example` |
-| Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example` |
-| tmux | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example` |
-| Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example` |
+| Git (full/remote) | `~/.gitconfig` | `configs/git/gitconfig.macos` を `copies: if_missing` で配布 |
+| Git (linux) | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布 |
+| Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。`hooks` / `statusLine` / `env` は setup 時に自動同期 |
+| Fish (tmw) | `~/.config/fish/conf.d/tmw_worktree_repos.conf` | `configs/fish/conf.d/tmw_worktree_repos.conf.example`（手動コピー） |
+| Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example`（手動コピー） |
+| tmux (remote) | `~/.tmux.local.conf` | `configs/tmux/tmux.remote.conf.example` を `copies: if_missing` で配布 |
+| tmux (full) | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example`（手動コピー、F12 トグル等） |
+| Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example`（手動コピー） |
 
 `setup.sh --dry-run` で validate チェックが実行され、共通設定のキーが `~/.gitconfig` や `~/.claude/settings.json` に存在するか検証される（WARN 出力のみ、失敗しない）。
