@@ -5,6 +5,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+          },
+          {
+            "type": "command",
             "command": "hitl-metrics hook session-start --agent codex"
           }
         ]
@@ -15,6 +19,10 @@
         "hooks": [
           {
             "type": "command",
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+          },
+          {
+            "type": "command",
             "command": "hitl-metrics hook stop --agent codex"
           }
         ]
@@ -23,6 +31,10 @@
     "PostToolUse": [
       {
         "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/agent-pane-state.sh running codex post"
+          },
           {
             "type": "command",
             "command": "hitl-metrics hook post-tool-use --agent codex"

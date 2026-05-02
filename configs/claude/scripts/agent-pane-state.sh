@@ -19,6 +19,7 @@ PANE_NUM="${TMUX_PANE#%}"
 PANE_FILE="$STATE_DIR/pane_${PANE_NUM}"
 STARTED_FILE="$STATE_DIR/pane_${PANE_NUM}_started"
 SESSION_ID_FILE="$STATE_DIR/pane_${PANE_NUM}_session_id"
+PATH_FILE="$STATE_DIR/pane_${PANE_NUM}_path"
 STATE="${1:-unknown}"
 AGENT="${2:-}"
 SOURCE="${3:-}"
@@ -38,7 +39,7 @@ if command -v jq >/dev/null 2>&1 && [ -n "$INPUT" ]; then
 fi
 
 if [ "$STATE" = "end" ]; then
-    rm -f "$PANE_FILE" "$STARTED_FILE" "$SESSION_ID_FILE"
+    rm -f "$PANE_FILE" "$STARTED_FILE" "$SESSION_ID_FILE" "$PATH_FILE"
     exit 0
 fi
 
@@ -58,12 +59,17 @@ if [ "$STATE" = "running" ] && [ "$SOURCE" = "post" ] && [ -f "$PANE_FILE" ]; th
 fi
 
 # タイムスタンプ管理: running 開始時に記録、それ以外で削除
+# pane_N_path: running 遷移時に未存在の場合のみ pwd を記録（サイドバーの Git/PR 表示の起点）
 if [ "$STATE" = "running" ]; then
     prev_state=$(head -n 1 "$PANE_FILE" 2>/dev/null)
     if [ -z "$SOURCE" ] || [ ! -f "$STARTED_FILE" ] || \
        [ "$prev_state" = "permission" ] || [ "$prev_state" = "ask" ]; then
         mkdir -p "$STATE_DIR"
         date +%s > "$STARTED_FILE"
+    fi
+    if [ ! -f "$PATH_FILE" ]; then
+        mkdir -p "$STATE_DIR"
+        pwd > "$PATH_FILE"
     fi
 elif [ "$STATE" = "idle" ] || [ "$STATE" = "end" ]; then
     rm -f "$STARTED_FILE"

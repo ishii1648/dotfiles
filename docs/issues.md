@@ -889,3 +889,19 @@
 - [x] 画面上に http(s):// の生 URL が映っているとき、PR URL の候補に加えて生 URL も popup 候補に出る（OSC 8 ハイパーリンクの URL も抽出される）
 - [x] `tmux-fzf-url-pr-filter` の出力に含まれる URL と画面上の同一 URL が重複候補として並ばない（awk で URL ベース重複排除）
 
+---
+
+### tmux-sidebar setup.md コンプライアンス再整合
+
+**コンポーネント**: tmux / claude / codex | **ADR**: —（[ishii1648/tmux-sidebar docs/setup.md](https://github.com/ishii1648/tmux-sidebar/blob/main/docs/setup.md) に追従）
+
+**受け入れ条件**:
+
+- [ ] §4: `configs/tmux/tmux.conf` の `client-resized` hook が `tmux-sidebar relayout` を呼ぶ形になっており、3 ペイン以上の window でも右端ペインの累積ドリフトが発生しない
+- [ ] §8: `configs/codex/hooks.json` の `SessionStart` / `PostToolUse` / `Stop` で `agent-pane-state.sh <state> codex [post]` が呼ばれ、`/tmp/agent-pane-state/pane_N` の 2 行目に `codex` が記録される
+- [ ] §8: `configs/claude/scripts/agent-pane-state.sh` が `running` 遷移時に `pane_N_path` を未存在の場合のみ pwd で記録し、サイドバーの Git/PR 表示の起点パスを提供する
+- [ ] §9: `configs/tmux-sidebar/pinned_sessions.example` が新規作成され、`scripts/setup-manifest.yml` の tmux 配下 copies に `if_missing: true` で `~/.config/tmux-sidebar/pinned_sessions` への配布が登録されている
+- [ ] §10: `configs/tmux/tmux.conf` に `bind N display-popup -E -w 80 -h 24 'tmux-sidebar new'` が登録されており、prefix+N で popup picker が起動する
+- [ ] `configs/tmux-sidebar/setup.sh` が `~/go/bin/tmux-sidebar` 等で `~/.local/bin/tmux-sidebar` が PATH 上で shadow されているケースを検出し warning を表示する
+- [ ] `bash scripts/setup.sh --dry-run` が All OK で完了し、`tmux-sidebar doctor` の全項目が `[OK]` になる
+

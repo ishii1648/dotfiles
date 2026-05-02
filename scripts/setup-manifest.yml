@@ -74,6 +74,9 @@ components:
       - src: configs/tmux-sidebar/hidden_sessions.example
         dest: ~/.config/tmux-sidebar/hidden_sessions
         if_missing: true
+      - src: configs/tmux-sidebar/pinned_sessions.example
+        dest: ~/.config/tmux-sidebar/pinned_sessions
+        if_missing: true
 
   claude:
     setup: configs/claude/setup.sh

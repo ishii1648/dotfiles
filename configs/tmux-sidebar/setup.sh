@@ -70,6 +70,21 @@ elif [[ -x "$BIN_PATH" ]]; then
     DOCTOR_BIN="$BIN_PATH"
 fi
 
+# --- shadow detection ---
+# `~/go/bin/tmux-sidebar` 等が PATH 上で `~/.local/bin/tmux-sidebar` を shadow すると、
+# setup.sh が install した binary が使われず、`tmux-sidebar upgrade` の対象がブレる。
+# 双方が存在し、PATH 解決結果が `~/.local/bin/tmux-sidebar` でない場合に warn。
+# bash 3.2 (macOS default) に mapfile が無いため while read で配列化する。
+ALL_BINS=()
+while IFS= read -r line; do
+    [[ -n "$line" ]] && ALL_BINS+=("$line")
+done < <(which -a tmux-sidebar 2>/dev/null || true)
+if [[ ${#ALL_BINS[@]} -gt 1 && -x "$BIN_PATH" && "$DOCTOR_BIN" != "$BIN_PATH" ]]; then
+    echo -e "  ${YELLOW}tmux-sidebar${NC}\twarning: PATH resolves to $DOCTOR_BIN, shadowing $BIN_PATH"
+    for b in "${ALL_BINS[@]}"; do echo "    - $b"; done
+    echo "    Hint: rm \"${ALL_BINS[0]}\" to let setup.sh-managed binary take effect"
+fi
+
 if [[ -z "$DOCTOR_BIN" ]]; then
     echo "  doctor: SKIP (binary not available)"
     exit 0
