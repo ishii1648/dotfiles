@@ -10,26 +10,24 @@ Draft
 - 関連: ADR-037（approve-safe-file-ops の基盤）
 - 関連: ADR-038（approve-safe-file-ops Read 対応）
 - 関連: ADR-039（hook スクリプト存在チェック）
-- 関連: ADR-052（claudedog hooks の分離。本 ADR は configs/claude/scripts/ 側が対象）
 
 ## コンテキスト
 
 現在の `settings.json` には 15 個の hook エントリが存在し、今後も拡張が見込まれる。
 
 ```
-SessionStart    → claude-pane-state.sh idle + session-index.sh（claudedog）
+SessionStart    → claude-pane-state.sh idle + hitl-metrics hook session-start + hitl-metrics hook todo-cleanup
 UserPromptSubmit → claude-pane-state.sh running
-Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission + permission-log.sh（claudedog）
+Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission
 Notification (elicitation_dialog) → claude-notify.sh + claude-pane-state.sh ask
-PreToolUse (全ツール) → pretooluse-track.sh（claudedog）
 PreToolUse (Bash) → redirect-to-tools.py + approve-safe-commands.py
 PreToolUse (Read/Write/Edit/NotebookEdit) → approve-safe-file-ops.py（4 エントリ）
 PostToolUse → claude-pane-state.sh running post
-Stop → claude-pane-state.sh idle
-SessionEnd → claude-pane-state.sh end
+Stop → claude-pane-state.sh idle + hitl-metrics hook stop
+SessionEnd → claude-pane-state.sh end + hitl-metrics hook session-end
 ```
 
-ADR-052 で claudedog 関連フック（session-index.sh, permission-log.sh, pretooluse-track.sh）が `claudedog/hooks/` に移行済みまたは移行中であるため、本 ADR は `configs/claude/scripts/` 配下のコア系フックを対象とする。
+hitl-metrics（外部 CLI ツール）が SessionStart / SessionEnd / Stop の観測フックを `hitl-metrics hook <subcommand>` 形式で提供しており、`hitl-metrics install` コマンドで settings.json に自動登録される。本 ADR は `configs/claude/scripts/` 配下のコア系フック（pane-state, notify, security gate）を対象とする。
 
 具体的な問題は以下の通り：
 
@@ -62,12 +60,12 @@ settings.json には各イベントに対して1エントリのみ登録し、�
 **メリット**:
 - 新フック追加 = ファイルを置くだけ。settings.json 変更不要
 - 追加・削除・順序変更がファイル操作で完結する
-- claudedog hooks（`claudedog/hooks/`）との境界が明確
+- hitl-metrics 等の外部 CLI hook（`hitl-metrics install` 管理下）との境界が明確
 
 **デメリット**:
 - ディスパッチャスクリプト自体の実装が必要
 - セキュリティフック（redirect-to-tools.py）の失敗モードが増える。ディスパッチャが terminate/block を正しく伝播しないと安全機構が無効化されるリスクがある
-- claudedog 等「外部配置スクリプト」はどのみち settings.json 直接編集になり、完全な統一はできない
+- hitl-metrics 等「外部 CLI が自動登録するフック」は `hitl-metrics install` が settings.json を直接編集する経路で入るため、ディスパッチャ方式と二重管理になり完全な統一はできない
 
 ### 案B: 責務グループ統合（候補）
 
@@ -95,7 +93,7 @@ configs/claude/scripts/
 設計方向に関わらず、今すぐ実施できる改善：
 
 1. **`approve-safe-file-ops.py` の重複解消**: Read/Write/Edit/NotebookEdit の 4 エントリを、全 PreToolUse に対して内部でツール名チェックする 1 エントリに集約する
-2. **ファイル配置の統一**: `configs/claude/scripts/` に一本化（ADR-052 完了後、claudedog hooks は `claudedog/hooks/` に）
+2. **ファイル配置の統一**: dotfiles 管理対象は `configs/claude/scripts/` に一本化（hitl-metrics 等の外部 CLI が登録するフックは `hitl-metrics install` 管理下で別経路）
 
 案D は案A・案Bのいずれを選択しても先行して実施できる。
 
