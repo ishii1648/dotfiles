@@ -58,6 +58,8 @@ components:
         target: configs/tmux/tmux.conf
       - link: ~/.local/bin/tmux-fzf-url-pr-filter
         target: configs/tmux/tmux-fzf-url-pr-filter
+      - link: ~/.local/bin/tmux-fzf-pr-popup
+        target: configs/tmux/fzf-pr-popup.sh
     copies:
       - src: configs/tmux/tmux.remote.conf.example
         dest: ~/.tmux.local.conf

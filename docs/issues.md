@@ -62,6 +62,7 @@
 | ✔ | ○ | claude / codex | dotfiles 外の skill（個人/プラグイン）を Codex CLI に伝播する手段がない — manifest 化できない skill を任意のタイミングで同期する skill が必要 | [ADR-067](adr/067-codex-sync-skill.md) |
 | ✔ | ○ | tmux | tmux プラグイン (TPM / `wfxr/tmux-fzf-url` 等) が `scripts/setup.sh` の対象外で再現できない — symlink は貼られるが TPM 未インストールのため `prefix + u` 等の plugin バインドが効かない | — |
 | ✔ | ○ | claude | auto mode 運用への切替で hook と CLAUDE.md の permission 緩和規約が冗長/負債化した — `permission_mode` フィールドによる hook 内 skip と destructive 防御の `permissions.deny` 移行で対処 | [ADR-068](adr/068-permission-mode-aware-hooks.md) |
+| - | ○ | tmux | `wfxr/tmux-fzf-url` が xre 書き直し時に `@fzf-url-extra-filter` を廃止し PR URL フィルタが無効化された — `prefix + u` で PR URL が popup 表示できない | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -866,4 +867,20 @@
 - [x] `configs/claude/CLAUDE.md` から「禁止コマンド」セクションが削除されている
 - [x] `configs/claude/settings.json` の `permissions.deny` に `Bash(rm -rf *)` / `Bash(rm -fr *)` / `Bash(rm -r -f *)` / `Bash(rm -f -r *)` が追加されている
 - [x] `~/.claude/settings.json` の `permissions.deny` にも同 4 パターンが反映されている
+
+---
+
+### prefix+u を自前 popup に置き換え PR URL を扱う
+
+**コンポーネント**: tmux | **ADR**: —
+
+**受け入れ条件**:
+
+- [x] `configs/tmux/fzf-pr-popup.sh` が新規作成され、capture-pane → `tmux-fzf-url-pr-filter` + 生 URL 抽出 → `fzf --tmux` popup → `open` の流れを実装している
+- [x] `~/.local/bin/tmux-fzf-pr-popup` が `configs/tmux/fzf-pr-popup.sh` への symlink として作成される（`scripts/setup-manifest.yml` で管理）
+- [x] `configs/tmux/tmux.conf` の TPM `run` 後に `bind u` が `tmux-fzf-pr-popup` を呼ぶ形で `wfxr/tmux-fzf-url` の bind を上書きしている
+- [ ] PR が作成済みの worktree pane で `prefix + u` を押すと PR URL が popup 候補に出る（実機確認待ち）
+- [ ] popup から URL を選択すると `open` (macOS) または `xdg-open` (Linux) で開かれる（実機確認待ち）
+- [x] 画面上に http(s):// の生 URL が映っているとき、PR URL の候補に加えて生 URL も popup 候補に出る（OSC 8 ハイパーリンクの URL も抽出される）
+- [x] `tmux-fzf-url-pr-filter` の出力に含まれる URL と画面上の同一 URL が重複候補として並ばない（awk で URL ベース重複排除）
 
