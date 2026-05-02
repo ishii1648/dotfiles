@@ -60,6 +60,7 @@
 | ✔ | ○ | tmux / fish / claude / codex | popup 経由の codex 起動で入力エリアの背景色が描画されない — codex は OSC 11 で背景色 query するが detached session には tmux が応答を返さないため、attached client が来るまで起動を遅延させる | [ADR-065](adr/065-dispatch-codex-wait-for-attached-client.md) |
 | ✔ | ○ | claude / codex | dotfiles 管理 skill が Codex CLI から利用できない — Claude 用に作った dispatch/orchestrate/session-log を Codex セッションでも使いたい | [ADR-066](adr/066-codex-skill-symlink-distribution.md) |
 | ✔ | ○ | claude / codex | dotfiles 外の skill（個人/プラグイン）を Codex CLI に伝播する手段がない — manifest 化できない skill を任意のタイミングで同期する skill が必要 | [ADR-067](adr/067-codex-sync-skill.md) |
+| ✔ | ○ | tmux | tmux プラグイン (TPM / `wfxr/tmux-fzf-url` 等) が `scripts/setup.sh` の対象外で再現できない — symlink は貼られるが TPM 未インストールのため `prefix + u` 等の plugin バインドが効かない | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -832,4 +833,19 @@
 - [x] `SKILL.md`（大文字）が無い skill は WARN を出して続行する（自動リネームしない）
 - [x] 既存 symlink が別の先を指す場合 / 通常ファイルが存在する場合は CONFLICT を出して exit 2 で終了する
 - [x] codex CLI が `codex-sync` 自身を skill として認識する（`codex debug prompt-input` の `<skills_instructions>` に出現することを確認）
+
+---
+
+### tmux プラグイン (TPM) の setup.sh 対応
+
+**コンポーネント**: tmux | **ADR**: —
+
+**受け入れ条件**:
+
+- [x] `scripts/setup-manifest.yml` の `components.tmux` に `setup: configs/tmux/setup.sh` が追加されている
+- [x] `configs/tmux/setup.sh` が冪等に動作する（TPM 既存時はクローンをスキップ）
+- [x] `bash scripts/setup.sh` 実行後に `~/.tmux/plugins/tpm/.git` が存在する
+- [x] `bash scripts/setup.sh` 実行後に `wfxr/tmux-fzf-url` 等 tmux.conf 宣言済みプラグインが `~/.tmux/plugins/` 配下に展開されている
+- [x] tmux サーバーをリロードした後、`tmux list-keys -T prefix` の出力に `bind-key -T prefix u` が含まれる（cmd+u → URL popup が動作する前提条件）
+- [x] `bash scripts/setup.sh --dry-run` が TPM の存在チェックのみ行い、未インストール時に MISSING を報告する
 

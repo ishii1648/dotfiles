@@ -52,6 +52,7 @@ components:
         target: configs/ghostty/ghostty-tmux-init.sh
 
   tmux:
+    setup: configs/tmux/setup.sh
     symlinks:
       - link: ~/.tmux.conf
         target: configs/tmux/tmux.conf
