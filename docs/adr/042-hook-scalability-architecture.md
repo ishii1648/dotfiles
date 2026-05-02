@@ -88,6 +88,25 @@ configs/claude/scripts/
 **メリット**: ゼロリスク。既存コード変更なし
 **デメリット**: 根本問題（settings.json 肥大化・重複エントリ・スケーラビリティ欠如）を解決しない。マニフェストが陳腐化する
 
+### 案E: 外部 CLI hook の dotfiles 一元管理（直交制約・候補）
+
+hitl-metrics 等の外部 CLI が `install` で settings.json を直接編集する経路を廃止し、hook 登録は dotfiles の責務に寄せる。外部 CLI 側は `doctor` で「期待する hook エントリが settings.json に登録されているか」のみを検証する。
+
+**前提**:
+- 外部 CLI 側が `install --no-hooks` モードを提供するか、`install` の hook 登録機能自体を削除する
+- 期待される hook エントリ（subcommand 名・引数）の仕様を外部 CLI と dotfiles で合意する
+
+**メリット**:
+- settings.json の hook 登録経路が dotfiles 一本に統一される（ADR-041 の managed keys sync と整合）
+- 案A・案B のディスパッチャ／責務統合がそのまま外部 CLI hook にも適用できる
+- 二重登録（dotfiles + 外部 CLI install）の事故が構造的に発生しない
+
+**デメリット**:
+- 外部 CLI の hook 契約（subcommand 名・引数）が変更されたとき dotfiles 側で追従が必要
+- `doctor` は警告のみで自動修復しないため、期待する hook が抜けていても CLI 実行時までは検出できない（ADR-039 の hook 存在チェックと同様の思想）
+
+**位置づけ**: 案A・案B のいずれを選択しても直交して適用できる制約。本 ADR で採用すれば「案A」のデメリット 3 番目（外部 CLI が settings.json を直接編集する経路で二重管理になる）が解消され、ディスパッチャ方式・責務統合方式のどちらでも `configs/claude/scripts/` 以下に統一できる。
+
 ### 案D: 即効改善（独立実施可能）
 
 設計方向に関わらず、今すぐ実施できる改善：
