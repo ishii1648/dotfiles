@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ADR: 017
+# Purpose: 安全パターンの Bash コマンド（git commit heredoc 等）を自動承認し permission prompt を抑制
 """PreToolUse hook: approve safe command patterns.
 
 Auto-approves Bash commands that contain only safe $() patterns,

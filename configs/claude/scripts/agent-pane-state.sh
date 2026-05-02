@@ -1,4 +1,6 @@
 #!/bin/bash
+# ADR: 063
+# Purpose: ペインごとの agent ランタイム状態を /tmp/agent-pane-state/ に書き出す（Claude Code / Codex CLI 共通、ADR-007 から汎用化）
 # Hook: ペインごとのランタイム状態をファイルに書き出す（Claude Code / Codex CLI 共通）
 # 使い方: agent-pane-state.sh <state> <agent> [source]
 #   state:  running | permission | ask | idle | end

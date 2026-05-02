@@ -41,7 +41,7 @@
 | ✔ | ○ | claude | hooks で参照されるスクリプトが実在しなくても validate が検出できない — if_missing: true コピー後に dotfiles 側で hook を削除しても dest の古いエントリが残り hook error が発生する | [ADR-039](adr/039-validate-hooks-script-existence.md) |
 | ✔ | ○ | claude | Spike ADR のライフサイクルが未定義で adr-ship が誤って採用済みにする — Spike ADR を `Spike完了` で終了させ adr-ship 対象外とする運用ルールが必要 | [ADR-040](adr/040-spike-adr-lifecycle.md) |
 | ✔ | ○ | claude | settings.json の dotfiles 管理キー変更がデプロイ先に反映されない — `if_missing: true` で初回のみコピーされるため hooks 等の変更が伝播しない | [ADR-041](adr/041-settings-json-managed-keys-sync.md) |
-| - | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-042](adr/042-hook-scalability-architecture.md) |
+| ✔ | ○ | claude | hook の複雑性が増すにつれ settings.json の肥大化・重複エントリ・変更理由の喪失が発生する — ディスパッチャ方式または責務統合で構造的に対処したい | [ADR-042](adr/042-hook-scalability-architecture.md) |
 | - | ○ | claude | Docker サンドボックスのネットワーク egress が無制限 — deny ルール単体では根本的な対策にならず、ネットワーク層での制御が必要 | [ADR-043](adr/043-docker-sandbox-network-egress-control.md) |
 | ✔ | ○ | tmux / fish | tmw_pick のデフォルトが worktree 強制で煩雑 — 大多数のリポジトリはメインで直接開くのが望ましいが、都度 conf に追記が必要 | [ADR-044](adr/044-tmw-default-direct-session-instead-of-worktree.md) |
 | - | △ | tmux / ghostty | 複数 Claude セッションを常時俯瞰できない — prefix+s の都度 popup のみで、ブラウザのタブに相当する常時表示・即時切り替え UI がない | [ADR-045](adr/045-claude-session-always-on-display-ui.md) |
@@ -509,10 +509,13 @@
 
 **受け入れ条件**:
 
-- [x] `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 重複 4 エントリが 1 エントリに統合される
-- [x] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない
-- [ ] settings.json のフック構造設計（案A/案B）が決定され ADR に記録される
-- [ ] 決定した設計方針に基づいてフック追加手順が `docs/development.md` に記載される
+- [x] `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 重複 4 エントリが 1 エントリに統合される（案D）
+- [x] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない（案D）
+- [x] hook 登録経路が dotfiles 一元化され、外部 CLI が settings.json を直接編集しない（案E、ADR-041 で同期基盤完成）
+- [x] settings.json から呼び出される hook スクリプト（`configs/claude/scripts/` 配下）すべてに `# ADR:` と `# Purpose:` ヘッダが付与される
+- [x] `scripts/lib/validate.sh` がヘッダ未記入の hook を WARN で検出する
+- [x] `docs/development.md` に新規 hook 追加時のヘッダ規約が記載される
+- [x] 構造改革（案A/案B）は将来課題として保留（トリガー条件は ADR-042 に記載）
 
 ---
 

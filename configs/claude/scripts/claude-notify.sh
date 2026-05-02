@@ -1,4 +1,6 @@
 #!/bin/bash
+# ADR: 003
+# Purpose: macOS デスクトップ通知を Notification/Stop イベントで発火し、tmux セッション情報付きで通知
 
 # Claude Code Hook: macOS デスクトップ通知（terminal-notifier 経由）
 # Stop / Notification イベントで発火し、tmux セッション情報付きで通知する

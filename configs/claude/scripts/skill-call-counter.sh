@@ -1,4 +1,6 @@
 #!/bin/bash
+# ADR: -
+# Purpose: PostToolUse(Skill) で Skill 呼び出しを ~/.claude/skill-metrics/counts.jsonl にカウント記録（メトリクス用）
 # Claude Code Hook: Skill ツール呼び出しをカウントする PostToolUse フック
 # ~/.claude/skill-metrics/counts.jsonl に JSONL 形式で追記する
 

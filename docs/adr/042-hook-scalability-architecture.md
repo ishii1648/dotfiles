@@ -1,7 +1,7 @@
 # ADR-042: Claude Code フック設計のスケーラビリティ改善
 
 ## ステータス
-Draft
+採用済み（案D・案E 実施済み、ヘッダ規約を導入。案A/B は将来課題として保留）
 
 ## 関連 ADR
 - 関連: ADR-006（PreToolUse hook Bash 権限の基盤）
@@ -10,121 +10,108 @@ Draft
 - 関連: ADR-037（approve-safe-file-ops の基盤）
 - 関連: ADR-038（approve-safe-file-ops Read 対応）
 - 関連: ADR-039（hook スクリプト存在チェック）
+- 関連: ADR-041（settings.json の managed keys sync — 案E の実装基盤）
+- 関連: ADR-052（claudedog 移動で hooks パスが変更された契機）
 
 ## コンテキスト
 
-現在の `settings.json` には 15 個の hook エントリが存在し、今後も拡張が見込まれる。
+`configs/claude/settings.json` の `hooks` セクションは肥大化を続けており、現在は 7 イベント・15 エントリ前後を抱える。さらに今後も観測系 hook（claudedog 等）や安全フィルタの拡張が見込まれる。
 
 ```
-SessionStart    → claude-pane-state.sh idle + hitl-metrics hook session-start + hitl-metrics hook todo-cleanup
-UserPromptSubmit → claude-pane-state.sh running
-Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission
+SessionStart    → claude-pane-state.sh idle + claudedog/session-index.sh + workflow-session-start.sh
+UserPromptSubmit → claude-pane-state.sh running + SSH バナー
+Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission + claudedog/permission-log.sh
 Notification (elicitation_dialog) → claude-notify.sh + claude-pane-state.sh ask
-PreToolUse (Bash) → redirect-to-tools.py + approve-safe-commands.py
+PreToolUse (全ツール) → claudedog/pretooluse-track.sh
+PreToolUse (Bash) → redirect-to-tools.py
+PreToolUse (Bash) → approve-safe-commands.py
 PreToolUse (全ツール) → approve-safe-file-ops.py（matcher なし、内部で Read/Write/Edit/NotebookEdit のみ承認）
 PostToolUse → claude-pane-state.sh running post
-Stop → claude-pane-state.sh idle + hitl-metrics hook stop
-SessionEnd → claude-pane-state.sh end + hitl-metrics hook session-end
+PostToolUse (Skill) → skill-call-counter.sh
+Stop → check-uncommitted-on-feature.sh + claude-pane-state.sh idle + workflow-session-log.sh
+SessionEnd → claude-pane-state.sh end
 ```
 
-hitl-metrics（外部 CLI ツール）が SessionStart / SessionEnd / Stop の観測フックを `hitl-metrics hook <subcommand>` 形式で提供しており、`hitl-metrics install` コマンドで settings.json に自動登録される。本 ADR は `configs/claude/scripts/` 配下のコア系フック（pane-state, notify, security gate）を対象とする。
+すべての hook 登録は dotfiles の `configs/claude/settings.json` をソースとし、`setup.sh` が `~/.claude/settings.json` の `hooks` キーを同期する（ADR-041）。claudedog 等の外部 CLI が settings.json を直接書き換える経路は存在しない（案E の前提）。
 
-具体的な問題は以下の通り：
+当初挙げた問題は以下 3 つだが、案D・案E 完了後に再評価すると重みが大きく変わっている：
 
-1. **settings.json の肥大化**: フック追加のたびに settings.json を直接編集する必要がある
-2. **「なぜあるか」の喪失**: スクリプト名・コマンド文字列だけでは変更理由が追跡できない
-3. **スケーラビリティの欠如**: 新しいセキュリティルールや状態追跡を追加するたびに settings.json の行数が増える
+| # | 問題 | 現時点の評価 |
+|---|---|---|
+| 1 | settings.json の肥大化 | △ ADR-041 の自動同期で「手動編集の手間」は解消済み。残るのは行数のみで実害は小さい |
+| 2 | 「なぜあるか」の喪失 | ◎ **未解決の本丸**。スクリプト名・コマンド文字列だけでは変更理由が追跡できない |
+| 3 | スケーラビリティの欠如 | △ 案D で重複登録パターンを潰し、案E で外部 CLI 経路を統合した結果、新規追加もエントリ追記 1 行で済む |
 
-なお、当初課題に挙げていた `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 4 エントリ重複登録は、案D として先行実施済み（commit `b9c0a82`）。matcher なしの 1 エントリに統合し、スクリプト内部でツール名チェックする方式へ移行した。
+つまり構造改革（案A・案B）は #1・#3 を狙うが、それらは前提実装によりほぼ無痛化されている。残るのは #2 のみで、これは構造選択と直交する **メタデータ問題** である。
+
+## 前提（実施済み）
+
+### 前提1: 案D — `approve-safe-file-ops.py` の重複解消（commit `b9c0a82`）
+
+Read/Write/Edit/NotebookEdit の 4 エントリを `matcher` なしの 1 エントリに統合し、スクリプト内部でツール名チェックする方式へ移行済み。PreToolUse セクションが 4 エントリ → 1 エントリに削減され、追加ツール対応もスクリプト内で完結するようになった。
+
+### 前提2: 案E — hook 登録経路の dotfiles 一元化
+
+claudedog 等の外部 CLI が `install` で settings.json を直接編集する経路は廃止し、hook 登録は dotfiles の `configs/claude/settings.json` に集約済み。外部 CLI 側は `doctor` で「期待する hook エントリが登録されているか」のみ検証する。ADR-041 の managed keys sync により、dotfiles ソースが常に正となる。
 
 ## 設計案
 
-### 案A: ディレクトリベースディスパッチャ（候補）
+### 採用: ヘッダ規約のみ先行導入
 
-`~/.claude/hooks/<event>/` ディレクトリにスクリプトを配置し、settings.json はディスパッチャのみを登録する。
+すべての hook スクリプトの先頭に、根拠 ADR と目的を明示するヘッダを必須化する。これにより問題 #2「『なぜあるか』の喪失」を構造変更なしで解消する。
 
-```
-~/.claude/hooks/
-  pre-tool-use/
-    bash/
-      00-redirect-to-tools.py
-      10-approve-safe-commands.py
-    file-ops/          # Read/Write/Edit/NotebookEdit を統合
-      00-approve-safe-file-ops.py
-  session-start/
-    00-pane-state-idle.sh
-  ...
+```bash
+#!/usr/bin/env bash
+# ADR: 008
+# Purpose: Bash 実行前に gh / jq 等の代替提案を行う
 ```
 
-settings.json には各イベントに対して1エントリのみ登録し、ディスパッチャがディレクトリ内スクリプトを連番順に実行する。
+**良い点**:
+- スクリプト本体と乖離しない（後述の案C のような別ファイル manifest だと陳腐化する）
+- `grep -rE '^# ADR:' ~/.claude/scripts/` で全 hook の根拠が一覧できる
+- 構造変更を伴わないため、ディスパッチャのバグ・暗黙の連番ルール・スクリプト内分岐肥大などの **新たな複雑度を持ち込まない**
+- 案A・案B どちらに将来移行しても、ヘッダ規約はそのまま継承できる（前進的な投資）
 
-**メリット**:
-- 新フック追加 = ファイルを置くだけ。settings.json 変更不要
-- 追加・削除・順序変更がファイル操作で完結する
-- hitl-metrics 等の外部 CLI hook（`hitl-metrics install` 管理下）との境界が明確
+特定 ADR を持たないスクリプト（プロジェクト規約由来など）は `# ADR: -` を許容する。`Purpose` は常に必須とし、validate は両フィールドの存在を確認する。
 
-**デメリット**:
-- ディスパッチャスクリプト自体の実装が必要
-- セキュリティフック（redirect-to-tools.py）の失敗モードが増える。ディスパッチャが terminate/block を正しく伝播しないと安全機構が無効化されるリスクがある
-- hitl-metrics 等「外部 CLI が自動登録するフック」は `hitl-metrics install` が settings.json を直接編集する経路で入るため、ディスパッチャ方式と二重管理になり完全な統一はできない
+**実装内容**:
+1. `configs/claude/settings.json` から参照される hook スクリプト全ファイルに `# ADR:` と `# Purpose:` ヘッダを追記
+2. `scripts/lib/validate.sh` の hooks 検証に「コマンド先頭スクリプトのヘッダ存在確認」を追加。未記入の場合は WARN（既存設定への過剰な破壊を避けるため、初期は WARN・将来的に FAIL へ昇格）
+3. `docs/development.md` に「新規 hook 追加時はヘッダ必須」を記載
 
-### 案B: 責務グループ統合（候補）
+claudedog 等の外部 CLI が提供するスクリプト（`~/.claude/claudedog/hooks/*.sh`）は dotfiles 管理外のため、本 ADR のヘッダ規約は適用しない。validate.sh の存在チェック（ADR-039）は引き続き行う。
 
-現在の細粒度スクリプトを 3〜4 のドメイン別スクリプトに集約する。
+**懸念**:
+- 規約が形骸化するリスク → validate での自動検査でカバー
+- ヘッダが事実と食い違うリスク（スクリプト改変時に未更新）→ ADR 番号の更新は規約として運用、最低限「Purpose の整合性」は PR レビューで担保
 
-```
-configs/claude/scripts/
-  pane-state.sh          # 全状態管理（idle/running/permission/ask/end）（現状とほぼ同じ）
-  security-gate.py       # redirect-to-tools + approve-safe-commands + approve-safe-file-ops
-  notify.sh              # 通知系（現状とほぼ同じ）
-```
+### 将来課題（保留）: 案A / 案B
 
-**メリット**: ファイル数が減り、スクリプト間の依存が減る
-**デメリット**: スクリプト内に条件分岐が増える。settings.json の行数は減らない。個別テストが難しくなる
+問題 #1・#3 が前提実装で実質ほぼ解消したため、構造改革は **具体的な痛みが顕在化してから** 改めて検討する。トリガー条件の例：
 
-### 案C: ドキュメント化のみ（却下候補）
+- settings.json の `hooks` セクションが 30 エントリを超える
+- 順序依存の hook が 3 種類以上のイベントで発生する
+- 同一スクリプトを複数 matcher で重複登録するパターンが再び現れる
 
-構造は変えず、`docs/reference.md` または `~/.claude/hooks-map.md` に「イベント → スクリプト → 目的」のマップを維持する。
+参考までに、案A・案B の概略は以下に残す（採用時のスタート地点として）。
 
-**メリット**: ゼロリスク。既存コード変更なし
-**デメリット**: 根本問題（settings.json 肥大化・重複エントリ・スケーラビリティ欠如）を解決しない。マニフェストが陳腐化する
+#### 案A: ディレクトリベースディスパッチャ（保留）
 
-### 案E: 外部 CLI hook の dotfiles 一元管理（直交制約・候補）
+`~/.claude/hooks/<event>/` にスクリプトを配置し、settings.json はディスパッチャ 1 行のみ登録。`*.d/` 系の慣習に倣い `00-`, `10-`, `20-` の gap-numbering で順序を表現。
 
-hitl-metrics 等の外部 CLI が `install` で settings.json を直接編集する経路を廃止し、hook 登録は dotfiles の責務に寄せる。外部 CLI 側は `doctor` で「期待する hook エントリが settings.json に登録されているか」のみを検証する。
+- 良い点: 新規 hook 追加 = ファイル配置のみ。settings.json 編集不要
+- 懸念: ディスパッチャ自身が新たな単一障害点（exit code・タイムアウト・stdin 引き継ぎの誤伝播がセキュリティ機構を無効化しうる）。settings.json → ディスパッチャ → スクリプト の間接層が増え、デバッグ時の追跡コストが上がる
 
-**前提**:
-- 外部 CLI 側が `install --no-hooks` モードを提供するか、`install` の hook 登録機能自体を削除する
-- 期待される hook エントリ（subcommand 名・引数）の仕様を外部 CLI と dotfiles で合意する
+#### 案B: 責務グループ統合（保留）
 
-**メリット**:
-- settings.json の hook 登録経路が dotfiles 一本に統一される（ADR-041 の managed keys sync と整合）
-- 案A・案B のディスパッチャ／責務統合がそのまま外部 CLI hook にも適用できる
-- 二重登録（dotfiles + 外部 CLI install）の事故が構造的に発生しない
+`pane-state.sh` / `security-gate.py` / `notify.sh` / `workflow.sh` の 3〜4 ドメイン別スクリプトに集約。settings.json の各エントリは集約後スクリプトを呼ぶだけ。
 
-**デメリット**:
-- 外部 CLI の hook 契約（subcommand 名・引数）が変更されたとき dotfiles 側で追従が必要
-- `doctor` は警告のみで自動修復しないため、期待する hook が抜けていても CLI 実行時までは検出できない（ADR-039 の hook 存在チェックと同様の思想）
+- 良い点: ディスパッチャを増やさず、Claude Code 標準機構をそのまま使う
+- 懸念: スクリプト内 event/args 分岐が肥大化。`security-gate.py` の 1 つのバグが redirect・approve・file-ops の全責務を巻き添えにする。単体テストの分離が難しい
 
-**位置づけ**: 案A・案B のいずれを選択しても直交して適用できる制約。本 ADR で採用すれば「案A」のデメリット 3 番目（外部 CLI が settings.json を直接編集する経路で二重管理になる）が解消され、ディスパッチャ方式・責務統合方式のどちらでも `configs/claude/scripts/` 以下に統一できる。
+#### 案C: 別ファイル manifest（却下）
 
-### 案D: 即効改善（実施済み）
-
-設計方向に関わらず先行実施できる改善として、以下を完了済み：
-
-1. **`approve-safe-file-ops.py` の重複解消**（commit `b9c0a82`）: Read/Write/Edit/NotebookEdit の 4 エントリを `matcher` なしの 1 エントリに統合し、スクリプト内部でツール名チェックする方式へ移行
-2. **ファイル配置の統一**: dotfiles 管理対象は `configs/claude/scripts/` に一本化（hitl-metrics 等の外部 CLI が登録するフックは `hitl-metrics install` 管理下で別経路。案E 採用時は dotfiles 一元管理に変わる）
-
-案D は案A・案Bのいずれを選択しても干渉しない。
-
-### 変更が必要なファイル
-
-| ファイル | リポジトリ | 変更内容 | 状態 |
-|---|---|---|---|
-| `configs/claude/settings.json` | dotfiles | Read/Write/Edit/NotebookEdit の 4 エントリを 1 エントリに統合 | 実施済み（`b9c0a82`） |
-| `configs/claude/scripts/approve-safe-file-ops.py` | dotfiles | 内部でツール名チェックを追加（全 PreToolUse に対応） | 実施済み（`b9c0a82`） |
-
-案A・案B・案E の変更内容は設計確定後に追記する。
+`docs/reference.md` または `~/.claude/hooks-map.md` に「イベント → スクリプト → 目的」を維持。スクリプト本体と乖離するため陳腐化する。**ヘッダ規約はこの問題を本質的に回避する**。
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-042 セクション）

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ADR: 008
+# Purpose: Bash 実行前に find/grep/cat 等を Glob/Grep/Read 等のネイティブツールへ誘導する
 """PreToolUse hook: redirect Bash commands to native Claude Code tools.
 
 Checks the first command in each pipe chain segment and blocks commands

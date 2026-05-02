@@ -1,4 +1,6 @@
 #!/bin/bash
+# ADR: 058
+# Purpose: Stop 時に workflow セッションの transcript を log_dir へコピーする
 set -euo pipefail
 
 # Stop hook: workflow session log collector

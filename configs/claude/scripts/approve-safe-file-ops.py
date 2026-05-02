@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# ADR: 037
+# Purpose: .claude/ サブディレクトリへの Read/Write/Edit/NotebookEdit を自動承認（ADR-038 で Read 追加、ADR-042 で 4 エントリを matcher なしの 1 エントリに統合）
 """PreToolUse hook: approve safe file operations on .claude/ subdirectories.
 
 Auto-approves Read/Write/Edit/NotebookEdit operations on .claude/{subdir}/ paths.

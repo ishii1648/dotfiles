@@ -1,4 +1,6 @@
 #!/bin/bash
+# ADR: 058
+# Purpose: SessionStart で pending な workflow セッション情報（Mode B/C）を実 session_id に紐付ける
 set -euo pipefail
 
 # SessionStart hook: workflow session log collector

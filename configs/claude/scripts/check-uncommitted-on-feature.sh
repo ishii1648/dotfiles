@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# ADR: -
+# Purpose: feature/fix/docs/chore ブランチで未コミット変更が残っている場合に Stop をブロックし git-ship skill を促す（CLAUDE.md ルール由来）
 # Stop hook: feature/fix/docs/chore ブランチで未コミット変更がある場合に
 # Claude の停止をブロックし、commit→push→PR作成 を促す
 
