@@ -42,7 +42,7 @@ install_deps() {
             "gfind:findutils"
             "gdate:coreutils"
         )
-        if [[ "${PROFILE:-full}" == "remote" ]]; then
+        if [[ "${PROFILE:-full}" != "linux" ]]; then
             BREW_PACKAGES+=("docker:docker" "colima:colima" "docker-compose:docker-compose")
         fi
         missing_packages=()
@@ -76,7 +76,7 @@ install_deps() {
         fi
 
         # Colima: コンテナランタイムが動いていなければ起動
-        if [[ "${PROFILE:-full}" == "remote" ]] && command -v colima >/dev/null 2>&1; then
+        if [[ "${PROFILE:-full}" != "linux" ]] && command -v colima >/dev/null 2>&1; then
             if docker info >/dev/null 2>&1; then
                 echo -e "  ${GREEN}colima${NC}\t✓ running"
             else

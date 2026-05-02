@@ -6,7 +6,7 @@
 
 ### 前提条件
 
-- **macOS**: [Homebrew](https://brew.sh) と Python3 (PyYAML) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua を自動インストールする（`--profile remote` では追加で docker / colima / docker-compose も）。
+- **macOS**: [Homebrew](https://brew.sh) と Python3 (PyYAML) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua / docker / colima / docker-compose を自動インストールする（colima は `--profile linux` 以外で対象。Docker サンドボックス用）。
 - **Linux**: 事前にパッケージのインストールが必要。Docker テスト用の `tests/Dockerfile` を参照。
 
 ### 事前設定（初回のみ）
