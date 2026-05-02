@@ -75,6 +75,24 @@ install_deps() {
             echo -e "  ${GREEN}All packages installed${NC}"
         fi
 
+        # docker compose plugin: brew formula は /opt/homebrew/lib/docker/cli-plugins/
+        # に plugin バイナリを置くが Docker CLI の探索パス (~/.docker/cli-plugins/) には
+        # 自動リンクしないので、ここで symlink を貼って `docker compose` を有効化する
+        COMPOSE_PLUGIN_SRC="/opt/homebrew/lib/docker/cli-plugins/docker-compose"
+        COMPOSE_PLUGIN_DEST="$HOME/.docker/cli-plugins/docker-compose"
+        if [[ "${PROFILE:-full}" != "linux" ]] && [[ -f "$COMPOSE_PLUGIN_SRC" ]]; then
+            if [[ -L "$COMPOSE_PLUGIN_DEST" && "$(readlink "$COMPOSE_PLUGIN_DEST")" == "$COMPOSE_PLUGIN_SRC" ]]; then
+                echo -e "  ${GREEN}docker compose plugin${NC}\t✓ linked"
+            elif $DRY_RUN; then
+                echo -e "  ${YELLOW}docker compose plugin${NC}\t✗ NOT LINKED"
+                echo "  Fix: mkdir -p ~/.docker/cli-plugins && ln -sf $COMPOSE_PLUGIN_SRC $COMPOSE_PLUGIN_DEST"
+            else
+                mkdir -p "$HOME/.docker/cli-plugins"
+                ln -sf "$COMPOSE_PLUGIN_SRC" "$COMPOSE_PLUGIN_DEST"
+                echo -e "  ${GREEN}docker compose plugin${NC}\t✓ linked"
+            fi
+        fi
+
         # Colima: コンテナランタイムが動いていなければ起動
         if [[ "${PROFILE:-full}" != "linux" ]] && command -v colima >/dev/null 2>&1; then
             if docker info >/dev/null 2>&1; then
