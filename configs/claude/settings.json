@@ -168,6 +168,12 @@
   "language": "日本語",
   "effortLevel": "medium",
   "permissions": {
-    "defaultMode": "auto"
+    "defaultMode": "auto",
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(rm -r -f *)",
+      "Bash(rm -f -r *)"
+    ]
   }
 }

@@ -54,6 +54,11 @@ def main():
         if tool_name not in FILE_OPS_TOOLS:
             sys.exit(0)
 
+        # auto 系 mode では file ops が既に許可されるため approve は冗長
+        permission_mode = hook_input.get("permission_mode", "")
+        if permission_mode in ("auto", "bypassPermissions", "dontAsk", "acceptEdits"):
+            sys.exit(0)
+
         file_path = get_file_path(tool_name, hook_input.get("tool_input", {}))
         if not file_path:
             sys.exit(0)

@@ -4,6 +4,10 @@
 Checks the first command in each pipe chain segment and blocks commands
 that should use native tools (Glob, Grep, Read, Edit, Write) instead.
 
+All rules exist to suppress permission prompts in default mode. When
+permission_mode is auto/bypassPermissions/dontAsk, the entire hook is
+skipped because permissions are no longer requested.
+
 Fail-open design: any exception results in sys.exit(0) to fall back
 to the normal permission prompt.
 
@@ -23,6 +27,8 @@ Redirect rules:
   mkdir       → Write（ディレクトリ自動作成）
   cp          → Read + Write
   > /tmp/...  → .outputs/claude/ に出力（プロジェクト内に出力を集約）
+
+All rules are skipped when permission_mode is auto/bypassPermissions/dontAsk.
 """
 
 import json
@@ -398,17 +404,23 @@ def main():
         if tool_name != "Bash":
             sys.exit(0)
 
+        # 全 rule は permission 頻発を抑える目的のため、
+        # permission がそもそも出ない mode では hook 全体を skip する
+        permission_mode = hook_input.get("permission_mode", "")
+        if permission_mode in ("auto", "bypassPermissions", "dontAsk"):
+            sys.exit(0)
+
         tool_input = hook_input.get("tool_input", {})
         command = tool_input.get("command", "")
         if not command:
             sys.exit(0)
 
-        # $() コマンド置換チェック（split_chain の前に実行）
-        if has_command_substitution(command):
+        # /tmp/ 書き込みチェック（default mode で /tmp/ がプロジェクト外として
+        # permission 対象になるのを避けるため .outputs/claude/ に誘導）
+        if writes_to_tmp(command):
             reason = (
-                "$() コマンド置換を含む Bash コマンドは使用しないでください。"
-                " $() の結果を変数に格納する Bash 呼び出しと、"
-                "その変数を使う Bash 呼び出しに分割してください。"
+                "/tmp/ への書き込みではなく .outputs/claude/ に出力してください。"
+                " 例: > .outputs/claude/pr-body.txt"
             )
             _write_deny_log(session_id, tool_name, reason)
             output = {
@@ -421,11 +433,12 @@ def main():
             print(json.dumps(output, ensure_ascii=False))
             sys.exit(0)
 
-        # /tmp/ 書き込みチェック（split_chain の前にコマンド全体で検出）
-        if writes_to_tmp(command):
+        # $() コマンド置換チェック（split_chain の前に実行）
+        if has_command_substitution(command):
             reason = (
-                "/tmp/ への書き込みではなく .outputs/claude/ に出力してください。"
-                " 例: > .outputs/claude/pr-body.txt"
+                "$() コマンド置換を含む Bash コマンドは使用しないでください。"
+                " $() の結果を変数に格納する Bash 呼び出しと、"
+                "その変数を使う Bash 呼び出しに分割してください。"
             )
             _write_deny_log(session_id, tool_name, reason)
             output = {

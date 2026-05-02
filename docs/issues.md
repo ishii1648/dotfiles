@@ -61,6 +61,7 @@
 | ✔ | ○ | claude / codex | dotfiles 管理 skill が Codex CLI から利用できない — Claude 用に作った dispatch/orchestrate/session-log を Codex セッションでも使いたい | [ADR-066](adr/066-codex-skill-symlink-distribution.md) |
 | ✔ | ○ | claude / codex | dotfiles 外の skill（個人/プラグイン）を Codex CLI に伝播する手段がない — manifest 化できない skill を任意のタイミングで同期する skill が必要 | [ADR-067](adr/067-codex-sync-skill.md) |
 | ✔ | ○ | tmux | tmux プラグイン (TPM / `wfxr/tmux-fzf-url` 等) が `scripts/setup.sh` の対象外で再現できない — symlink は貼られるが TPM 未インストールのため `prefix + u` 等の plugin バインドが効かない | — |
+| ✔ | ○ | claude | auto mode 運用への切替で hook と CLAUDE.md の permission 緩和規約が冗長/負債化した — `permission_mode` フィールドによる hook 内 skip と destructive 防御の `permissions.deny` 移行で対処 | [ADR-068](adr/068-permission-mode-aware-hooks.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -848,4 +849,21 @@
 - [x] `bash scripts/setup.sh` 実行後に `wfxr/tmux-fzf-url` 等 tmux.conf 宣言済みプラグインが `~/.tmux/plugins/` 配下に展開されている
 - [x] tmux サーバーをリロードした後、`tmux list-keys -T prefix` の出力に `bind-key -T prefix u` が含まれる（cmd+u → URL popup が動作する前提条件）
 - [x] `bash scripts/setup.sh --dry-run` が TPM の存在チェックのみ行い、未インストール時に MISSING を報告する
+
+---
+
+### ADR-068: auto mode 下での hook 無効化と destructive 防御の permissions.deny 移行
+
+**コンポーネント**: claude | **ADR**: [ADR-068](adr/068-permission-mode-aware-hooks.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/scripts/redirect-to-tools.py` が `permission_mode` 系（`auto` / `bypassPermissions` / `dontAsk`）で hook 全体を skip する（`/tmp/` チェック含む全 rule）
+- [x] default mode では `redirect-to-tools.py` の全 rule（`/tmp/` 誘導 / `$()` 禁止 / `&&` 禁止 / native tool redirect）が従来どおり機能する
+- [x] `configs/claude/scripts/approve-safe-commands.py` が `permission_mode` 系で即 `exit 0` する
+- [x] `configs/claude/scripts/approve-safe-file-ops.py` が `permission_mode` 系 + `acceptEdits` で即 `exit 0` する
+- [x] `configs/claude/CLAUDE.md` から「自律性の原則」セクション全体が削除されている
+- [x] `configs/claude/CLAUDE.md` から「禁止コマンド」セクションが削除されている
+- [x] `configs/claude/settings.json` の `permissions.deny` に `Bash(rm -rf *)` / `Bash(rm -fr *)` / `Bash(rm -r -f *)` / `Bash(rm -f -r *)` が追加されている
+- [x] `~/.claude/settings.json` の `permissions.deny` にも同 4 パターンが反映されている
 

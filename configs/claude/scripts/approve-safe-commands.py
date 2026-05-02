@@ -259,6 +259,11 @@ def main():
         if tool_name != "Bash":
             sys.exit(0)
 
+        # auto 系 mode では permission がそもそも出ないため approve は冗長
+        permission_mode = hook_input.get("permission_mode", "")
+        if permission_mode in ("auto", "bypassPermissions", "dontAsk"):
+            sys.exit(0)
+
         tool_input = hook_input.get("tool_input", {})
         command = tool_input.get("command", "")
         if not command:
