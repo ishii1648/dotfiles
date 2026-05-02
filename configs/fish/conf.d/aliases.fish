@@ -11,9 +11,12 @@ abbr -a e eksctl
 abbr -a python python3
 abbr -a ic istioctl
 abbr -a grep ggrep
-abbr -a rgrep "grep -r"
+abbr -a rgrep "ggrep -r"
 abbr -a date gdate
 abbr -a sed gsed
+abbr -a tar gtar
+abbr -a awk gawk
+abbr -a find gfind
 abbr -a n "nvim ."
 abbr -a ccode claude
 
