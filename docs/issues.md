@@ -63,6 +63,7 @@
 | ✔ | ○ | tmux | tmux プラグイン (TPM / `wfxr/tmux-fzf-url` 等) が `scripts/setup.sh` の対象外で再現できない — symlink は貼られるが TPM 未インストールのため `prefix + u` 等の plugin バインドが効かない | — |
 | ✔ | ○ | claude | auto mode 運用への切替で hook と CLAUDE.md の permission 緩和規約が冗長/負債化した — `permission_mode` フィールドによる hook 内 skip と destructive 防御の `permissions.deny` 移行で対処 | [ADR-068](adr/068-permission-mode-aware-hooks.md) |
 | - | ○ | tmux | `wfxr/tmux-fzf-url` が xre 書き直し時に `@fzf-url-extra-filter` を廃止し PR URL フィルタが無効化された — `prefix + u` で PR URL が popup 表示できない | — |
+| - | ○ | tmux / fish / claude / codex | popup ランチャーが二系統並存（dispatch_launcher.fish と `tmux-sidebar new`）でメンテ負債が発生する — `prefix+S` を `tmux-sidebar new` に統一し dispatch_launcher を廃止する | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -904,4 +905,37 @@
 - [ ] §10: `configs/tmux/tmux.conf` に `bind N display-popup -E -w 80 -h 24 'tmux-sidebar new'` が登録されており、prefix+N で popup picker が起動する
 - [ ] `configs/tmux-sidebar/setup.sh` が `~/go/bin/tmux-sidebar` 等で `~/.local/bin/tmux-sidebar` が PATH 上で shadow されているケースを検出し warning を表示する
 - [ ] `bash scripts/setup.sh --dry-run` が All OK で完了し、`tmux-sidebar doctor` の全項目が `[OK]` になる
+
+---
+
+### ADR-069: popup launcher を `tmux-sidebar new` に移行し dispatch_launcher.fish を廃止する
+
+**コンポーネント**: tmux / fish / claude / codex | **ADR**: [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md)
+
+**受け入れ条件（Spike フェーズ）**:
+
+- [ ] spike/069 ブランチで `tmux-sidebar new` の claude モードが ghq repo を選択 → worktree 作成 → Claude Code 起動 → 初期 prompt 投入の一連の流れで動作することを実機確認している
+- [ ] 同 codex モードで worktree 作成 → codex 起動 → 初期 prompt 投入が動作し、ADR-065 相当の attached client 待機ロジックが効いている（detached session で codex の入力エリア背景色が崩れない）ことを実機確認している
+- [ ] `~/.config/dispatch/no-worktree-repos` に登録した repo を選択した場合、メイン worktree のデフォルトブランチで起動することを実機確認している（ADR-064 相当）
+- [ ] dispatch_launcher の `:<branch>` 記法相当の既存 remote branch checkout 機能が `tmux-sidebar new` にあるか／無いかが ADR-069 に追記されている
+- [ ] orchestrate モード（ADR-060 のエージェントチェーン）の起動経路の有無が ADR-069 に追記されている
+- [ ] dispatch 完了後にフォーカスが呼び出し元に留まるか（issues.md L54/L685 と同質の regression が無いか）が確認されている
+- [ ] Spike の知見（OK/NG 内訳と未対応機能のリスト）が ADR-069 の `## 設計案 > Spike 検証項目` の下に追記されている
+
+**受け入れ条件（採用フェーズ — Spike OK 確定後）**:
+
+- [ ] `configs/tmux/tmux.conf` の L86 から `bind S display-popup -E "fish -c dispatch_launcher"` が削除される
+- [ ] `configs/tmux/tmux.conf` に `bind S display-popup -E -w 80 -h 24 'tmux-sidebar new'` が追加される
+- [ ] `configs/fish/functions/dispatch_launcher.fish` が `git rm` される
+- [ ] `configs/fish/functions/__dl_*` 系 helper（`__dl_repo_candidates.fish` 等）が `git rm` される
+- [ ] `tmux source-file ~/.tmux.conf` 後に `tmux list-keys | grep "bind-key.*S"` で prefix+S が `tmux-sidebar new` を起動することを実機確認している
+- [ ] Cmd+Shift+S（ghostty `super+shift+s` 経由）で `tmux-sidebar new` の popup が表示される
+- [ ] ADR-056 のステータスが `廃止（ADR-069 で置換）` に更新され、起動 UI が `tmux-sidebar new` に移管された旨が注記されている
+- [ ] ADR-061 のステータスが `廃止（ADR-069 で置換）` に更新されている
+- [ ] ADR-062 のステータスが `廃止（ADR-069 で置換）` に更新されている
+- [ ] ADR-064 のステータスが Spike 結果に応じて `廃止（ADR-069 で置換）` または `部分廃止（ADR-069 で一部変更）` に更新されている
+- [ ] ADR-065 のステータスが Spike 結果に応じて `廃止（ADR-069 で置換）` または `部分廃止（ADR-069 で一部変更）` に更新されている
+- [ ] `docs/reference.md` の popup 起動経路の記述が `tmux-sidebar new` ベースに書き換えられている
+- [ ] `docs/issues.md` の dispatch_launcher 関連エントリ（L54/L685）が打消し or 「ADR-069 で解消」と注記されている
+- [ ] `bash scripts/setup.sh --dry-run` が regression 無しで完了する
 
