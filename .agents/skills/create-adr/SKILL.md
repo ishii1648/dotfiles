@@ -1,0 +1,92 @@
+---
+name: create-adr
+description: This skill should be used when the user asks to "create-adr", "課題を追加して", "ADR作って", "issueに追加して", or describes a problem/pain point they want to track. Creates an entry in docs/issues.md and a corresponding Draft ADR in docs/adr/.
+version: 0.1.0
+---
+
+# create-adr
+
+課題や問題に感じたことを受け取り、`docs/issues.md` へのエントリ追記と `docs/adr/` への初期 ADR 作成を行う。
+
+## 目的
+
+- 課題と ADR を常に対応させ、トレーサビリティを保つ
+- テーブル記法の手間なく課題を追加できるようにする
+
+## ステップ
+
+### Step 0: ADR 評価（evaluate-adr スキルをコール）
+
+`evaluate-adr` スキルを実行してユーザーのプロンプトを評価する。
+
+- 判定が **ADR 推奨** の場合: Step 1 へ進む
+- 判定が **ADR 不要** の場合: 理由と代替案を提示して処理を中断する
+- 判定が **要確認** の場合: ユーザーの回答を待ち、再評価してから次を決める
+
+### Step 1: 入力解析と矛盾チェック
+
+ユーザーの入力（箇条書き or 自由文）から以下を抽出する：
+
+- **課題の本質**: 何が問題か・何が不便か
+- **コンポーネント**: 関係するコンポーネントを特定する（tmux / fish / Codex / ghostty / nvim / 複合）
+- **解決可能性の見立て**:
+  - `○` = 技術的に解決可能
+  - `△` = 完全解決は難しいがワークアラウンドあり
+  - `×` = アーキテクチャ上の制約で対応不可
+
+**矛盾チェック**（`$PWD/.Codex/skills/adr-reference/skill.md` の矛盾チェック指針を Read して参照）:
+- 同コンポーネントの既存 ADR を `$PWD/docs/adr/` から Grep で検索し、矛盾する決定がないか確認する
+- 依存する ADR がある場合、その前提と矛盾しないか確認する
+
+### Step 2: ADR 番号の決定
+
+`$PWD/docs/adr/` 内のファイルを Glob で確認し、既存の最大番号 + 1 を次番号とする。番号は3桁ゼロ埋め（001, 002, ... 009, 010）。
+
+### Step 3: ADR 作成
+
+`$PWD/docs/adr/NNN-英語タイトル.md` を Write ツールで作成する。
+
+- ファイル名はハイフン区切りの英語（例: `009-fish-tmux-keybind-sharing.md`）
+- 日本語タイトルは英訳する
+
+`$PWD/.Codex/skills/adr-reference/skill.md` を Read ツールで読み込み、そのテンプレートに従って ADR を作成する。
+
+- ユーザーが「Spike として作成する」「Spike ADR を作る」など Spike を明示した場合: ステータスを `Spike中` に設定する
+- それ以外の場合: ステータスは `Draft` 固定
+
+> **移動操作は削除元と作成先を必ず別行で記載する**
+> | `configs/tmux/tmux.conf` L124 | dotfiles | 削除（prtrack keybind） |
+> | `configs/tmux/tmux.local.conf` | sandbox  | 追加（移動先として新規作成） |
+
+### Step 4: issues.md に追記
+
+`$PWD/docs/issues.md` の課題詳細セクションに受け入れ条件を追記し、サマリテーブルにも1行追記する。既存行は変更しない。
+
+**受け入れ条件の書き方ルール:**
+- 「〜される」「〜できる」形式で具体的に記述する
+- **移動・統合操作は削除確認と移動先確認を別条件として書く**
+  - NG: `- [ ] tmux.conf から prtrack 参照が除去される`
+  - OK: `- [ ] tmux.conf から prtrack 参照が除去される`
+       `- [ ] sandbox の tmux.local.conf に prtrack keybind が存在する`
+
+**追記フォーマット:**
+
+```
+| - | ○ | tmux / fish | 課題サマリ — 背景の一文 | [ADR-NNN](adr/NNN-title.md) |
+```
+
+- 対応済み列: `-`（未対応）固定
+- 対応可能列: Step 1 で判断した `○` / `△` / `×`
+- コンポーネント列: `/` 区切りで複合も表記可
+- サマリ列: 「課題 — 背景の一文」形式
+- ADR 列: Step 3 で作成したファイルへの相対リンク
+
+### Step 5: 完了報告
+
+追記した issues.md の行と作成した ADR パスを報告する。
+
+## 制約
+
+- 操作対象は常に `$PWD` 配下（worktree 対応）
+- ADR は `$PWD/docs/adr/` に直接作成する（`.outputs/Codex/` ではない）
+- issues.md は末尾追記のみ。既存行は変更しない
