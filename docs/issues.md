@@ -506,8 +506,8 @@
 
 **受け入れ条件**:
 
-- [ ] `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 重複 4 エントリが 1 エントリに統合される
-- [ ] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない
+- [x] `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 重複 4 エントリが 1 エントリに統合される
+- [x] `approve-safe-file-ops.py` を全 PreToolUse に対して適用しても、Read/Write/Edit/NotebookEdit 以外のツールへの動作が変化しない
 - [ ] settings.json のフック構造設計（案A/案B）が決定され ADR に記録される
 - [ ] 決定した設計方針に基づいてフック追加手順が `docs/development.md` に記載される
 

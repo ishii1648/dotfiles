@@ -21,7 +21,7 @@ UserPromptSubmit → claude-pane-state.sh running
 Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission
 Notification (elicitation_dialog) → claude-notify.sh + claude-pane-state.sh ask
 PreToolUse (Bash) → redirect-to-tools.py + approve-safe-commands.py
-PreToolUse (Read/Write/Edit/NotebookEdit) → approve-safe-file-ops.py（4 エントリ）
+PreToolUse (全ツール) → approve-safe-file-ops.py（matcher なし、内部で Read/Write/Edit/NotebookEdit のみ承認）
 PostToolUse → claude-pane-state.sh running post
 Stop → claude-pane-state.sh idle + hitl-metrics hook stop
 SessionEnd → claude-pane-state.sh end + hitl-metrics hook session-end
@@ -32,9 +32,10 @@ hitl-metrics（外部 CLI ツール）が SessionStart / SessionEnd / Stop の�
 具体的な問題は以下の通り：
 
 1. **settings.json の肥大化**: フック追加のたびに settings.json を直接編集する必要がある
-2. **重複エントリ**: `approve-safe-file-ops.py` が Read/Write/Edit/NotebookEdit の 4 エントリで重複登録されている
-3. **「なぜあるか」の喪失**: スクリプト名・コマンド文字列だけでは変更理由が追跡できない
-4. **スケーラビリティの欠如**: 新しいセキュリティルールや状態追跡を追加するたびに settings.json の行数が増える
+2. **「なぜあるか」の喪失**: スクリプト名・コマンド文字列だけでは変更理由が追跡できない
+3. **スケーラビリティの欠如**: 新しいセキュリティルールや状態追跡を追加するたびに settings.json の行数が増える
+
+なお、当初課題に挙げていた `approve-safe-file-ops.py` の Read/Write/Edit/NotebookEdit 4 エントリ重複登録は、案D として先行実施済み（commit `b9c0a82`）。matcher なしの 1 エントリに統合し、スクリプト内部でツール名チェックする方式へ移行した。
 
 ## 設計案
 
@@ -107,23 +108,23 @@ hitl-metrics 等の外部 CLI が `install` で settings.json を直接編集す
 
 **位置づけ**: 案A・案B のいずれを選択しても直交して適用できる制約。本 ADR で採用すれば「案A」のデメリット 3 番目（外部 CLI が settings.json を直接編集する経路で二重管理になる）が解消され、ディスパッチャ方式・責務統合方式のどちらでも `configs/claude/scripts/` 以下に統一できる。
 
-### 案D: 即効改善（独立実施可能）
+### 案D: 即効改善（実施済み）
 
-設計方向に関わらず、今すぐ実施できる改善：
+設計方向に関わらず先行実施できる改善として、以下を完了済み：
 
-1. **`approve-safe-file-ops.py` の重複解消**: Read/Write/Edit/NotebookEdit の 4 エントリを、全 PreToolUse に対して内部でツール名チェックする 1 エントリに集約する
-2. **ファイル配置の統一**: dotfiles 管理対象は `configs/claude/scripts/` に一本化（hitl-metrics 等の外部 CLI が登録するフックは `hitl-metrics install` 管理下で別経路）
+1. **`approve-safe-file-ops.py` の重複解消**（commit `b9c0a82`）: Read/Write/Edit/NotebookEdit の 4 エントリを `matcher` なしの 1 エントリに統合し、スクリプト内部でツール名チェックする方式へ移行
+2. **ファイル配置の統一**: dotfiles 管理対象は `configs/claude/scripts/` に一本化（hitl-metrics 等の外部 CLI が登録するフックは `hitl-metrics install` 管理下で別経路。案E 採用時は dotfiles 一元管理に変わる）
 
-案D は案A・案Bのいずれを選択しても先行して実施できる。
+案D は案A・案Bのいずれを選択しても干渉しない。
 
-### 変更が必要なファイル（案Dのみ確定）
+### 変更が必要なファイル
 
-| ファイル | リポジトリ | 変更内容 |
-|---|---|---|
-| `configs/claude/settings.json` | dotfiles | Read/Write/Edit/NotebookEdit の 4 エントリを 1 エントリに統合 |
-| `configs/claude/scripts/approve-safe-file-ops.py` | dotfiles | 内部でツール名チェックを追加（全 PreToolUse に対応） |
+| ファイル | リポジトリ | 変更内容 | 状態 |
+|---|---|---|---|
+| `configs/claude/settings.json` | dotfiles | Read/Write/Edit/NotebookEdit の 4 エントリを 1 エントリに統合 | 実施済み（`b9c0a82`） |
+| `configs/claude/scripts/approve-safe-file-ops.py` | dotfiles | 内部でツール名チェックを追加（全 PreToolUse に対応） | 実施済み（`b9c0a82`） |
 
-案A・案B の変更内容は設計確定後に追記する。
+案A・案B・案E の変更内容は設計確定後に追記する。
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-042 セクション）
