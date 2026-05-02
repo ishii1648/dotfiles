@@ -15,14 +15,13 @@
 
 ## コンテキスト
 
-`configs/claude/settings.json` の `hooks` セクションは肥大化を続けており、現在は 7 イベント・20 エントリ前後を抱える。さらに今後も観測系 hook（claudedog, hitl-metrics 等）や安全フィルタの拡張が見込まれる。
+`configs/claude/settings.json` の `hooks` セクションは肥大化を続けており、現在は 7 イベント・15 エントリ前後を抱える。さらに今後も観測系 hook（hitl-metrics 等）や安全フィルタの拡張が見込まれる。
 
 ```
-SessionStart    → claude-pane-state.sh idle + claudedog/session-index.sh + workflow-session-start.sh + hitl-metrics(session-start, todo-cleanup)
+SessionStart    → claude-pane-state.sh idle + workflow-session-start.sh + hitl-metrics(session-start, todo-cleanup)
 UserPromptSubmit → claude-pane-state.sh running + SSH バナー
-Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission + claudedog/permission-log.sh
+Notification (permission_prompt) → claude-notify.sh + claude-pane-state.sh permission
 Notification (elicitation_dialog) → claude-notify.sh + claude-pane-state.sh ask
-PreToolUse (全ツール) → claudedog/pretooluse-track.sh
 PreToolUse (Bash) → redirect-to-tools.py
 PreToolUse (Bash) → approve-safe-commands.py
 PreToolUse (全ツール) → approve-safe-file-ops.py（matcher なし、内部で Read/Write/Edit/NotebookEdit のみ承認）
@@ -32,7 +31,7 @@ Stop → check-uncommitted-on-feature.sh + claude-pane-state.sh idle + workflow-
 SessionEnd → claude-pane-state.sh end + hitl-metrics(session-end)
 ```
 
-すべての hook 登録は dotfiles の `configs/claude/settings.json` をソースとし、`setup.sh` が `~/.claude/settings.json` の `hooks` キーを同期する（ADR-041）。claudedog・hitl-metrics 等の外部 CLI が settings.json を直接書き換える経路は存在しない（案E の前提）。hitl-metrics は `install` で hook を自動登録する機能を持たず、登録は dotfiles 経由・検証のみ `hitl-metrics doctor` が担当する設計（[hitl-metrics setup.md](https://github.com/ishii1648/hitl-metrics/blob/main/docs/setup.md)）。
+すべての hook 登録は dotfiles の `configs/claude/settings.json` をソースとし、`setup.sh` が `~/.claude/settings.json` の `hooks` キーを同期する（ADR-041）。hitl-metrics 等の外部 CLI が settings.json を直接書き換える経路は存在しない（案E の前提）。hitl-metrics は `install` で hook を自動登録する機能を持たず、登録は dotfiles 経由・検証のみ `hitl-metrics doctor` が担当する設計（[hitl-metrics setup.md](https://github.com/ishii1648/hitl-metrics/blob/main/docs/setup.md)）。claudedog から hitl-metrics への移行に伴い、`~/.claude/claudedog/hooks/*` 系の per-event hook は撤去済み（hitl-metrics は transcript ベースの後処理 `backfill`/`sync-db` で代替）。
 
 当初挙げた問題は以下 3 つだが、案D・案E 完了後に再評価すると重みが大きく変わっている：
 

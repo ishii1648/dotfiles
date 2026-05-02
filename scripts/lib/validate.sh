@@ -54,30 +54,26 @@ validate_json() {
         fi
     done
 
-    # hooks スクリプト存在チェック（~/.claude/scripts/ 参照のみ対象）
-    # および ADR-042 ヘッダ規約チェック（~/.claude/scripts/ 配下のみ。claudedog 等の外部 CLI 提供スクリプトは対象外）
+    # hooks スクリプト存在チェック + ADR-042 ヘッダ規約チェック（~/.claude/scripts/ 配下のみ対象）
     if jq -e 'has("hooks")' "$dest" >/dev/null 2>&1; then
         local hook_errors=0
         local header_warns=0
         while IFS= read -r cmd; do
             local script_path
             script_path=$(echo "$cmd" | awk '{print $1}' | sed "s|~|$HOME|g")
-            if [[ "$script_path" == "$HOME/.claude/scripts/"* ]] || [[ "$script_path" == "$HOME/.claude/claudedog/"* ]]; then
+            if [[ "$script_path" == "$HOME/.claude/scripts/"* ]]; then
                 if [[ ! -f "$script_path" ]]; then
                     echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook script not found: $cmd"
                     hook_errors=$((hook_errors + 1))
                     continue
                 fi
-                # ADR-042 ヘッダ規約: ~/.claude/scripts/ 配下のみ検査
-                if [[ "$script_path" == "$HOME/.claude/scripts/"* ]]; then
-                    if ! head -10 "$script_path" | grep -qE '^# ADR:'; then
-                        echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook header missing '# ADR:': $(basename "$script_path")"
-                        header_warns=$((header_warns + 1))
-                    fi
-                    if ! head -10 "$script_path" | grep -qE '^# Purpose:'; then
-                        echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook header missing '# Purpose:': $(basename "$script_path")"
-                        header_warns=$((header_warns + 1))
-                    fi
+                if ! head -10 "$script_path" | grep -qE '^# ADR:'; then
+                    echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook header missing '# ADR:': $(basename "$script_path")"
+                    header_warns=$((header_warns + 1))
+                fi
+                if ! head -10 "$script_path" | grep -qE '^# Purpose:'; then
+                    echo -e "  ${YELLOW}$display_name${NC}\tWARN: hook header missing '# Purpose:': $(basename "$script_path")"
+                    header_warns=$((header_warns + 1))
                 fi
             fi
         done < <(jq -r '

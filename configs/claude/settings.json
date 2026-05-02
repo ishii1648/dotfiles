@@ -18,10 +18,6 @@
           },
           {
             "type": "command",
-            "command": "~/.claude/claudedog/hooks/session-index.sh"
-          },
-          {
-            "type": "command",
             "command": "~/.claude/scripts/workflow-session-start.sh"
           },
           {
@@ -60,10 +56,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh permission"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/claudedog/hooks/permission-log.sh"
           }
         ]
       },
@@ -120,14 +112,6 @@
       }
     ],
     "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/claudedog/hooks/pretooluse-track.sh"
-          }
-        ]
-      },
       {
         "matcher": "Bash",
         "hooks": [

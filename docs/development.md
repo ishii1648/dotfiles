@@ -26,9 +26,9 @@
 - 仕様は実装後に更新してよい（後追いOK）
 - 「なぜこうしたか」だけ書く。実装手順は仕様に書かない
 
-### claudedog（別リポジトリに移行済み）
+### hitl-metrics（別リポジトリ）
 
-claudedog は別リポジトリ（`ishii1648/claudedog`）に分離済み。開発プロセスは当該リポジトリの README.md を参照。
+HITL メトリクス計測は `ishii1648/hitl-metrics` に分離されている（claudedog の後継）。hook 登録は本 dotfiles で管理し、binary のインストールと dashboard 設定は当該リポジトリの [docs/setup.md](https://github.com/ishii1648/hitl-metrics/blob/main/docs/setup.md) を参照。
 
 ### Claude Code フックスクリプトのヘッダ規約（ADR-042）
 
@@ -43,7 +43,7 @@ claudedog は別リポジトリ（`ishii1648/claudedog`）に分離済み。開�
 - `# ADR:` 行: 根拠 ADR の番号。特定 ADR を持たないスクリプト（プロジェクト規約由来など）は `# ADR: -` を記載する
 - `# Purpose:` 行: スクリプトの目的を 1 行で記述（必須）
 - `setup.sh` 実行時に `scripts/lib/validate.sh` がヘッダ未記入を WARN で検出する
-- claudedog 等の外部 CLI が提供するスクリプト（`~/.claude/claudedog/hooks/*.sh`）は dotfiles 管理外のため対象外
+- 外部 CLI 提供のコマンド形式 hook（例: `hitl-metrics hook session-start`）は dotfiles 管理外のスクリプトを呼ぶため対象外
 
 新規 hook を追加する際は settings.json への登録と同時にヘッダも記入すること。`grep -rE '^# ADR:' ~/.claude/scripts/` で全 hook の根拠が一覧できる状態を維持する。
 
