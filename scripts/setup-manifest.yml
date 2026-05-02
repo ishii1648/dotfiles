@@ -15,6 +15,7 @@ profiles:
     - tmux
     - claude
     - codex
+    - hitl-metrics
     - aqua
     - git
     - vim
@@ -23,6 +24,7 @@ profiles:
     - nvim
     - tmux
     - claude
+    - hitl-metrics
     - aqua
     - git
     - vim
@@ -31,6 +33,7 @@ profiles:
     - nvim
     - tmux
     - claude
+    - hitl-metrics
     - aqua
     - git
     - vim
@@ -98,6 +101,9 @@ components:
         target: configs/claude/skills/orchestrate
       - link: ~/.codex/skills/session-log
         target: configs/claude/skills/session-log
+
+  hitl-metrics:
+    setup: configs/hitl-metrics/setup.sh
 
   aqua:
     setup: configs/aqua/setup.sh
