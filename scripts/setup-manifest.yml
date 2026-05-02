@@ -16,6 +16,7 @@ profiles:
     - claude
     - codex
     - hitl-metrics
+    - tmux-sidebar
     - aqua
     - git
     - vim
@@ -25,6 +26,7 @@ profiles:
     - tmux
     - claude
     - hitl-metrics
+    - tmux-sidebar
     - aqua
     - git
     - vim
@@ -34,6 +36,7 @@ profiles:
     - tmux
     - claude
     - hitl-metrics
+    - tmux-sidebar
     - aqua
     - git
     - vim
@@ -104,6 +107,9 @@ components:
 
   hitl-metrics:
     setup: configs/hitl-metrics/setup.sh
+
+  tmux-sidebar:
+    setup: configs/tmux-sidebar/setup.sh
 
   aqua:
     setup: configs/aqua/setup.sh
