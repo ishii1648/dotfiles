@@ -54,7 +54,7 @@ if [[ -z "$items" ]]; then
     exit 0
 fi
 
-selected=$(printf '%s\n' "$items" | fzf --tmux center,90%,60% --ansi --multi --exit-0 --no-preview || true)
+selected=$(printf '%s\n' "$items" | fzf --ansi --multi --exit-0 --no-preview || true)
 
 [[ -z "$selected" ]] && exit 0
 

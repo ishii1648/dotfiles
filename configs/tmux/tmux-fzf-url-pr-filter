@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# tmux-fzf-url extra filter: #NNN patterns → GitHub PR URLs
+# tmux-fzf-url extra filter: 現在の pane の git remote から PR URL を生成する
 # Output format: colored-branch URL (URL is always the last field, uncolored)
-# Usage: echo "$content" | tmux-fzf-url-pr-filter
+# Usage: tmux-fzf-url-pr-filter (stdin は無視)
+#
+# 過去はペイン上の #NNN パターンも PR URL に変換していたが、PR が存在しない番号
+# まで誤検出するため削除。statusline.js のキャッシュ → gh pr view の順で参照する。
 
 pane_path=$(tmux display-message -p '#{pane_current_path}' 2>/dev/null)
 [ -z "$pane_path" ] && exit 0
@@ -16,21 +19,6 @@ github_base=$(echo "$remote_url" | sed -E 's#git@github\.com:(.+)(\.git)?$#https
 branch=$(git -C "$pane_path" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "-")
 pane_cmd=$(tmux display-message -p '#{pane_current_command}' 2>/dev/null)
 
-# stdin を変数に保持（2回使用するため）
-stdin_content=$(cat)
-
-# ペイン内容の #NNN パターンを処理
-echo "$stdin_content" | grep -oE '#[0-9]+' | sort -u | while read -r match; do
-    num=${match#\#}
-    # Claude Code セッションの場合のみブランチ名を表示
-    if [[ "$pane_cmd" == "claude" ]]; then
-        echo -e "\033[32m${branch}\033[0m \033[36m${github_base}/pull/${num}\033[0m"
-    else
-        echo -e "\033[36m${github_base}/pull/${num}\033[0m"
-    fi
-done
-
-# ステータスバーにのみ表示されている PR にも対応するため PR 情報を取得
 # statusline.js が書くキャッシュを優先（ネットワーク遅延を回避）
 cache_key=$(echo -n "$pane_path" | md5)
 cache_file="/tmp/gh-pr-${cache_key}"
@@ -39,15 +27,12 @@ if [ -f "$cache_file" ]; then
 else
     pr_output=$(cd "$pane_path" && gh pr view --json number,url -q '"\(.number) \(.url)"' 2>/dev/null)
 fi
-if [ -n "$pr_output" ]; then
-    pr_num=$(echo "$pr_output" | cut -d' ' -f1)
-    pr_url=$(echo "$pr_output" | cut -d' ' -f2)
-    # ペイン内容で既に出力済みの場合は重複しない
-    if ! echo "$stdin_content" | grep -qE "#${pr_num}([^0-9]|$)"; then
-        if [[ "$pane_cmd" == "claude" ]]; then
-            echo -e "\033[32m${branch}\033[0m \033[36m${pr_url}\033[0m"
-        else
-            echo -e "\033[36m${pr_url}\033[0m"
-        fi
-    fi
+
+[ -z "$pr_output" ] && exit 0
+
+pr_url=$(echo "$pr_output" | cut -d' ' -f2)
+if [[ "$pane_cmd" == "claude" ]]; then
+    echo -e "\033[32m${branch}\033[0m \033[36m${pr_url}\033[0m"
+else
+    echo -e "\033[36m${pr_url}\033[0m"
 fi

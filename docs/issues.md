@@ -879,8 +879,10 @@
 - [x] `configs/tmux/fzf-pr-popup.sh` が新規作成され、capture-pane → `tmux-fzf-url-pr-filter` + 生 URL 抽出 → `fzf --tmux` popup → `open` の流れを実装している
 - [x] `~/.local/bin/tmux-fzf-pr-popup` が `configs/tmux/fzf-pr-popup.sh` への symlink として作成される（`scripts/setup-manifest.yml` で管理）
 - [x] `configs/tmux/tmux.conf` の TPM `run` 後に `bind u` が `tmux-fzf-pr-popup` を呼ぶ形で `wfxr/tmux-fzf-url` の bind を上書きしている
-- [ ] PR が作成済みの worktree pane で `prefix + u` を押すと PR URL が popup 候補に出る（実機確認待ち）
-- [ ] popup から URL を選択すると `open` (macOS) または `xdg-open` (Linux) で開かれる（実機確認待ち）
+- [x] PR が作成済みの worktree pane で `prefix + u` を押すと PR URL が popup 候補に出る
+- [x] popup から URL を選択すると `open` (macOS) または `xdg-open` (Linux) で開かれる
+- [x] `tmux-fzf-url-pr-filter` の `#NNN` 抽出ロジックを削除し、キャッシュ + `gh pr view` の結果のみを返す（誤検出防止）
+- [x] tmux global PATH に `/sbin` を追加し、display-popup 経由で `md5` (macOS の `/sbin/md5`) が見える
 - [x] 画面上に http(s):// の生 URL が映っているとき、PR URL の候補に加えて生 URL も popup 候補に出る（OSC 8 ハイパーリンクの URL も抽出される）
 - [x] `tmux-fzf-url-pr-filter` の出力に含まれる URL と画面上の同一 URL が重複候補として並ばない（awk で URL ベース重複排除）
 
