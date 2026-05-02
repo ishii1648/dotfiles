@@ -23,6 +23,14 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/workflow-session-start.sh"
+          },
+          {
+            "type": "command",
+            "command": "hitl-metrics hook session-start"
+          },
+          {
+            "type": "command",
+            "command": "hitl-metrics hook todo-cleanup"
           }
         ]
       }
@@ -88,6 +96,10 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/workflow-session-log.sh"
+          },
+          {
+            "type": "command",
+            "command": "hitl-metrics hook stop"
           }
         ]
       }
@@ -98,6 +110,11 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh end"
+          },
+          {
+            "type": "command",
+            "command": "hitl-metrics hook session-end",
+            "timeout": 10
           }
         ]
       }
