@@ -28,7 +28,20 @@ install_deps() {
             exit 1
         fi
 
-        BREW_PACKAGES=("fish:fish" "tmux:tmux" "nvim:neovim" "jq:jq" "aqua:aqua")
+        BREW_PACKAGES=(
+            "fish:fish"
+            "tmux:tmux"
+            "nvim:neovim"
+            "jq:jq"
+            "aqua:aqua"
+            # GNU tools (BSD 版を上書きせず g- prefix で共存)
+            "ggrep:grep"
+            "gsed:gnu-sed"
+            "gtar:gnu-tar"
+            "gawk:gawk"
+            "gfind:findutils"
+            "gdate:coreutils"
+        )
         if [[ "${PROFILE:-full}" == "remote" ]]; then
             BREW_PACKAGES+=("docker:docker" "colima:colima" "docker-compose:docker-compose")
         fi
