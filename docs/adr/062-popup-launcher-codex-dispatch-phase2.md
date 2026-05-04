@@ -1,7 +1,9 @@
 # ADR-062: popup ランチャーの codex モードを dispatch 化する（フェーズ2）
 
 ## ステータス
-採用済み
+廃止（ADR-069 で置換）
+
+> codex モードの worktree 作成 + 初期 prompt 投入（フェーズ2 仕様）は upstream `tmux-sidebar new` の `internal/dispatch.Launch` に同等実装される形で移管された（`Launcher LauncherCodex`、`CreateWorktree`、`writePromptFile` の各処理）。本 ADR の決定は upstream 側に統合されたため廃止。
 
 ## 関連 ADR
 - 依存: ADR-061（codex モードのフェーズ1 仕様（worktree なし・prompt 投入なし）を上書き）

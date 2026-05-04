@@ -1,10 +1,9 @@
 # ADR-061: popup ランチャーのトップレベルモードを claude / codex に再構成する
 
 ## ステータス
-部分廃止（ADR-062 で一部変更）
+廃止（ADR-069 で置換）
 
-- 変更された決定: codex モードの「worktree 作成なし、prompt 投入なし」というフェーズ1 仕様、および「codex モードの初期実装（フェーズ1）」セクション全体は ADR-062 で上書きされた（`dispatch.sh` の `--launcher codex` 経由で worktree 作成 + prompt 投入を行うフェーズ2 実装に移行）
-- 引き続き有効な決定: トップレベルを claude / codex の 2 値モードとする方針、PRs モード廃止、候補ソース統一（`ghq list`）、`tab` でモード切替
+> popup ランチャーの実装が `dispatch_launcher.fish` から upstream `tmux-sidebar new`（`internal/picker`）に移管された。トップレベル claude / codex 二値モード・`tab` でのモード切替・`ghq list` 候補ソースという本 ADR の方針は upstream picker に同一仕様で実装されているが、起動経路と実装ロケーションが完全に変わったため本 ADR は廃止扱い。
 
 ## 関連 ADR
 - 依存: ADR-056（dispatch/orchestrate popup ランチャー — 本 ADR が Step 1 のモード設計を上書き）

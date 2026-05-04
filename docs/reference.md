@@ -44,7 +44,7 @@
 | エージェントチェーン順次実行（1 worktree + N agent） | `/orchestrate` skill | 実装済み | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
-| dispatch/orchestrate 起動ランチャー | popup ランチャー（`dispatch_launcher.fish`） | 実装済み | [ADR-056](adr/056-dispatch-orchestrate-popup-launcher.md) |
+| dispatch 起動ランチャー（popup picker） | `tmux-sidebar new`（upstream の `internal/picker`、prefix+S / Cmd+Shift+S 起動） | 実装済み | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
 
 dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
 
@@ -77,7 +77,8 @@ dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リ
         ↓
 tmux-sidebar: active session の監視・移動 UI (ADR-051)
 
-cmd+shift+s → popup ランチャー: dispatch/orchestrate 起動 (ADR-056)
+cmd+shift+s → popup picker (`tmux-sidebar new`): repo + launcher (claude/codex) + prompt 入力で /dispatch 起動 (ADR-069)
+                                                  orchestrate を使う場合は claude session 起動後に /orchestrate skill を呼ぶ
 ```
 
 **計画中の拡張（現行アーキテクチャのスコープ外）:**
@@ -120,9 +121,13 @@ ghq 管理リポジトリと既存 tmux セッションを統合した fzf セ�
 
 worktree 配置先: `<リポジトリ>@<worktree名>`（例: `dotfiles@feat-tmux`）
 
-### dispatch/orchestrate ランチャー — `dispatch_launcher`
+### dispatch popup picker — `tmux-sidebar new`
 
-`cmd+shift+s`（tmux prefix + S）で popup を開き、ghq リポジトリを fzf で選択、`ctrl-t` で dispatch/orchestrate を切替、タスク記述を入力して実行する（ADR-056）。dispatch モードは `dispatch.sh launch` を、orchestrate モードは tmux session + claude で `/orchestrate` を起動する。
+`cmd+shift+s`（tmux prefix + S）で popup を開き、ghq リポジトリを選択、`tab` で claude / codex を切替、タスク記述を入力して実行する（ADR-069）。upstream `ishii1648/tmux-sidebar` の `internal/picker` + `internal/dispatch` が一連の処理（worktree 作成 + prompt file 書き込み + launcher 起動）を担う。
+
+prompt 先頭行に `:<branch>` を書くと、新規 worktree を作らず既存 remote ブランチを checkout して launcher を idle で起動する（チェックアウトモード）。`~/.config/dispatch/no-worktree-repos` に登録した repo はメイン worktree のデフォルトブランチで起動する。
+
+orchestrate を使う場合は claude session を起動してから `/orchestrate` skill を呼ぶ（popup から直接 orchestrate を起動する経路は ADR-069 で廃止）。
 
 ### セットアップ
 

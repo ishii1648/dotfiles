@@ -1,7 +1,9 @@
 # ADR-065: dispatch 経由の codex 起動を attached client が来るまで遅延させる
 
 ## ステータス
-採用済み
+廃止（ADR-069 で置換）
+
+> codex 起動時に attached client を待機する遅延ロジック（最大 5 分、0.5 秒ポーリング）は upstream `tmux-sidebar` の `internal/dispatch.waitForAttachedClient` に同等実装で移植された（ADR-069 Spike で確認、コメントに ADR-065 を明示参照）。本 ADR の決定は upstream 側に統合されたため廃止。
 
 ## 関連 ADR
 - 依存: ADR-062（`dispatch.sh launch --launcher codex` の起動経路を確立）
