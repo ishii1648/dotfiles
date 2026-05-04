@@ -1,9 +1,9 @@
 # ADR-056: dispatch/orchestrate popup ランチャー
 
 ## ステータス
-部分廃止（ADR-061 で一部変更）
+廃止（ADR-069 で置換）
 
-> Step 1（リポジトリ選択トップレベル UI）の設計は ADR-061 で claude/codex の二値モードに置き換えられた（旧 PRs モードも廃止）。Step 2（claude モード時の dispatch/orchestrate 切替）と全体方針は本 ADR を維持。
+> popup ランチャーの起動 UI 自体が `tmux-sidebar new`（upstream の `internal/picker`）に移管された。`dispatch_launcher.fish` および関連 helper (`__dl_*`) は ADR-069 採用時に `git rm` され、本 ADR のすべての決定（Step 1/2 の UI 設計、claude モード時の dispatch/orchestrate 切替、`bind S` 経路）は無効化された。Step 2 の dispatch ↔ orchestrate トグルは upstream picker に存在しないため、orchestrate を起動したい場合は claude session を `tmux-sidebar new` で開いてから `/orchestrate` skill を呼ぶ運用に変わった。
 
 ## 関連 ADR
 - 依存: ADR-054（dispatch skill — ランチャーが呼び出すエントリポイント）

@@ -1,7 +1,9 @@
 # ADR-064: no-worktree-repos の popup 起動はメインworktree+デフォルトブランチに揃える
 
 ## ステータス
-採用済み
+廃止（ADR-069 で置換）
+
+> `~/.config/dispatch/no-worktree-repos` を読みメイン worktree のデフォルトブランチで起動する挙動は upstream `tmux-sidebar` の `internal/dispatch` に `MatchesNoWorktreeConfig` + `CheckoutDefaultBranch` として完全互換で移植された（ADR-069 Spike で確認）。`dispatch_launcher.fish` 経由で実装していたロジックは `git rm` 済み。
 
 ## 関連 ADR
 - 依存: ADR-062（`~/.config/dispatch/no-worktree-repos` を dispatch.sh の共通参照として確立）

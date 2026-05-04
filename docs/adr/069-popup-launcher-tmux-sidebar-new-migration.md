@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+採用済み
 
 ## 関連 ADR
 
@@ -83,6 +83,30 @@ ADR-063 では「将来 `dispatch.sh` を `tmux-sidebar dispatch` の thin wrapp
 6. **focus 制御**: dispatch 完了後、フォーカスが呼び出し元に留まるか（issues.md L685 課題と同質の regression が無いか）
 
 Spike 結果が NG（特に項目 2/3/5）の場合は、本 ADR を `却下` または `部分採用` に切り替え、tmux-sidebar 側に upstream PR を出してから再 Spike する。
+
+### Spike 検証結果（2026-05-03 実施 — `ishii1648/tmux-sidebar` main HEAD）
+
+実機の対話テストではなく、`internal/dispatch/dispatch.go` / `internal/dispatch/branch.go` / `internal/picker/picker.go` の上流ソース読みによる静的検証。
+
+| # | 項目 | 結果 | 根拠 |
+|---|---|---|---|
+| 1 | claude モード（worktree + prompt 投入） | ✅ PASS | `dispatch.Launch` が `CreateWorktree(repoPath, opts.Branch)` → prompt file 書き込み → `sendLauncherKeys` の流れを実装。`BranchFromPrompt`/`slugify` が `dispatch_launcher.fish` のスラッグ生成（`feat/<slug>`、40 文字、英数のみ）を 1:1 で移植している（`branch.go` のコメントに明記） |
+| 2 | codex モード + ADR-065 attached client 待機 | ✅ PASS | `dispatch.go` L259 で `waitForAttachedClient(sessionName, 5*time.Minute)` を呼ぶ。コメントで ADR-065 と OSC 11 background-color query への対応を明示。タイムアウト 5 分も dotfiles 版 (`ADR-065` 受け入れ条件) と一致 |
+| 3 | no-worktree-repos → デフォルトブランチ起動 | ✅ PASS | `dispatch.go` L177-218 で `MatchesNoWorktreeConfig(short)` (`~/.config/dispatch/no-worktree-repos`) を読み、ヒット時に `configMatched=true` → `workDir = CheckoutDefaultBranch(repoPath)` を実行。ADR-064 受け入れ条件と完全互換 |
+| 4 | `:<branch>` 記法（既存 remote branch checkout） | ✅ PASS | `branch.go` の `ParseBranchPrefix` が prompt 先頭行 `:<name>` を検出し `checkoutMode=true` を返す。picker 側 (`picker.go` L289-291) は checkout 時 `opts.Branch=branch / opts.NoPrompt=true` を設定 |
+| 5 | orchestrate モードの起動経路 | ❌ NG（要判断） | `picker.go` の wizard step は `stepRepo` / `stepPrompt` の 2 段のみ。launcher は `LauncherClaude` / `LauncherCodex` の二値で `toggleLauncher` も Tab で claude↔codex を切替えるだけ。popup から orchestrate を起動する経路が存在しない。dispatch_launcher.fish の Step 2 内 dispatch↔orchestrate トグル（claude モード時のみ）は upstream 未対応 |
+| 6 | focus 制御（呼び出し元に留まる） | ✅ PASS | `picker.go` L280-285 で `Switch is left off so the user's current pane / session is not hijacked` と明示コメントあり。dispatch_launcher.fish の `run-shell -b switch-client` 強制遷移問題（issues.md L54/L685、ADR 未割当）が upstream 側で構造的に解消されている |
+
+**総合判定: 5/6 PASS、orchestrate のみ未対応**
+
+orchestrate に関するトレードオフ:
+
+- 失われる経路: dispatch_launcher.fish の claude モード Step 2 で Tab を押して orchestrate 起動
+- 残る経路: 任意の Claude session 内から `/orchestrate` slash command（ADR-067 codex-sync で codex 側にも symlink 配布済み）
+- 影響評価: `/orchestrate` は ADR-060 でエージェントチェーン化されており、popup から「タスク記述 → 即 orchestrate 起動」したい頻度は低い（dispatch の方が遥かに使用頻度が高い想定）。orchestrate が必要なケースでは、まず claude session を `tmux-sidebar new` で起動してから `/orchestrate` を打てば等価。ステップ数 +1 のコストはあるが popup launcher 二系統並存のメンテ負債と比較すれば許容できる
+- 代替: 将来 upstream の `tmux-sidebar new` に launcher の三値化 (claude/codex/orchestrate) を PR する選択肢もあるが、本 ADR では先送り（orchestrate 自体が dotfiles 固有概念であり、upstream に組み込ますコストが高い）
+
+**判定**: 案A 採用可能。orchestrate トグル喪失は許容トレードオフとして ADR に記録。
 
 ### 変更が必要なファイル
 
