@@ -104,7 +104,6 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 | Git (full/remote) | `~/.gitconfig` | `configs/git/gitconfig.macos` を `copies: if_missing` で配布 |
 | Git (linux) | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布 |
 | Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。`hooks` / `statusLine` / `env` は setup 時に自動同期 |
-| Fish (tmw) | `~/.config/fish/conf.d/tmw_worktree_repos.conf` | `configs/fish/conf.d/tmw_worktree_repos.conf.example`（手動コピー） |
 | Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example`（手動コピー） |
 | tmux (remote) | `~/.tmux.local.conf` | `configs/tmux/tmux.remote.conf.example` を `copies: if_missing` で配布 |
 | tmux (full) | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example`（手動コピー、F12 トグル等） |

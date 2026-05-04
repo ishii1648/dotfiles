@@ -1,4 +1,0 @@
-# Worktreeを強制するリポジトリ（オプトイン）
-# tmw_worktree_repos.conf にコピーしてカスタマイズ
-# ghq list の相対パスで記述（1行1リポジトリ）
-# github.com/yourname/dotfiles
