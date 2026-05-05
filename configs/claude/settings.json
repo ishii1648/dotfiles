@@ -22,11 +22,11 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook session-start --agent claude"
+            "command": "agent-telemetry hook session-start --agent claude"
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook todo-cleanup --agent claude"
+            "command": "agent-telemetry hook todo-cleanup --agent claude"
           }
         ]
       }
@@ -91,7 +91,7 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook stop --agent claude"
+            "command": "agent-telemetry hook stop --agent claude"
           }
         ]
       }
@@ -105,7 +105,7 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook session-end --agent claude",
+            "command": "agent-telemetry hook session-end --agent claude",
             "timeout": 10
           }
         ]

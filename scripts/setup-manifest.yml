@@ -15,7 +15,7 @@ profiles:
     - tmux
     - claude
     - codex
-    - hitl-metrics
+    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -25,7 +25,7 @@ profiles:
     - nvim
     - tmux
     - claude
-    - hitl-metrics
+    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -35,7 +35,7 @@ profiles:
     - nvim
     - tmux
     - claude
-    - hitl-metrics
+    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -108,8 +108,8 @@ components:
       - link: ~/.codex/skills/session-log
         target: configs/claude/skills/session-log
 
-  hitl-metrics:
-    setup: configs/hitl-metrics/setup.sh
+  agent-telemetry:
+    setup: configs/agent-telemetry/setup.sh
 
   tmux-sidebar:
     setup: configs/tmux-sidebar/setup.sh

@@ -17,7 +17,7 @@
 
 | コンポーネント | 管理場所 |
 |---|---|
-| hitl-metrics | `ishii1648/hitl-metrics` — Claude Code の人の介入率を追跡・可視化する計測ツール（claudedog の後継） |
+| agent-telemetry | `ishii1648/agent-telemetry` — Claude Code / Codex CLI の PR 単位 token 効率を追跡・可視化する計測ツール（旧 `hitl-metrics`、claudedog の後継） |
 | tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI） |
 
 ## ツールスタック

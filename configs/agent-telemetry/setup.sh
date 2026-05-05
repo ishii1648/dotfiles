@@ -1,10 +1,11 @@
 #!/bin/bash
-# hitl-metrics の binary install + doctor 検証
+# agent-telemetry の binary install + doctor 検証
 #
 # 前提:
 #   - claude / codex の hook 登録は configs/claude/setup.sh, configs/codex/setup.sh が
 #     先に処理しているため、本スクリプトは binary 配置と doctor 実行のみを担当する
 #   - 旧バージョン（setup サブコマンド未対応）が存在する場合は最新版で上書きする
+#   - 旧名 hitl-metrics binary が同じディレクトリに残っている場合は削除する
 
 set -euo pipefail
 
@@ -23,19 +24,20 @@ NC='\033[0m'
 
 # --- platform detection ---
 case "$(uname -s)-$(uname -m)" in
-    Darwin-arm64)  ASSET="hitl-metrics_darwin_arm64.tar.gz" ;;
-    Darwin-x86_64) ASSET="hitl-metrics_darwin_amd64.tar.gz" ;;
-    Linux-x86_64)  ASSET="hitl-metrics_linux_amd64.tar.gz" ;;
-    Linux-aarch64) ASSET="hitl-metrics_linux_arm64.tar.gz" ;;
+    Darwin-arm64)  ASSET="agent-telemetry_darwin_arm64.tar.gz" ;;
+    Darwin-x86_64) ASSET="agent-telemetry_darwin_amd64.tar.gz" ;;
+    Linux-x86_64)  ASSET="agent-telemetry_linux_amd64.tar.gz" ;;
+    Linux-aarch64) ASSET="agent-telemetry_linux_arm64.tar.gz" ;;
     *)
-        echo -e "  ${YELLOW}hitl-metrics${NC}\tunsupported platform: $(uname -s)-$(uname -m), skipping"
+        echo -e "  ${YELLOW}agent-telemetry${NC}\tunsupported platform: $(uname -s)-$(uname -m), skipping"
         exit 0
         ;;
 esac
 
 INSTALL_DIR="$HOME/.local/bin"
-BIN_PATH="$INSTALL_DIR/hitl-metrics"
-URL="https://github.com/ishii1648/hitl-metrics/releases/latest/download/$ASSET"
+BIN_PATH="$INSTALL_DIR/agent-telemetry"
+LEGACY_BIN_PATH="$INSTALL_DIR/hitl-metrics"
+URL="https://github.com/ishii1648/agent-telemetry/releases/latest/download/$ASSET"
 
 # --- install / update ---
 needs_install=false
@@ -51,22 +53,35 @@ fi
 
 if $needs_install; then
     if $DRY_RUN; then
-        echo -e "  ${YELLOW}hitl-metrics${NC}\t$install_reason (would install from $URL)"
+        echo -e "  ${YELLOW}agent-telemetry${NC}\t$install_reason (would install from $URL)"
     else
-        echo "  Installing hitl-metrics ($install_reason) from $URL..."
+        echo "  Installing agent-telemetry ($install_reason) from $URL..."
         mkdir -p "$INSTALL_DIR"
         tmpdir=$(mktemp -d)
         trap 'rm -rf "$tmpdir"' EXIT
         if ! curl -fsSL -o "$tmpdir/$ASSET" "$URL"; then
-            echo -e "  ${RED}hitl-metrics${NC}\tdownload failed: $URL"
+            echo -e "  ${RED}agent-telemetry${NC}\tdownload failed: $URL"
             exit 1
         fi
         tar -xzf "$tmpdir/$ASSET" -C "$tmpdir"
-        install -m 0755 "$tmpdir/hitl-metrics" "$BIN_PATH"
-        echo -e "  ${GREEN}hitl-metrics${NC}\tinstalled → $BIN_PATH"
+        install -m 0755 "$tmpdir/agent-telemetry" "$BIN_PATH"
+        echo -e "  ${GREEN}agent-telemetry${NC}\tinstalled → $BIN_PATH"
     fi
 else
-    echo -e "  ${GREEN}hitl-metrics${NC}\t✓ already installed ($BIN_PATH)"
+    echo -e "  ${GREEN}agent-telemetry${NC}\t✓ already installed ($BIN_PATH)"
+fi
+
+# --- legacy binary cleanup ---
+# `hitl-metrics → agent-telemetry` のリネーム後、旧名の独立 binary が残っていると
+# 古い hook 登録（`hitl-metrics hook ...`）から発火して旧スキーマで DB を再構築してしまう。
+# symlink になっていれば無害（新 binary に転送される）ため触らない。古い独立 binary のみ除去する。
+if [[ -e "$LEGACY_BIN_PATH" && ! -L "$LEGACY_BIN_PATH" ]]; then
+    if $DRY_RUN; then
+        echo -e "  ${YELLOW}hitl-metrics${NC}\tlegacy binary present, would remove ($LEGACY_BIN_PATH)"
+    else
+        rm -f "$LEGACY_BIN_PATH"
+        echo -e "  ${GREEN}hitl-metrics${NC}\tremoved legacy binary ($LEGACY_BIN_PATH)"
+    fi
 fi
 
 # --- doctor verification ---

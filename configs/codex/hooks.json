@@ -9,7 +9,7 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook session-start --agent codex"
+            "command": "agent-telemetry hook session-start --agent codex"
           }
         ]
       }
@@ -23,7 +23,7 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook stop --agent codex"
+            "command": "agent-telemetry hook stop --agent codex"
           }
         ]
       }
@@ -37,7 +37,7 @@
           },
           {
             "type": "command",
-            "command": "hitl-metrics hook post-tool-use --agent codex"
+            "command": "agent-telemetry hook post-tool-use --agent codex"
           }
         ]
       }
