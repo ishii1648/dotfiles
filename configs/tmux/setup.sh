@@ -45,7 +45,10 @@ fi
 
 # TPM の `run` を発火させて TMUX_PLUGIN_MANAGER_PATH を tmux 環境にセット。
 # 既存の attached client がいる server に対しても source-file は冪等。
-tmux start-server
+# `tmux start-server` は controlling tty の無い環境（Docker 等）で実際にはサーバを
+# 起動しないため、確実に server を立てる目的で `new-session -d` を使う。
+tmux new-session -d -s __setup_bootstrap 2>/dev/null || tmux start-server
+trap 'tmux kill-session -t __setup_bootstrap 2>/dev/null || true' EXIT
 tmux source-file "$TMUX_CONF"
 
 if ! tmux show-environment -g TMUX_PLUGIN_MANAGER_PATH >/dev/null 2>&1; then
