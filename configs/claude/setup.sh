@@ -3,6 +3,9 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN="${DRY_RUN:-false}"
+if [[ "${1:-}" == "--dry-run" ]]; then
+    DRY_RUN=true
+fi
 
 # --- dotfiles 管理キーの同期 ---
 # SYNC_KEYS: source の値で全置換するキー
