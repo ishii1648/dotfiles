@@ -14,6 +14,9 @@
 ## 実装完了時の自動Git操作
 未コミット変更があり feature/fix/docs/chore ブランチ上にいる場合、`git-ship` skill を自動実行する（$PWD 配下であることを確認してから）。PRが未作成なら commit→push→Draft PR作成、作成済みなら commit→push のみ。
 
+## PR 作成後の CI 自動監視
+`git-ship` で PR を作成・push した後は `auto-fix-ci` skill を自動実行する。Monitor tool で CI を継続 watch し、失敗ジョブのログを取得して原因を診断 → 修正 → 再 push のループを回す。手動介入が必要な失敗（secrets 不足、外部障害、scope 越え）に達した場合は状況を報告して停止する。
+
 ## 調査結果のまとめ
 - 調査結果をまとめる際に表を使う場合はmarkdownを使うこと
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
