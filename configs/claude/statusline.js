@@ -124,12 +124,14 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
-    // tier 情報（claude auth status のキャッシュ）
-    const tier = getTier();
-    const tierInfo = tier ? `[\x1b[36m${tier}\x1b[0m]` : '';
+    // tier / org 情報（claude auth status のキャッシュ）
+    const { tier, org } = getTierAndOrg();
+    let tierOrgInfo = '';
+    if (tier) tierOrgInfo += `[\x1b[36m${tier}\x1b[0m]`;
+    if (org) tierOrgInfo += `[\x1b[35m${org}\x1b[0m]`;
 
     // Line 1: 基本情報 + プログレスバー
-    let statusLine = `${tierInfo}[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | ctx ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay}/${thresholdDisplay})`;
+    let statusLine = `${tierOrgInfo}[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | ctx ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay}/${thresholdDisplay})`;
     if (rateLimitUsage) {
       const fiveH = rateLimitUsage.fiveHour;
       const sevenD = rateLimitUsage.sevenDay;
@@ -302,19 +304,25 @@ function getEffortLevel() {
   }
 }
 
-function getTier() {
+function getTierAndOrg() {
   const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(process.env.HOME, '.claude');
   const tierCache = path.join(configDir, '.tier_cache');
+  const orgCache = path.join(configDir, '.org_cache');
 
   try {
-    if (fs.existsSync(tierCache)) {
-      return fs.readFileSync(tierCache, 'utf8').trim();
+    if (fs.existsSync(tierCache) && fs.existsSync(orgCache)) {
+      return {
+        tier: fs.readFileSync(tierCache, 'utf8').trim(),
+        org: fs.readFileSync(orgCache, 'utf8').trim(),
+      };
     }
   } catch (e) {}
 
   try {
     fs.mkdirSync(configDir, { recursive: true });
-    const script = `claude auth status 2>/dev/null | jq -r '.subscriptionType // ""' > "${tierCache}"`;
+    const script = `out=$(claude auth status 2>/dev/null) || exit 0; ` +
+                   `printf '%s' "$out" | jq -r '.subscriptionType // ""' > "${tierCache}" && ` +
+                   `printf '%s' "$out" | jq -r '.orgName // ""' > "${orgCache}"`;
     const child = spawn('/bin/sh', ['-c', script], {
       detached: true,
       stdio: 'ignore',
@@ -323,7 +331,7 @@ function getTier() {
     child.unref();
   } catch (e) {}
 
-  return 'Loading...';
+  return { tier: 'Loading...', org: '' };
 }
 
 function getPrInfo(cwd) {
