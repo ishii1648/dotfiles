@@ -64,6 +64,7 @@
 | ✔ | ○ | claude | auto mode 運用への切替で hook と CLAUDE.md の permission 緩和規約が冗長/負債化した — `permission_mode` フィールドによる hook 内 skip と destructive 防御の `permissions.deny` 移行で対処 | [ADR-068](adr/068-permission-mode-aware-hooks.md) |
 | - | ○ | tmux | `wfxr/tmux-fzf-url` が xre 書き直し時に `@fzf-url-extra-filter` を廃止し PR URL フィルタが無効化された — `prefix + u` で PR URL が popup 表示できない | — |
 | - | ○ | tmux / fish / claude / codex | popup ランチャーが二系統並存（dispatch_launcher.fish と `tmux-sidebar new`）でメンテ負債が発生する — `prefix+S` を `tmux-sidebar new` に統一し dispatch_launcher を廃止する | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
+| - | ○ | claude / codex | coding agent 間の双方向・反復連携を自動化できない — dispatch は片方向のみで「claude 実装 → codex レビュー → claude 反映 → codex 再レビュー」の往復を人間が手動中継している | [ADR-070](adr/070-cross-agent-review-loop.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -938,4 +939,28 @@
 - [x] `docs/reference.md` の popup 起動経路の記述が `tmux-sidebar new` ベースに書き換えられている
 - [x] `docs/issues.md` の dispatch_launcher 関連エントリ（L54/L685）が打消し or 「ADR-069 で解消」と注記されている
 - [x] `bash scripts/setup.sh --dry-run` が regression 無しで完了する
+
+---
+
+### ADR-070: headless コーディネータによる claude↔codex 反復レビューループ
+
+**コンポーネント**: claude / codex | **ADR**: [ADR-070](adr/070-cross-agent-review-loop.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/skills/review-loop/SKILL.md` が新規作成され、`/review-loop "<タスク or レビュー観点>"` で起動できる（skill 登録を確認）
+- [x] `configs/claude/skills/review-loop/review-loop.sh` に `launch` / `cleanup` / `selftest` サブコマンドが実装されている
+- [x] `review-loop.sh launch` が現在の git worktree（レビュー対象ブランチ）上で動作し、新規 worktree を作成しない（`work_dir=repo_root` 固定）
+- [x] claude（実装役）が round1 は `claude --session-id <uuid> < prompt_file`、round2 以降は `claude --resume <uuid> < prompt_file` で起動され、いずれも末尾に `tmux wait-for -S <signal>` を付与する。`claude -p` / `--print` を一切使用しない（subscription 課金を維持）
+- [ ] 2 ラウンド目以降の claude 起動で `--resume <session-id>` によりラウンド間の文脈が保持される（**ライブ実起動での確認は未実施**）
+- [ ] codex（レビュー役）が `codex exec -s read-only -` headless で現在の作業ツリー差分をレビューし、指摘がファイル（`.outputs/claude/review-loop/<session-id>/round-N-codex.md`）に捕捉される（**ライブ実起動での確認は未実施**）
+- [ ] コーディネータが `tmux wait-for` でゼロコスト待機し、各ロールの完了後に次ロールを自動起動する（orchestrate の advance ループ踏襲。**ライブ実起動での確認は未実施**）
+- [x] codex の指摘がゼロ／承認マーカー（`REVIEW_RESULT: APPROVED`）検出時にループが収束終了する（収束判定 `rl_review_converged` を selftest で検証）
+- [ ] 最大ラウンド数（既定 3、`--max-rounds N` で変更可）到達時に未収束でも終了し、その旨を報告する（`--max-rounds` のバリデーションは確認済み。**ループ打ち切りのライブ確認は未実施**）
+- [ ] 各ラウンドの claude 応答・codex 指摘がファイルとして残り、最終サマリ（収束/打ち切り・ラウンド数）が `SUMMARY.md` に出力される（**ライブ実起動での確認は未実施**）
+- [x] `review-loop.sh cleanup <session-id>` で advance ループ停止・tmux セッション削除・manifest 削除ができる（存在しない session の ERROR 分岐を確認。happy path のライブ確認は未実施）
+- [x] `review-loop.sh` 先頭に `# ADR: 070` / `# Purpose:` ヘッダが記入されている（ADR-042 規約）
+- [x] `~/.claude/skills/review-loop` への配布が setup.sh（`configs/claude/skills/*/` 自動 symlink）経由で行われ、codex 側は `setup-manifest.yml` の symlink 登録で `/review-loop` が claude / codex 双方から呼べる
+- [x] `docs/reference.md` の連携モード表に review-loop が追記される
+- [x] review-loop.sh の終了判定・プロンプト生成の純粋ロジックを検証する `selftest` サブコマンドが実装され、`review-loop.sh selftest` が PASS する（リポジトリに bash 用テストフレームワークがないため、依存ゼロの自己テストとして同梱する）
 

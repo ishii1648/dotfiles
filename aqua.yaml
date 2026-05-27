@@ -37,3 +37,5 @@ packages:
 - name: toshimaru/nyan@v1.2.5
 - name: sharkdp/fd@v10.3.0
 - name: BurntSushi/ripgrep@15.1.0
+- name: getsops/sops@v3.13.0
+- name: FiloSottile/age@v1.3.1

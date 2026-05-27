@@ -109,6 +109,8 @@ components:
         target: configs/claude/skills/orchestrate
       - link: ~/.codex/skills/session-log
         target: configs/claude/skills/session-log
+      - link: ~/.codex/skills/review-loop
+        target: configs/claude/skills/review-loop
 
   agent-telemetry:
     setup: configs/agent-telemetry/setup.sh
