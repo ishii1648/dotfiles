@@ -20,7 +20,14 @@ Draft
 
 ### 案B': headless コーディネータ（採用）
 
-新規 skill `review-loop` を追加し、claude（実装役）と codex（レビュー役）を `tmux wait-for` で交互に駆動する。
+新規 skill `review-loop` を追加し、実装役とレビュー役を `tmux wait-for` で交互に駆動する。
+
+**ロールは固定しない。** 既定は実装役=claude / レビュー役=codex だが、`--implementer` / `--reviewer`（各 `claude|codex`）で入れ替えられる。エージェントごとの非対称性を起動コマンド生成（`rl_build_agent_cmd`）に集約して吸収する:
+- claude はどのロールでも interactive `--session-id`/`--resume`（文脈保持・subscription）。レビュー役のときは TUI 出力を捕捉できないため verdict を指定ファイルに書かせる（プロンプトで指示）。
+- codex はどのロールでも headless `codex exec`。レビュー役は `-s read-only`（stdout 捕捉）、実装役は `-s workspace-write`（worktree 編集）。
+- 収束判定はレビュー出力ファイル（codex は stdout リダイレクト、claude はファイル書き出し）の `REVIEW_RESULT:` 最終行を読む（agent 非依存）。
+
+以下は既定（claude→codex）を例にした駆動の説明である。
 
 - **claude（実装役）**: `claude --resume <session-id> < prompt_file; tmux wait-for -S <signal>` で interactive 起動する。`-p` は使わず subscription 内に収める。`--resume` でラウンド間の文脈（実装意図・前回の議論）を保持する。プロセス終了＝完了シグナルとなるため、idle 推測も send-keys 注入も不要。
 - **codex（レビュー役）**: `codex exec review` / `codex review`（headless）で現在の作業ツリーの diff をレビューさせ、指摘をファイルに捕捉する。codex exec も終了時に `tmux wait-for -S <signal>` で完了通知する。
