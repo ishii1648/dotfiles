@@ -39,6 +39,7 @@ argument-hint: '"<タスク or レビュー観点>" [--implementer claude|codex]
 | `--reviewer claude\|codex` | レビュー役のエージェント | codex |
 | `--max-rounds N` | 最大ラウンド数（実装→レビューを 1 ラウンドと数える） | 3 |
 | `--base <ref>` | レビューの差分基点。省略時は origin/HEAD→main→master を自動解決 | 自動 |
+| `--trust-workdir` | claude ロールが未信頼ディレクトリで信頼ダイアログにより停止するのを防ぐため、work_dir を `~/.claude.json` に信頼登録する。**global 設定を書き換えるオプトイン**。通常の現 worktree は信頼済みのため不要 | off |
 
 タスク記述が無い場合は AskUserQuestion で確認する。
 
@@ -103,5 +104,6 @@ advance ループの停止・tmux セッション削除・manifest 削除を行�
 - tmux セッション内かつ git リポジトリ内でのみ動作する
 - claude は interactive 起動（`claude -p` 不使用）で subscription 課金を維持する
 - codex がレビュー役のときは `read-only` sandbox でコード変更が機構的に禁止される。claude がレビュー役のときは sandbox による強制はなく、「コードを変更しない」というプロンプト指示に依存する
+- claude ロールを使う場合、work_dir は claude に信頼済みである必要がある（通常の現 worktree なら済んでいる）。未信頼の新規ディレクトリでは初回に信頼ダイアログが出てループが止まるため、その場で承認するか `--trust-workdir` を明示指定する（後者は `~/.claude.json` を書き換える）
 - レビュー役が codex のときは stdout を、claude のときは指定ファイルへの書き出しをレビュー結果として収束判定に使う
 - ネットワーク通信を伴うコマンド前提の処理は持たない（レビューは現在の worktree 差分のみを対象とする）

@@ -190,6 +190,30 @@ update_manifest() {
 # エージェント起動
 # ============================================================
 
+# claude を非対話で自動起動すると未信頼ディレクトリで「このフォルダを信頼するか？」ダイアログが
+# 出てループが止まる（`-p` ならスキップされるが本 skill は `-p` を使わない）。通常 review-loop は
+# ユーザが既に作業している現 worktree（信頼済み）上で動くため問題にならない。未信頼の新規ディレクトリで
+# 自動化したい場合のみ、ユーザが明示的に `--trust-workdir` を渡したときに限り work_dir の realpath を
+# ~/.claude.json の projects[].hasTrustDialogAccepted=true に登録する（信頼ゲートの無断回避は行わない）。
+# （claude は /tmp→/private/tmp のように realpath で信頼を引くため pwd -P で解決する）
+ensure_claude_trust() {
+  local dir; dir=$(cd "$1" 2>/dev/null && pwd -P) || return 0
+  local cfg="$HOME/.claude.json"
+  [ -f "$cfg" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  if [ "$(jq -r --arg d "$dir" '.projects[$d].hasTrustDialogAccepted // false' "$cfg" 2>/dev/null)" = "true" ]; then
+    return 0
+  fi
+  local tmp; tmp=$(mktemp)
+  if jq --arg d "$dir" \
+      '.projects = (.projects // {}) | .projects[$d] = ((.projects[$d] // {}) + {hasTrustDialogAccepted: true})' \
+      "$cfg" > "$tmp" 2>/dev/null; then
+    mv "$tmp" "$cfg"
+  else
+    rm -f "$tmp"
+  fi
+}
+
 # ロールに対応する tmux window を必要なら作成する。window 名 = role。
 ensure_window() {
   local tmux_session="$1" window="$2" work_dir="$3"
@@ -293,17 +317,18 @@ advance_loop() {
 
 cmd_launch() {
   local repo_root="" session_id="" task_file="" max_rounds=3 base_ref="" inherit_size=false
-  local implementer="claude" reviewer="codex"
+  local implementer="claude" reviewer="codex" trust_workdir=false
 
   while [ $# -gt 0 ]; do
     case "$1" in
-      --session-id)   session_id="$2"; shift 2 ;;
-      --task-file)    task_file="$2"; shift 2 ;;
-      --max-rounds)   max_rounds="$2"; shift 2 ;;
-      --base)         base_ref="$2"; shift 2 ;;
-      --implementer)  implementer="$2"; shift 2 ;;
-      --reviewer)     reviewer="$2"; shift 2 ;;
-      --inherit-size) inherit_size=true; shift ;;
+      --session-id)    session_id="$2"; shift 2 ;;
+      --task-file)     task_file="$2"; shift 2 ;;
+      --max-rounds)    max_rounds="$2"; shift 2 ;;
+      --base)          base_ref="$2"; shift 2 ;;
+      --implementer)   implementer="$2"; shift 2 ;;
+      --reviewer)      reviewer="$2"; shift 2 ;;
+      --inherit-size)  inherit_size=true; shift ;;
+      --trust-workdir) trust_workdir=true; shift ;;
       *) if [ -z "$repo_root" ]; then repo_root="$1"; fi; shift ;;
     esac
   done
@@ -333,6 +358,12 @@ cmd_launch() {
   # work_dir は現在の worktree（レビュー対象ブランチ）。新規 worktree は作らない。
   local work_dir="$repo_root"
   [ -z "$base_ref" ] && base_ref=$(rl_resolve_base_ref "$work_dir")
+
+  # --trust-workdir 指定時のみ、claude を使うロールがあれば work_dir を事前に信頼登録する。
+  # 既定では行わない（信頼済みの現 worktree を前提とし、未信頼なら初回に信頼ダイアログが出る）。
+  if [ "$trust_workdir" = true ] && { [ "$implementer" = claude ] || [ "$reviewer" = claude ]; }; then
+    ensure_claude_trust "$work_dir"
+  fi
 
   # claude ロール用のセッション ID（UUID）。各ロールが claude のときのみ実際に使われる。
   local impl_sid rev_sid
@@ -380,7 +411,7 @@ cmd_launch() {
   echo "MAX_ROUNDS: $max_rounds"
   echo "OUT_DIR: $out_dir"
   echo "MANIFEST: $(manifest_path "$session_id")"
-  tmux display-message -d 5000 "review-loop: launched [$session_id] $implementer→$reviewer" 2>/dev/null || true
+  tmux display-message -d 5000 "review-loop: launched [$session_id] ${implementer} -> ${reviewer}" 2>/dev/null || true
 }
 
 # ============================================================
