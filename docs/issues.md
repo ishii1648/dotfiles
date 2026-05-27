@@ -953,11 +953,13 @@
 - [x] `review-loop.sh launch` が現在の git worktree（レビュー対象ブランチ）上で動作し、新規 worktree を作成しない（`work_dir=repo_root` 固定）
 - [x] 実装役・レビュー役を固定せず、`--implementer claude|codex` / `--reviewer claude|codex` で入替できる（既定は実装役=claude / レビュー役=codex）。不正値はバリデーションで弾く。エージェント別の起動コマンドは `rl_build_agent_cmd` に集約し selftest で検証する
 - [x] claude（どのロールでも）が round1 は `claude --session-id <uuid>`、round2 以降は `claude --resume <uuid>` で interactive 起動され（`tmux wait-for -S <signal>` を付与）、`claude -p` / `--print` を一切使用しない（subscription 課金を維持）。claude がレビュー役のときは verdict を指定ファイルに書き出させる
-- [ ] 2 ラウンド目以降の claude 起動で `--resume <session-id>` によりラウンド間の文脈が保持される（**claude ロールのライブ確認は未実施** — 信頼ダイアログ回避が必要）
+- [x] claude が完了しても終了せず REPL に留まる問題に対し、完了マーカーファイル（実装役 `round-N-impl.done`／レビュー役 `round-N-review.md` の `REVIEW_RESULT` 行）で完了検知し、claude へは Ctrl-D を送って終了させ、次ラウンドは `claude --resume` で再起動する（claude→codex の 2 ラウンドライブ実行で Ctrl-D 終了→`--resume` 再起動→`round-2-impl.done` 生成を確認）
+- [x] 2 ラウンド目以降の claude 起動で `--resume <session-id>` によりラウンド間の文脈が保持される（ライブ実行で round2 の `--resume` 再起動が動作）
+- [x] レビュー役プロンプトに判定パターン `REVIEW_RESULT: <verdict>` をリテラルで含めない（codex は exec 時にプロンプトを stdout へエコーするため、含めると完了検知・収束判定がプロンプトのエコーを誤検知する）。selftest に回帰ガードを追加し、claude→codex のライブ実行で正しく round1 APPROVED→converged することを確認
 - [x] codex（レビュー役）が `codex exec -s read-only -` headless で作業ツリー差分をレビューして `round-N-review.md` に捕捉され、codex（実装役）が `-s workspace-write` で worktree を編集する（implementer=codex/reviewer=codex のライブ実行で is_prime 実装→レビュー→APPROVED を確認）
-- [x] コーディネータが `tmux wait-for` でゼロコスト待機し、各ロールの完了後に次ロールを自動起動する（orchestrate の advance ループ踏襲。ライブ実行で round1 implementer→reviewer の自動連鎖を確認）
-- [x] レビュー結果が承認マーカー（`REVIEW_RESULT: APPROVED`）のときループが収束終了する（収束判定 `rl_review_converged` を selftest で検証 + ライブで round1 APPROVED→converged を確認）
-- [ ] 最大ラウンド数（既定 3、`--max-rounds N` で変更可）到達時に未収束でも終了し、その旨を報告する（`--max-rounds` のバリデーションは確認済み。**打ち切り経路のライブ確認は未実施** — ライブ実行は round1 で収束したため）
+- [x] コーディネータがバックグラウンドの advance ループで各ロールの完了マーカーを待ち、完了後に次ロールを自動起動する（ライブ実行で implementer→reviewer→（次round）implementer の自動連鎖を確認。当初の `tmux wait-for` は claude が終了しないため使えず、マーカーファイル方式へ変更）
+- [x] レビュー結果が承認（`REVIEW_RESULT: APPROVED`）のときループが収束終了する（収束判定 `rl_review_converged` を selftest で検証 + ライブで round1 APPROVED→converged を確認）
+- [x] 最大ラウンド数（既定 3、`--max-rounds N` で変更可）到達時に未収束でも終了し、その旨を報告する（`--max-rounds 2` のライブ実行で round2 まで回って exhausted→SUMMARY 生成を確認）
 - [x] 各ラウンドのレビュー結果（`round-N-review.md`）がファイルとして残り、最終サマリ（収束/打ち切り・ラウンド数・ロール割当）が `SUMMARY.md` に出力される（ライブ実行で SUMMARY.md 生成を確認）
 - [x] `review-loop.sh cleanup <session-id>` で advance ループ停止・tmux セッション削除・manifest 削除ができる（ERROR 分岐 + ライブ実行後の happy path 両方を確認）
 - [x] claude を未信頼ディレクトリで interactive 起動すると信頼ダイアログでループが停止する。既定は信頼済み worktree 前提とし、`--trust-workdir` 明示時のみ `~/.claude.json` に信頼登録するオプトインとする（global 設定の無断書き換えはしない）

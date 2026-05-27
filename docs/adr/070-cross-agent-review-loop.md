@@ -48,6 +48,12 @@ claude / codex を対話 TUI として常駐させ、ファイル mailbox（inbo
 
 mailbox/IPC 方式は「人間が多数セッションを緩く監督し、対等なセッション同士が ad-hoc に『終わった』『どうなった』と突く」用途には適する。だが終了条件が明確で離散的なレビューループにはオーバースペックかつ脆い。両者は用途が異なるため統合しない。
 
+### ライブ検証で判明した実装上の注意
+
+- **claude は完了しても終了しない**（2.1.x, auto mode は stdin EOF 後も REPL に留まる）。`claude < prompt; tmux wait-for -S` 方式（orchestrate 由来）は成立しないため、完了検知は「エージェントが書く完了マーカーファイル」に統一し、claude へは Ctrl-D を送って終了させて次ラウンドを `--resume` で再起動する。
+- **codex exec はプロンプトを stdout にエコーする**。レビュー役プロンプトに判定パターン `REVIEW_RESULT: APPROVED|CHANGES_REQUESTED` をリテラルで含めると、完了検知・収束判定がエコーされた例文を誤検知する（誤って毎回 CHANGES_REQUESTED 扱いになり収束しない）。プロンプトでは判定語を `REVIEW_RESULT:` に隣接させず説明する。selftest に回帰ガードを置く。
+- **tmux-sidebar 等が window にペインを自動追加する**ため、window 名ターゲットの send-keys は誤爆する。起動時に pane_id を固定して送る（dispatch.sh と同じ）。
+
 ### 変更が必要なファイル
 
 | ファイル | リポジトリ | 変更内容 |
