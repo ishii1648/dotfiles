@@ -1,9 +1,12 @@
 # ADR-070: headless コーディネータによる claude↔codex 反復レビューループ
 
 ## ステータス
-Draft
+廃止（ADR-071 で置換）
+
+> 本 ADR の実装（headless コーディネータ `advance_loop` が実装役・レビュー役の両方を新規プロセスとして生成し交互駆動する fire-and-forget 方式、および `--implementer`/`--reviewer` による claude↔codex 対称ロール入替）は完成したが、実利用フローと噛み合わなかった。具体的には「修正役＝実装文脈を持つ元 coding session 自身」「レビュアーは同一 tmux session に隣接起動」というイメージに対し、本実装は別空間で新規2プロセスを全自動駆動する別物だった。ADR-071 で制御の主体を元セッションに反転させて再設計する。完了マーカー検知・codex の stdout エコー対策・pane_id 固定の実装知見は ADR-071 に継承する。
 
 ## 関連 ADR
+- 依存: ADR-071（本 ADR を置換する再設計）
 - 関連: ADR-059（dispatch / orchestrate の分離 — 本 ADR は第3の連携モードを追加する）
 - 関連: ADR-060（orchestrate v4 のエージェントチェーン — wait-for + ファイルハンドオフ機構を踏襲する）
 - 関連: ADR-065（dispatch の codex attached client 待機 — codex 起動の癖を回避する背景）

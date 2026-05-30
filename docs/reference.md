@@ -42,7 +42,7 @@
 |---|---|---|---|
 | 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
 | エージェントチェーン順次実行（1 worktree + N agent） | `/orchestrate` skill | 実装済み | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
-| claude↔codex 反復レビュー（同一 worktree・収束まで） | `/review-loop` skill | 実装済み | [ADR-070](adr/070-cross-agent-review-loop.md) |
+| 元セッション主導の反復レビュー（逆エージェントがレビュー→自分で修正→収束まで・同一 tmux session） | `/review-loop` skill | 実装済み | [ADR-071](adr/071-session-driven-review-loop.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 | dispatch 起動ランチャー（popup picker） | `tmux-sidebar new`（upstream の `internal/picker`、prefix+S / Cmd+Shift+S 起動） | 実装済み | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |

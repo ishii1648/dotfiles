@@ -968,3 +968,32 @@
 - [x] `docs/reference.md` の連携モード表に review-loop が追記される
 - [x] review-loop.sh の終了判定・プロンプト生成の純粋ロジックを検証する `selftest` サブコマンドが実装され、`review-loop.sh selftest` が PASS する（リポジトリに bash 用テストフレームワークがないため、依存ゼロの自己テストとして同梱する）
 
+
+---
+
+### ADR-071: 元セッション主導の反復レビューループ（review-loop 再設計）
+
+**コンポーネント**: claude / codex | **ADR**: [ADR-071](adr/071-session-driven-review-loop.md)
+
+**受け入れ条件**:
+
+- [x] ADR-070 のステータスが `廃止（ADR-071 で置換）` に更新され、置換の要約注記が付いている
+- [x] `review-loop.sh` から `advance_loop`・実装役プロンプト生成（`rl_build_implementer_prompt`）・実装役の claude/codex 起動分岐・専用 tmux session 作成（`tmux new-session -s review-loop-<id>`）が削除されている
+- [x] `review-loop.sh` のサブコマンドが `review-once` / `wait-review` / `cleanup` / `selftest` に再構成されている（`launch` は廃止）
+- [x] `review-once` が現在の tmux session に reviewer 用 window/pane を `new-window` で追加して起動し、専用 session を新規作成しない（現 session 名を `tmux display-message -p '#{session_name}'` で取得して `new-window` する）
+- [x] レビュアーは実装役（元セッション）の逆エージェントに自動決定される（元セッションが claude → codex レビュー、codex → claude レビュー）。SKILL.md の手順を実行するエージェント自身が「自分の逆」を選んで `review-once` を呼ぶ。`review-once` は reviewer 種別を内部フラグで受け取り、codex は `codex exec -s read-only -`（stdout を `round-N-review.md` にリダイレクト捕捉）、claude は verdict を指定ファイルに書き出させる形で起動する。実装役プロセスは一切起動しない
+- [x] review-loop はユーザー向けの起動引数を持たない（ADR-070 の位置引数（タスク/観点）・`--implementer`・`--reviewer`・`--max-rounds`・`--base` をすべて廃止）。レビュー観点・base・ラウンド数の調整は skill 起動時の自然言語指示として元セッションが受け取り、内部で `review-once`/`wait-review` のフラグに変換する。SKILL.md から `argument-hint` を削除する
+- [x] round1 がレビューから開始する（実装は完了済み前提。起動直後に実装役の実装フェーズを挟まない）
+- [x] `wait-review` がレビュー結果ファイルに `REVIEW_RESULT:` 行（`APPROVED|CHANGES_REQUESTED`）が現れるまで待機し、検知したら終了する（タイムアウト時は非ゼロ終了で報告）。元セッションは `wait-review` を background 実行し、完了通知で再開する運用を SKILL.md に明記する
+- [x] ループ制御・収束判定・修正は元 coding session（skill 起動者）が SKILL.md の手順として実行する。`REVIEW_RESULT: APPROVED` で収束終了、`CHANGES_REQUESTED` なら元セッションが自分で差分を修正して次ラウンドの `review-once` を起動する。最大ラウンド（既定 3）到達で打ち切る
+- [x] レビュアープロンプトに判定パターン `REVIEW_RESULT: <verdict>` をリテラルで含めない（codex の stdout エコー誤検知対策）。selftest に回帰ガードを残す（ADR-070 から継承）
+- [x] reviewer pane の send-keys が tmux-sidebar 等の自動追加 pane で誤爆しないよう、起動時に pane_id を固定する（ADR-070 から継承）
+- [x] 現在の worktree（レビュー対象ブランチ）上で動作し、新規 worktree を作成しない（ADR-070 から継承）
+- [x] レビュアーが claude のとき `claude -p` / `--print` を使用しない（subscription 課金を維持。ADR-070 から継承）
+- [x] 各ラウンドのレビュー結果（`round-N-review.md`）がファイルとして残り、最終サマリ（収束/打ち切り・ラウンド数）が `SUMMARY.md` に出力される
+- [x] `cleanup <session-id>` で reviewer window 削除・manifest 削除ができる
+- [x] `review-loop.sh` 先頭の `# ADR:` ヘッダが `071`（または `070, 071`）に更新されている（ADR-042 規約）
+- [x] `review-loop.sh selftest` が PASS する（再編後の純粋ロジック: レビュアープロンプト生成・収束判定・base_ref 解決・reviewer コマンド生成を検証）
+- [x] `docs/reference.md` の連携モード表の review-loop 記述が元セッション主導モデルに更新されている
+- [x] SKILL.md の `description` / 本文が元セッション主導フロー（実装完了後にレビュー → 自己修正 → 再レビューを収束まで）に書き換えられている
+- [x] レビュアーが claude になるのは元セッションが codex のときのみ。read-only sandbox 強制がないためプロンプト指示依存になる非対称を ADR-071 に明記する（codex レビュアーは `-s read-only` で機構保証）
