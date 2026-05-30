@@ -116,8 +116,11 @@ rl_build_reviewer_cmd() {
   local agent="$1" work_dir="$2" prompt_file="$3" out_file="${4:-}" claude_sid="${5:-}"
   case "$agent" in
     codex)
-      # headless。read-only で機構的にコード変更を禁止。stdout をレビューファイルに捕捉する。
-      printf "codex exec -C '%s' -s read-only - < '%s' > '%s' 2>&1" "$work_dir" "$prompt_file" "$out_file"
+      # headless。read-only で機構的にコード変更を禁止。stdout(レビュー本文)だけを out_file に捕捉し、
+      # stderr(codex の hook/進捗ログ)は <out_file>.log に分離する（2>&1 で合流させると review.md が
+      # hook ログで汚染されるため。完了検知は out_file の REVIEW_RESULT 行で行う）。
+      printf "codex exec -C '%s' -s read-only - < '%s' > '%s' 2> '%s.log'" \
+        "$work_dir" "$prompt_file" "$out_file" "$out_file"
       ;;
     claude)
       # interactive 起動（`-p`/`--print` は使わない＝subscription 課金）。各ラウンド stateless（前回レビューは
@@ -446,9 +449,12 @@ cmd_selftest() {
   # --- レビュアーコマンド生成 ---
   local c
   c=$(rl_build_reviewer_cmd codex /w /p/rv /o/rev.md "")
-  assert_contains "cmd codex reviewer: codex exec"     'codex exec'      "$c"
-  assert_contains "cmd codex reviewer: read-only"      '-s read-only'    "$c"
-  assert_contains "cmd codex reviewer: stdout 捕捉"    "> '/o/rev.md'"   "$c"
+  assert_contains "cmd codex reviewer: codex exec"      'codex exec'         "$c"
+  assert_contains "cmd codex reviewer: read-only"       '-s read-only'       "$c"
+  assert_contains "cmd codex reviewer: stdout 捕捉"     "> '/o/rev.md'"      "$c"
+  # stderr(hook ログ)を out_file に合流させない。別ファイル <out_file>.log に分離する（review.md 汚染防止の回帰ガード）
+  assert_excludes "cmd codex reviewer: 2>&1 で合流しない" '2>&1'             "$c"
+  assert_contains "cmd codex reviewer: stderr 分離"     "2> '/o/rev.md.log'" "$c"
   c=$(rl_build_reviewer_cmd claude /w /p/rv /o/rev.md sid-rev)
   assert_contains "cmd claude reviewer: --session-id"  "--session-id 'sid-rev'" "$c"
   assert_excludes "cmd claude reviewer: -p 不使用"     ' -p '            "$c"

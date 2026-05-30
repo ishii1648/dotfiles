@@ -55,6 +55,9 @@ ADR-070 から継承する実装知見（再設計後も有効）:
 - 現在の worktree（レビュー対象ブランチ）上で動き、新規 worktree は作らない。
 - `claude -p` / `--print` は使わない（レビュアーが claude のとき。subscription 課金を維持）。
 
+ライブ検証で判明した追加知見:
+- codex exec の出力捕捉は `2>&1` で stderr を合流させない。codex は hook/進捗ログ（`hook: PostToolUse` 等）を stderr に大量に出すため、合流させるとレビュー結果ファイルがそれらで汚染される（完了検知・収束判定は最終行の `REVIEW_RESULT` で行うため誤動作はしないが、レビュー本文が読めなくなる）。stdout のみを `round-N-review.md` に、stderr は `round-N-review.md.log` に分離する。selftest に回帰ガード（`2>&1` 非混入 / `.log` 分離）を置く。
+
 なお、レビュアーが claude になるのは**元セッションが codex のときのみ**である。この場合 read-only sandbox による強制がないため「コードを変更しない」はプロンプト指示への依存となる（codex レビュアーは `-s read-only` で機構的に保証される）。cross-agent の目を入れる利点を優先してこの非対称を許容する。
 
 ### 案B: ADR-070 の fire-and-forget アーキを部分修正して流用（却下）
