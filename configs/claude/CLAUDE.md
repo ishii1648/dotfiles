@@ -10,6 +10,19 @@
 
 ## ユーザ環境
 - シェルは **fish** を使用している。コマンド例を示す際は fish 構文で記述すること（heredoc `<<EOF` は使用不可、代わりに `printf` + `tee` を使う）
+- macOS (BSD) 環境。GNU 専用フラグを使わない（例: `cat -A` は無効 → `cat -e` / `cat -v` を使う）
+
+## ツール呼び出しの規律（重要・再発防止）
+過去に「同一コマンドの重複送信」と「BSD 非対応フラグ混入」が連鎖し、作業が崩壊した。並列の巻き添えキャンセルは既知バグ（anthropics/claude-code #22264, #64059）。以下を厳守する：
+- **read-only（Read/Grep/Glob/参照系 Bash）は並列OK。** v2.1.147 で read-only の巻き添えキャンセルは修正済（#64237）。
+- **Edit/Write/破壊的 Bash と「失敗しうる Bash」は同一バッチに混ぜない。** 1 つの非0 exit が無関係な兄弟呼び出しを `Cancelled: parallel tool call errored` で連鎖キャンセルする（mutating 系は未修正）。
+- 非0 exit が想定される Bash（`pkill` / `grep -c` / `curl` プローブ / `gh ... checks` 等）は末尾に `|| true` を付ける。
+- 同一処理の冗長コピーを並列にしない。「保険」で同じコマンドを複数並べない（重複送信→連鎖崩壊 #64080）。
+- 巻き添えキャンセル後は「成功したつもりの Edit/Write が未適用」を疑い、再実行前に `git diff` で着地を確認する。
+- ファイル編集・状態確認は `git diff --stat` / `git diff` を**唯一の真実**として扱う。表示層が古い/捏造出力（重複エコー・`詳細は省略`・存在しない diff 等）を返すことがあるため、Edit や python の `OK` 出力・直後の Read 表示を鵜呑みにしない。
+- 大きな anchor で Edit が滑る時は `python3` で `count==1` を assert してから置換し、同一コマンド内で `git diff --stat` を出して着地を確認する。
+- 中断されたアクションを無断で再試行しない（特に push 等の外向き操作）。ユーザが別タスクへ誘導したら、そのタスクを終えてから再開可否を確認する。
+- `~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク。編集は実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/CLAUDE.md` に対して行う。
 
 ## 実装完了時の自動Git操作
 未コミット変更があり feature/fix/docs/chore ブランチ上にいる場合、`git-ship` skill を自動実行する（$PWD 配下であることを確認してから）。PRが未作成なら commit→push→Draft PR作成、作成済みなら commit→push のみ。
