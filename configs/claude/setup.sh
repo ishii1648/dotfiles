@@ -133,8 +133,8 @@ fi
 
 # --- agmsg (dispatch / review-loop skills の配布元) ---
 # ADR-072: dispatch / review-loop は dotfiles で vendor せず agmsg-go から配布する。
-# binary を pin 導入し、skills を ~/.claude/skills へ実ファイル展開する。
-AGMSG_VERSION="v0.0.1"
+# binary を最新版で導入し、skills を ~/.claude/skills へ実ファイル展開する。
+AGMSG_VERSION="latest"
 AGMSG_PKG="github.com/ishii1648/agmsg-go/cmd/agmsg"
 
 # 旧 dotfiles vendor を指す stale symlink を ~/.claude/skills と ~/.codex/skills の両方から
@@ -167,8 +167,8 @@ if [[ "$DRY_RUN" == "true" ]]; then
         echo "  agmsg skills: WARN: not installed (agmsg skills install)"
     fi
 else
-    # pin を保証するため、go があれば常に @VERSION を go install する（module cache 済みなら高速）。
-    # PATH に別バージョンの agmsg があっても GOPATH/bin の pin 版を優先する（ADR-072）。
+    # 最新版を取得するため、go があれば常に @latest を go install する（proxy で最新を再解決）。
+    # PATH に別バージョンの agmsg があっても GOPATH/bin の最新版を優先する（ADR-072）。
     agmsg_bin=""
     if command -v go >/dev/null 2>&1; then
         echo "  agmsg: ensuring $AGMSG_PKG@$AGMSG_VERSION ..."
@@ -181,7 +181,7 @@ else
     # go が無い/失敗した場合は PATH の agmsg にフォールバック（pin は保証できない）
     if [[ -z "$agmsg_bin" ]] && command -v agmsg >/dev/null 2>&1; then
         agmsg_bin="$(command -v agmsg)"
-        echo "  agmsg: WARN: using PATH agmsg (go 不在のため $AGMSG_VERSION を保証できません)"
+        echo "  agmsg: WARN: using PATH agmsg (go 不在のため最新版を保証できません)"
     fi
     # skills を実ファイル展開（--force で常に pin 版へ揃える）。codex CLI があれば codex 用にも展開
     if [[ -n "$agmsg_bin" && -x "$agmsg_bin" ]]; then
