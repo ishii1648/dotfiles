@@ -65,6 +65,7 @@
 | - | ○ | tmux | `wfxr/tmux-fzf-url` が xre 書き直し時に `@fzf-url-extra-filter` を廃止し PR URL フィルタが無効化された — `prefix + u` で PR URL が popup 表示できない | — |
 | - | ○ | tmux / fish / claude / codex | popup ランチャーが二系統並存（dispatch_launcher.fish と `tmux-sidebar new`）でメンテ負債が発生する — `prefix+S` を `tmux-sidebar new` に統一し dispatch_launcher を廃止する | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
 | - | ○ | claude / codex | coding agent 間の双方向・反復連携を自動化できない — dispatch は片方向のみで「claude 実装 → codex レビュー → claude 反映 → codex 再レビュー」の往復を人間が手動中継している | [ADR-070](adr/070-cross-agent-review-loop.md) |
+| ✔ | ○ | claude / codex | dispatch / review-loop を dotfiles で vendor し続けると agmsg-go 同梱版（IPC 機構・team・auto-join）と二重メンテになる — 配布を agmsg-go（`agmsg skills install`）に外部化し dotfiles の vendor を廃止する | [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -997,3 +998,22 @@
 - [x] `docs/reference.md` の連携モード表の review-loop 記述が元セッション主導モデルに更新されている
 - [x] SKILL.md の `description` / 本文が元セッション主導フロー（実装完了後にレビュー → 自己修正 → 再レビューを収束まで）に書き換えられている
 - [x] レビュアーが claude になるのは元セッションが codex のときのみ。read-only sandbox 強制がないためプロンプト指示依存になる非対称を ADR-071 に明記する（codex レビュアーは `-s read-only` で機構保証）
+
+### ADR-072: dispatch / review-loop の配布を agmsg-go へ外部化する
+
+**コンポーネント**: claude / codex | **ADR**: [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md)
+
+**受け入れ条件**:
+
+- [ ] `agmsg` binary が `go install github.com/ishii1648/agmsg-go/cmd/agmsg@v0.0.1` で導入され、`~/go/bin/agmsg`（PATH 上）で `agmsg version` が動く（version pin、`@latest` を使わない）
+- [ ] `~/.claude/skills/dispatch` / `~/.claude/skills/review-loop` が dotfiles を指す symlink ではなく、`agmsg skills install` が展開した**実ファイル**になっている
+- [ ] `bash ~/.claude/skills/review-loop/review-loop.sh selftest` が PASS する（agmsg-go 同梱版 v2.0.0）
+- [ ] `agmsg join` / `agmsg send` / `agmsg inbox` の IPC 疎通が確認できる（共有 SQLite DB 既定 `~/.agents/skills/agmsg`）
+- [ ] `configs/claude/skills/dispatch` / `configs/claude/skills/review-loop` が dotfiles から削除されている（vendor 廃止）。`orchestrate` / `session-log` は残す
+- [ ] `configs/dispatch/no-worktree-repos.example` は据え置く（runtime config `~/.config/dispatch/no-worktree-repos` の雛形で skill ソース非依存）
+- [ ] `configs/claude/setup.sh` が agmsg を bootstrap する: `agmsg` 未導入なら `go install ...@v0.0.1`、続けて `agmsg skills install --force` を実行する
+- [ ] `configs/claude/setup.sh` が `~/.claude/skills/{dispatch,review-loop}` の stale な dotfiles symlink を install 前に除去する（残すと install が skip して dotfiles へ書き込む事故になるため）
+- [ ] `configs/claude/setup.sh` を 2 回連続実行しても冪等（2 回目で再 install/再 symlink-除去が壊れない。`--dry-run` も動く）
+- [ ] `setup.sh` の skill symlink ループが残存 skill（orchestrate 等）の symlink 生成を従来どおり行う（vendor 削除後も回帰しない）
+- [ ] `docs/reference.md` の記述が skills の出所を agmsg-go（`agmsg skills install`）に更新し、review-loop のシグナリング機構が agmsg IPC である旨を注記している
+- [ ] review-loop は `agmsg` 必須（無いと `die`）、dispatch は `agmsg` soft 依存（無ければ従来動作）という依存差を ADR-072 に明記する

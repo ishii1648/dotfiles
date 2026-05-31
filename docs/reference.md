@@ -10,7 +10,7 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
-| Claude Code skills | `configs/claude/skills/` | dispatch（軽量版）・orchestrate（エージェントチェーン順次実行）など |
+| Claude Code skills | `configs/claude/skills/` | orchestrate（エージェントチェーン順次実行）・session-log など（dispatch / review-loop は agmsg-go から配布。下記参照） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
@@ -19,6 +19,7 @@
 |---|---|
 | agent-telemetry | `ishii1648/agent-telemetry` — Claude Code / Codex CLI の PR 単位 token 効率を追跡・可視化する計測ツール（旧 `hitl-metrics`、claudedog の後継） |
 | tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI） |
+| agmsg-go（`dispatch` / `review-loop` skills + IPC コア） | `ishii1648/agmsg-go` — 共有 SQLite を通信路とするエージェント間 IPC binary（`agmsg`）と、その上で動く `dispatch` / `review-loop` skills を同梱。`go install github.com/ishii1648/agmsg-go/cmd/agmsg@v0.0.1`（version pin）→ `agmsg skills install --force` で `~/.claude/skills` へ実ファイル展開する。`setup.sh` が bootstrap する（ADR-072） |
 
 ## ツールスタック
 
@@ -40,9 +41,9 @@
 
 | 役割 | コンポーネント | 実装状況 | 関連 ADR |
 |---|---|---|---|
-| 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md) |
+| 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill（agmsg-go 配布。起動 agent を agmsg team に auto-join） | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md), [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
 | エージェントチェーン順次実行（1 worktree + N agent） | `/orchestrate` skill | 実装済み | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
-| 元セッション主導の反復レビュー（逆エージェントがレビュー→自分で修正→収束まで・同一 tmux session） | `/review-loop` skill | 実装済み | [ADR-071](adr/071-session-driven-review-loop.md) |
+| 元セッション主導の反復レビュー（逆エージェントがレビュー→自分で修正→収束まで・同一 tmux session。reviewer↔implementer のシグナリングは agmsg IPC） | `/review-loop` skill（agmsg-go 配布。`agmsg` 必須） | 実装済み | [ADR-071](adr/071-session-driven-review-loop.md), [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
 | workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
 | session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
 | dispatch 起動ランチャー（popup picker） | `tmux-sidebar new`（upstream の `internal/picker`、prefix+S / Cmd+Shift+S 起動） | 実装済み | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |

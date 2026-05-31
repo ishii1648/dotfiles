@@ -131,6 +131,68 @@ else
     echo "  skills symlink: SKIP (no configs/claude/skills directory)"
 fi
 
+# --- agmsg (dispatch / review-loop skills の配布元) ---
+# ADR-072: dispatch / review-loop は dotfiles で vendor せず agmsg-go から配布する。
+# binary を pin 導入し、skills を ~/.claude/skills へ実ファイル展開する。
+AGMSG_VERSION="v0.0.1"
+AGMSG_PKG="github.com/ishii1648/agmsg-go/cmd/agmsg"
+
+# 旧 dotfiles vendor を指す stale symlink を除去する。残すと agmsg skills install が
+# 既存ファイルとして skip し、symlink 越しに dotfiles 側へ書き込む事故になる（ADR-072）。
+for legacy in dispatch review-loop; do
+    link="$SKILLS_DEST/$legacy"
+    if [[ -L "$link" ]]; then
+        if [[ "$DRY_RUN" == "true" ]]; then
+            echo "  agmsg skills: WARN: stale symlink $legacy → $(readlink "$link") (needs removal)"
+        else
+            rm "$link"
+            echo "  agmsg skills: removed stale symlink ($legacy)"
+        fi
+    fi
+done
+
+# agmsg binary の所在を解決（PATH → GOPATH/bin の順）
+agmsg_bin=""
+if command -v agmsg >/dev/null 2>&1; then
+    agmsg_bin="$(command -v agmsg)"
+elif command -v go >/dev/null 2>&1 && [[ -x "$(go env GOPATH)/bin/agmsg" ]]; then
+    agmsg_bin="$(go env GOPATH)/bin/agmsg"
+fi
+
+if [[ "$DRY_RUN" == "true" ]]; then
+    if [[ -n "$agmsg_bin" ]]; then
+        echo "  agmsg: ✓ OK ($agmsg_bin)"
+    else
+        echo "  agmsg: WARN: not installed (go install $AGMSG_PKG@$AGMSG_VERSION)"
+    fi
+    if [[ -f "$SKILLS_DEST/review-loop/review-loop.sh" && ! -L "$SKILLS_DEST/review-loop" ]]; then
+        echo "  agmsg skills: ✓ OK (installed)"
+    else
+        echo "  agmsg skills: WARN: not installed (agmsg skills install)"
+    fi
+else
+    # binary 未導入なら go install で pin 取得（go が無ければ skip）
+    if [[ -z "$agmsg_bin" ]]; then
+        if command -v go >/dev/null 2>&1; then
+            echo "  agmsg: installing $AGMSG_PKG@$AGMSG_VERSION ..."
+            if go install "$AGMSG_PKG@$AGMSG_VERSION"; then
+                agmsg_bin="$(go env GOPATH)/bin/agmsg"
+            else
+                echo "  agmsg: WARN: go install failed (skipping skills install)"
+            fi
+        else
+            echo "  agmsg: SKIP (go not found; install Go 1.25+ then re-run)"
+        fi
+    fi
+    # skills を ~/.claude/skills へ実ファイル展開（--force で常に最新へ揃える）
+    if [[ -n "$agmsg_bin" && -x "$agmsg_bin" ]]; then
+        "$agmsg_bin" skills install --force
+        echo "  agmsg skills: installed → $SKILLS_DEST (dispatch / review-loop)"
+    else
+        echo "  agmsg skills: SKIP (agmsg unavailable)"
+    fi
+fi
+
 # --- workflow-sessions config symlink ---
 WF_CONFIG_SRC="$SCRIPT_DIR/workflow-sessions.json"
 WF_CONFIG_DEST="$HOME/.workflow-sessions/config.json"
