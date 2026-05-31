@@ -23,10 +23,6 @@
           {
             "type": "command",
             "command": "agent-telemetry hook session-start --agent claude"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook todo-cleanup --agent claude"
           }
         ]
       }
