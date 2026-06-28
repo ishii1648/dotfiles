@@ -1,29 +1,12 @@
 {
   "hooks": {
-    "SessionStart": [
+    "PermissionRequest": [
       {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook session-start --agent codex"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook stop --agent codex"
+            "command": "tmux-sidebar hook permission --kind codex"
           }
         ]
       }
@@ -34,10 +17,37 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/agent-pane-state.sh running codex post"
-          },
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "",
+        "hooks": [
           {
             "type": "command",
-            "command": "agent-telemetry hook post-tool-use --agent codex"
+            "command": "tmux-sidebar hook running --kind codex"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tmux-sidebar hook idle --kind codex --reset"
           }
         ]
       }

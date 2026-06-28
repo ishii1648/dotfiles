@@ -19,10 +19,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/workflow-session-start.sh"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook session-start --agent claude"
           }
         ]
       }
@@ -84,10 +80,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/workflow-session-log.sh"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook stop --agent claude"
           }
         ]
       }
@@ -98,11 +90,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh end"
-          },
-          {
-            "type": "command",
-            "command": "agent-telemetry hook session-end --agent claude",
-            "timeout": 10
           }
         ]
       }
