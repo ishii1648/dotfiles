@@ -1,7 +1,7 @@
 # ADR-073: statusline のコンテキスト上限判定を model.id サフィックスから context_window フィールドへ変更する
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 関連: ADR-048（1M context モデルの auto-compaction 閾値。同じ statusline のコンテキスト使用率表示に関わる）

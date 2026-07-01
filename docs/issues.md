@@ -66,7 +66,7 @@
 | - | ○ | tmux / fish / claude / codex | popup ランチャーが二系統並存（dispatch_launcher.fish と `tmux-sidebar new`）でメンテ負債が発生する — `prefix+S` を `tmux-sidebar new` に統一し dispatch_launcher を廃止する | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
 | - | ○ | claude / codex | coding agent 間の双方向・反復連携を自動化できない — dispatch は片方向のみで「claude 実装 → codex レビュー → claude 反映 → codex 再レビュー」の往復を人間が手動中継している | [ADR-070](adr/070-cross-agent-review-loop.md) |
 | ✔ | ○ | claude / codex | dispatch / review-loop を dotfiles で vendor し続けると agmsg-go 同梱版（IPC 機構・team・auto-join）と二重メンテになる — 配布を agmsg-go（`agmsg skills install`）に外部化し dotfiles の vendor を廃止する | [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
-| - | ○ | claude | statusline のコンテキスト使用率表示が model.id の "[1m]" サフィックスに依存し新モデルで誤動作する — Claude Code 本体が stdin で渡す context_window フィールドを優先する必要がある | [ADR-073](adr/073-statusline-context-window-over-model-id-suffix.md) |
+| ✔ | ○ | claude | statusline のコンテキスト使用率表示が model.id の "[1m]" サフィックスに依存し新モデルで誤動作する — Claude Code 本体が stdin で渡す context_window フィールドを優先する必要がある | [ADR-073](adr/073-statusline-context-window-over-model-id-suffix.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1025,7 +1025,7 @@
 
 **受け入れ条件**:
 
-- [ ] `configs/claude/statusline.js` が stdin の `context_window.context_window_size` をコンテキスト上限として使用する
-- [ ] `configs/claude/statusline.js` が stdin の `context_window.used_percentage` を使用率として使用する（`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` 未設定時）
-- [ ] stdin に `context_window` が存在しない場合、`model.id` の `"[1m]"` サフィックス判定 + transcript 解析にフォールバックする
-- [ ] `"[1m]"` サフィックスを持たない 1M モデル（例: Sonnet 5）で ctx 表示が 1M 基準になる
+- [x] `configs/claude/statusline.js` が stdin の `context_window.context_window_size` をコンテキスト上限として使用する
+- [x] `configs/claude/statusline.js` が stdin の `context_window.used_percentage` を使用率として使用する（`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` 未設定時）
+- [x] stdin に `context_window` が存在しない場合、`model.id` の `"[1m]"` サフィックス判定 + transcript 解析にフォールバックする
+- [x] `"[1m]"` サフィックスを持たない 1M モデル（例: Sonnet 5）で ctx 表示が 1M 基準になる
