@@ -8,6 +8,7 @@ const { execSync } = require('child_process');
 const crypto = require('crypto');
 
 // Constants
+// フォールバック用（stdin に context_window が来ない旧バージョン向け）。
 // モデルIDに "[1m]" が含まれる場合は 1M context モデル
 const COMPACTION_THRESHOLD_DEFAULT = 150000;
 const COMPACTION_THRESHOLD_1M = 950000;
@@ -22,10 +23,11 @@ process.stdin.on('end', async () => {
     // Extract values
     const model = data.model?.display_name || 'Unknown';
     const modelId = data.model?.id || '';
-    const maxContext = modelId.includes('[1m]') ? 1000000 : 200000;
+    // Claude Code 本体が渡す context_window（新しめのバージョンのみ）を優先する。
+    // model.id の "[1m]" サフィックスは 1M モデルでも付かない場合があり、それだけでは判定できない。
+    const cw = data.context_window;
+    const maxContext = cw?.context_window_size || (modelId.includes('[1m]') ? 1000000 : 200000);
     const autocompactPct = parseInt(process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE || '0');
-    const compactionThreshold = modelId.includes('[1m]') ? COMPACTION_THRESHOLD_1M : COMPACTION_THRESHOLD_DEFAULT;
-    const displayThreshold = autocompactPct > 0 ? Math.round(maxContext * autocompactPct / 100) : compactionThreshold;
     const effortLevel = getEffortLevel();
     const cwd = data.workspace?.current_dir || data.cwd || '.';
 
@@ -53,8 +55,12 @@ process.stdin.on('end', async () => {
     // Calculate token usage for current session
     let totalTokens = 0;
 
-    if (sessionId) {
-      // Find all transcript files
+    if (cw?.current_usage) {
+      const u = cw.current_usage;
+      totalTokens = (u.input_tokens || 0) + (u.output_tokens || 0) +
+        (u.cache_creation_input_tokens || 0) + (u.cache_read_input_tokens || 0);
+    } else if (sessionId) {
+      // フォールバック: transcript ファイルから集計（旧バージョン向け）
       const projectsDir = path.join(process.env.HOME, '.claude', 'projects');
 
       if (fs.existsSync(projectsDir)) {
@@ -75,8 +81,19 @@ process.stdin.on('end', async () => {
       }
     }
 
-    // Calculate percentage
-    const percentage = Math.min(100, Math.round((totalTokens / displayThreshold) * 100));
+    // Calculate percentage / display threshold（自動圧縮が発動する実際の分母）
+    let percentage, displayThreshold;
+    if (autocompactPct > 0) {
+      displayThreshold = Math.round(maxContext * autocompactPct / 100);
+      percentage = Math.min(100, Math.round((totalTokens / displayThreshold) * 100));
+    } else if (cw?.used_percentage != null) {
+      // Claude Code 本体が計算済みの使用率をそのまま使い、閾値はそこから逆算する
+      percentage = Math.min(100, cw.used_percentage);
+      displayThreshold = percentage > 0 ? Math.round(totalTokens / (percentage / 100)) : maxContext;
+    } else {
+      displayThreshold = modelId.includes('[1m]') ? COMPACTION_THRESHOLD_1M : COMPACTION_THRESHOLD_DEFAULT;
+      percentage = Math.min(100, Math.round((totalTokens / displayThreshold) * 100));
+    }
 
     // Format token display
     const tokenDisplay = formatTokenCount(totalTokens);
