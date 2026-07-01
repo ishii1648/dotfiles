@@ -18,5 +18,5 @@ abbr -a tar gtar
 abbr -a awk gawk
 abbr -a find gfind
 abbr -a n "nvim ."
-abbr -a ccode claude
+abbr -a cc claude
 
