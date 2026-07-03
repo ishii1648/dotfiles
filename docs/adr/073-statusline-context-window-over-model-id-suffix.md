@@ -24,19 +24,29 @@ Claude Code 本体が stdin JSON で渡す `context_window.context_window_size`�
 
 `context_window` フィールドが存在しない旧バージョンの Claude Code 向けに、従来の `model.id` の `"[1m]"` サフィックス判定 + transcript ファイル解析によるトークン集計をフォールバックとして残す。`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`（ADR-048）による分母上書きは、`context_window` 優先時・フォールバック時のどちらでも従来通り最優先で尊重する。
 
-## 追補（2026-07-04）: Fable 5 で 150k 表示に落ちる再発と補強
+## 追補（2026-07-04）: `used_percentage` 未着パスの maxContext 尊重
 
-初期実装は「stdin に `context_window` が来ていれば直る」前提だったが、Fable 5 で `(0/150k)` に落ちるケースが発覚した。原因は 2 点。
-
-1. **1M モデル判定が `"[1m]"` サフィックス限定**: Fable 5 の `model.id` は `claude-fable-5`（サフィックス無し）。`context_window` 自体が未着（起動直後で `used_percentage` が来ない）だと `maxContext` が 200k にフォールバックし、下流の閾値も 150k になる。
-2. **`used_percentage` 未着パスが `maxContext` を無視**: `cw.context_window_size` が来ていても `used_percentage` が `null` の場合、旧ロジックの else 分岐が `modelId.includes("[1m]")` だけを見て閾値を 150k/950k に固定していた。せっかく検出済みの `maxContext` を捨てていた。
+初期実装は「stdin に `context_window` が来ていれば直る」前提だったが、`used_percentage` が未着のとき（起動直後や旧バージョン CC）に `cw.context_window_size` を検出済みでも下流の閾値が固定値に落ちるバグが残っていた。旧 else 分岐は `modelId.includes("[1m]")` だけを見て 150k/950k を固定しており、`maxContext` を捨てていた。
 
 補強:
 
-- 1M モデル判定を配列パターンに変え、`"[1m]"` サフィックスに加え `^claude-fable` プレフィクスも 1M 扱いにする。今後 1M モデルが増える場合はこの配列に足す。
-- `used_percentage` 未着パスの閾値算出を `maxContext` ベースに変更（`>=1M` → 950k、`<=200k` → 150k、その他は `maxContext * 0.95`）。命名パターン依存はあくまで最終フォールバック。
+- `used_percentage` 未着パスの `displayThreshold` 算出を `maxContext` ベースに変更（`>=1M` → 950k、`<=200k` → 150k、その他は `maxContext * 0.95`）。命名パターン依存は最終フォールバックのみ。
 
-これは案A（パターン拡張）への逆行に見えるが、あくまで stdin 優先という主方針を保ったうえでの「最終フォールバックを頑健にする」補強であり、ADR の主張自体は不変。
+主方針（stdin 優先）は不変。
+
+## 追補（2026-07-04）: Fable 5 と CC の context_window 申告値の食い違い
+
+Fable 5 セッションで `(0/150k)` → `(32k/200k)` と表示され「1M であるべき」との指摘があり調査した結果、Anthropic 公式仕様（claude-api skill / Models 表）と Claude Code v2.1.191 の間で食い違いを確認した。
+
+- **Anthropic 公式**: `claude-fable-5` は 1M context / 128K max output（デフォルト値）
+- **Claude Code v2.1.191**: Fable 5 セッションの stdin で `context_window.context_window_size=200000, used_percentage=<200k基準>` を申告してくる
+
+statusline は ADR-073 の主方針どおり **CC の申告値を尊重する** 立場を取る。Fable 5 は CC 側 registry / 使用率計算がモデル真値と乖離しているが、auto-compaction の実発火タイミングは CC が保持しているため、CC が 200k と言う以上 200k 基準で表示するのが正しい（無理に 1M/950k 表示にすると実 compact との乖離で誤解を招く）。
+
+- 一時的に加えていた `^claude-fable` / `fable` regex による 1M 判定は **削除** した
+- CC 側でこの点が修正されれば `context_window_size=1000000` が流れてくるようになり自動で 1M/950k 表示になる
+
+つまり、この件は statusline 側で追加対処せず、CC のアップデートを待つ運用とする。
 
 ### 変更が必要なファイル
 | ファイル | リポジトリ | 変更内容 |

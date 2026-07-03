@@ -12,11 +12,13 @@ const crypto = require('crypto');
 const COMPACTION_THRESHOLD_DEFAULT = 150000;
 const COMPACTION_THRESHOLD_1M = 950000;
 
-// 1M context モデル判定のパターン。
-// - "[1m]" サフィックス: Opus 4.7 (1M) 系
-// - "claude-fable" プレフィクス: Fable 5 系（サフィックス無し）
-// stdin の context_window.context_window_size を最優先とし、来ない場合の保険に使う。
-const ONE_M_MODEL_PATTERNS = [/\[1m\]/, /^claude-fable/];
+// 1M context モデル判定のパターン。stdin の context_window.context_window_size
+// を最優先とし、来ない旧バージョン CC 向けの最終フォールバックとして使う。
+// - "[1m]" サフィックス: Opus 4.7/4.8 (1M) 系
+// 注: Fable 5 は Anthropic 公式仕様上 1M モデルだが、CC v2.1.191 は stdin で
+// context_window_size=200000 を申告してくる。CC 側の申告を尊重し、ここでは
+// あえて fable パターンを加えない（CC が 200k と言うなら 200k で表示する）。
+const ONE_M_MODEL_PATTERNS = [/\[1m\]/];
 function isOneMContextModel(modelId) {
   return ONE_M_MODEL_PATTERNS.some(re => re.test(modelId));
 }
