@@ -8,10 +8,18 @@ const { execSync, spawn } = require('child_process');
 const crypto = require('crypto');
 
 // Constants
-// フォールバック用（stdin に context_window が来ない旧バージョン向け）。
-// モデルIDに "[1m]" が含まれる場合は 1M context モデル
+// フォールバック用（stdin に context_window が来ない/未完成の旧バージョン向け）。
 const COMPACTION_THRESHOLD_DEFAULT = 150000;
 const COMPACTION_THRESHOLD_1M = 950000;
+
+// 1M context モデル判定のパターン。
+// - "[1m]" サフィックス: Opus 4.7 (1M) 系
+// - "claude-fable" プレフィクス: Fable 5 系（サフィックス無し）
+// stdin の context_window.context_window_size を最優先とし、来ない場合の保険に使う。
+const ONE_M_MODEL_PATTERNS = [/\[1m\]/, /^claude-fable/];
+function isOneMContextModel(modelId) {
+  return ONE_M_MODEL_PATTERNS.some(re => re.test(modelId));
+}
 
 // Read JSON from stdin
 let input = '';
@@ -26,7 +34,7 @@ process.stdin.on('end', async () => {
     // Claude Code 本体が渡す context_window（新しめのバージョンのみ）を優先する。
     // model.id の "[1m]" サフィックスは 1M モデルでも付かない場合があり、それだけでは判定できない。
     const cw = data.context_window;
-    const maxContext = cw?.context_window_size || (modelId.includes('[1m]') ? 1000000 : 200000);
+    const maxContext = cw?.context_window_size || (isOneMContextModel(modelId) ? 1000000 : 200000);
     const autocompactPct = parseInt(process.env.CLAUDE_AUTOCOMPACT_PCT_OVERRIDE || '0');
     const effortLevel = getEffortLevel();
     const cwd = data.workspace?.current_dir || data.cwd || '.';
@@ -91,7 +99,11 @@ process.stdin.on('end', async () => {
       percentage = Math.min(100, cw.used_percentage);
       displayThreshold = percentage > 0 ? Math.round(totalTokens / (percentage / 100)) : maxContext;
     } else {
-      displayThreshold = modelId.includes('[1m]') ? COMPACTION_THRESHOLD_1M : COMPACTION_THRESHOLD_DEFAULT;
+      // used_percentage 未着（起動直後や旧バージョン CC）。maxContext から閾値を導出する。
+      // 200k → 150k, 1M → 950k, その他は 95% を目安。
+      displayThreshold = maxContext >= 1000000 ? COMPACTION_THRESHOLD_1M
+        : maxContext <= 200000 ? COMPACTION_THRESHOLD_DEFAULT
+        : Math.round(maxContext * 0.95);
       percentage = Math.min(100, Math.round((totalTokens / displayThreshold) * 100));
     }
 

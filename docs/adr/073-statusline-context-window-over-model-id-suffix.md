@@ -24,6 +24,20 @@ Claude Code 本体が stdin JSON で渡す `context_window.context_window_size`�
 
 `context_window` フィールドが存在しない旧バージョンの Claude Code 向けに、従来の `model.id` の `"[1m]"` サフィックス判定 + transcript ファイル解析によるトークン集計をフォールバックとして残す。`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE`（ADR-048）による分母上書きは、`context_window` 優先時・フォールバック時のどちらでも従来通り最優先で尊重する。
 
+## 追補（2026-07-04）: Fable 5 で 150k 表示に落ちる再発と補強
+
+初期実装は「stdin に `context_window` が来ていれば直る」前提だったが、Fable 5 で `(0/150k)` に落ちるケースが発覚した。原因は 2 点。
+
+1. **1M モデル判定が `"[1m]"` サフィックス限定**: Fable 5 の `model.id` は `claude-fable-5`（サフィックス無し）。`context_window` 自体が未着（起動直後で `used_percentage` が来ない）だと `maxContext` が 200k にフォールバックし、下流の閾値も 150k になる。
+2. **`used_percentage` 未着パスが `maxContext` を無視**: `cw.context_window_size` が来ていても `used_percentage` が `null` の場合、旧ロジックの else 分岐が `modelId.includes("[1m]")` だけを見て閾値を 150k/950k に固定していた。せっかく検出済みの `maxContext` を捨てていた。
+
+補強:
+
+- 1M モデル判定を配列パターンに変え、`"[1m]"` サフィックスに加え `^claude-fable` プレフィクスも 1M 扱いにする。今後 1M モデルが増える場合はこの配列に足す。
+- `used_percentage` 未着パスの閾値算出を `maxContext` ベースに変更（`>=1M` → 950k、`<=200k` → 150k、その他は `maxContext * 0.95`）。命名パターン依存はあくまで最終フォールバック。
+
+これは案A（パターン拡張）への逆行に見えるが、あくまで stdin 優先という主方針を保ったうえでの「最終フォールバックを頑健にする」補強であり、ADR の主張自体は不変。
+
 ### 変更が必要なファイル
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
