@@ -24,9 +24,6 @@
 - 中断されたアクションを無断で再試行しない（特に push 等の外向き操作）。ユーザが別タスクへ誘導したら、そのタスクを終えてから再開可否を確認する。
 - `~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク。編集は実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/CLAUDE.md` に対して行う。
 
-## 実装完了時の自動Git操作
-未コミット変更があり feature/fix/docs/chore ブランチ上にいる場合、`git-ship` skill を自動実行する（$PWD 配下であることを確認してから）。PRが未作成なら commit→push→Draft PR作成、作成済みなら commit→push のみ。
-
 ## 調査結果のまとめ
 - 調査結果をまとめる際に表を使う場合はmarkdownを使うこと
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
