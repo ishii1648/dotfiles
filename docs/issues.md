@@ -67,6 +67,7 @@
 | - | ○ | claude / codex | coding agent 間の双方向・反復連携を自動化できない — dispatch は片方向のみで「claude 実装 → codex レビュー → claude 反映 → codex 再レビュー」の往復を人間が手動中継している | [ADR-070](adr/070-cross-agent-review-loop.md) |
 | ✔ | ○ | claude / codex | dispatch / review-loop を dotfiles で vendor し続けると agmsg-go 同梱版（IPC 機構・team・auto-join）と二重メンテになる — 配布を agmsg-go（`agmsg skills install`）に外部化し dotfiles の vendor を廃止する | [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
 | ✔ | ○ | claude | statusline のコンテキスト使用率表示が model.id の "[1m]" サフィックスに依存し新モデルで誤動作する — Claude Code 本体が stdin で渡す context_window フィールドを優先する必要がある | [ADR-073](adr/073-statusline-context-window-over-model-id-suffix.md) |
+| ✔ | ○ | claude | statusline の org 名表示が `<email>'s Organization` で冗長かつ Fable 専用の週間利用率が確認できない — org 名を短縮し、`oauth/usage` API の `limits[]` から Fable のスコープ制限を抽出して表示する | [ADR-074](adr/074-statusline-org-shorten-and-fable-usage.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1029,3 +1030,16 @@
 - [x] `configs/claude/statusline.js` が stdin の `context_window.used_percentage` を使用率として使用する（`CLAUDE_AUTOCOMPACT_PCT_OVERRIDE` 未設定時）
 - [x] stdin に `context_window` が存在しない場合、`model.id` の `"[1m]"` サフィックス判定 + transcript 解析にフォールバックする
 - [x] `"[1m]"` サフィックスを持たない 1M モデル（例: Sonnet 5）で ctx 表示が 1M 基準になる
+
+### ADR-074: statusline の org 名短縮表示と Fable 週間利用率の追加
+
+**コンポーネント**: claude | **ADR**: [ADR-074](adr/074-statusline-org-shorten-and-fable-usage.md)
+
+**受け入れ条件**:
+
+- [x] `<email>'s Organization` 形式の org 名がメールのローカルパートのみに短縮されて表示される（例: `ishii1492@gmail.com's Organization` → `ishii1492`）
+- [x] `'s Organization` サフィックスを持たないカスタム org 名はそのまま表示し、16 文字を超える場合のみ末尾を `…` で省略する
+- [x] `getRateLimitUsage()` が `oauth/usage` API の `limits[]` から `scope.model.display_name === "Fable"` の週間スコープ制限（`percent` / `resets_at`）を抽出して返す
+- [x] stdin に `rate_limits`（five_hour/seven_day）が来ている場合でも Fable の週間利用率を取得するため `getRateLimitUsage()` を常時呼び出す（5h/7d/月間表示自体は従来通り stdin を優先）
+- [x] statusline 1行目に `| fable ████░░░░ 33% <reset>` の形式で Fable の週間利用率が表示される
+- [x] Fable の利用率データが取得できない場合（API 失敗・フィールド不在）は `fable` セグメントを表示しない

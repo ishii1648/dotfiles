@@ -59,7 +59,12 @@ process.stdin.on('end', async () => {
       }
     } catch (e) {}
     const stdinRateLimits = parseStdinRateLimits(data.rate_limits);
-    const rateLimitUsage = stdinRateLimits || await getRateLimitUsage();
+    // Fable の週間利用率は stdin の rate_limits に含まれず oauth/usage API の
+    // limits[] からしか取れないため、stdin が来ていても API 呼び出しは常時行う
+    // （getRateLimitUsage 内で 6 分キャッシュ済みなのでコストは小さい）。
+    const apiRateLimitUsage = await getRateLimitUsage();
+    const rateLimitUsage = stdinRateLimits || apiRateLimitUsage;
+    const fableUsage = apiRateLimitUsage?.fable || null;
     const sessionId = data.session_id;
 
     // Calculate token usage for current session
@@ -142,7 +147,7 @@ process.stdin.on('end', async () => {
     const { tier, org } = getTierAndOrg();
     let tierOrgInfo = '';
     if (tier) tierOrgInfo += `[\x1b[36m${tier}\x1b[0m]`;
-    if (org) tierOrgInfo += `[\x1b[35m${org}\x1b[0m]`;
+    if (org) tierOrgInfo += `[\x1b[35m${shortenOrgName(org)}\x1b[0m]`;
 
     // Line 1: 基本情報 + プログレスバー
     let statusLine = `${tierOrgInfo}[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | ctx ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay}/${thresholdDisplay})`;
@@ -164,6 +169,11 @@ process.stdin.on('end', async () => {
         const pct = Math.round(monthly);
         statusLine += ` | mo ${coloredBar(pct, 8)} ${pct}%`;
       }
+    }
+    if (fableUsage?.percent != null) {
+      const pct = Math.round(fableUsage.percent);
+      const resetInfo = fableUsage.resetsAt ? ` ${formatTimeRemaining(fableUsage.resetsAt)}` : '';
+      statusLine += ` | fable ${coloredBar(pct, 8)} ${pct}%${resetInfo}`;
     }
     console.log(statusLine);
   } catch (error) {
@@ -318,6 +328,24 @@ function getEffortLevel() {
   }
 }
 
+// "foo@example.com's Organization"（個人アカウントのデフォルト組織名）のような
+// 冗長な org 名を短縮する。メールアドレス部分やドメインを落とし、それでも長い
+// 場合は末尾を省略する。
+function shortenOrgName(org) {
+  if (!org) return org;
+  const MAX_LEN = 16;
+  let name = org;
+  const emailMatch = name.match(/^(.+?)@[^@]+'s Organization$/i);
+  if (emailMatch) {
+    name = emailMatch[1];
+  } else {
+    const orgMatch = name.match(/^(.+)'s Organization$/i);
+    if (orgMatch) name = orgMatch[1];
+  }
+  if (name.length > MAX_LEN) name = `${name.slice(0, MAX_LEN - 1)}…`;
+  return name;
+}
+
 function getTierAndOrg() {
   const configDir = process.env.CLAUDE_CONFIG_DIR || path.join(process.env.HOME, '.claude');
   const tierCache = path.join(configDir, '.tier_cache');
@@ -448,10 +476,14 @@ async function getRateLimitUsage() {
       });
       const data = JSON.parse(responseStr);
       if (data.error) continue;
+      const fableLimit = Array.isArray(data.limits)
+        ? data.limits.find(l => l?.scope?.model?.display_name?.toLowerCase() === 'fable')
+        : null;
       const result = {
         fiveHour: data.five_hour?.utilization ?? null,
         sevenDay: data.seven_day?.utilization ?? null,
         monthly: data.extra_usage?.is_enabled ? (data.extra_usage?.utilization ?? null) : null,
+        fable: fableLimit ? { percent: fableLimit.percent, resetsAt: fableLimit.resets_at } : null,
       };
       fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
       return result;
