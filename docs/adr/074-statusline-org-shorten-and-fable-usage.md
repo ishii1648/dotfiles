@@ -1,4 +1,4 @@
-# ADR-074: statusline の org 名短縮表示と Fable 週間利用率の追加
+# ADR-074: statusline の org 表示廃止と Fable 週間利用率の追加
 
 ## ステータス
 採用済み
@@ -38,6 +38,15 @@ Claude Code 本体が stdin で渡す `rate_limits` にモデル別内訳を追�
 | ファイル | リポジトリ | 変更内容 |
 |---|---|---|
 | `configs/claude/statusline.js` | dotfiles | `shortenOrgName()` を追加して org 表示に適用。`getRateLimitUsage()` が `limits[]` から Fable の週間制限を抽出して返すよう拡張。`rateLimitUsage` 計算とは独立に `getRateLimitUsage()` を常時呼び出し、statusline に `| fable ████░░░░ 33% 5h5m` の形式で追加表示 |
+
+## 追補（2026-07-20）: org 表示を短縮ではなく完全廃止に変更
+
+短縮しても `[max][ishii1492]` の形でなお冗長との指摘があり、org 表示自体を statusline から削除する方針に変更した。`shortenOrgName()` は呼び出し元がなくなったため削除し、`tierOrgInfo` の組み立ては tier（`[max]`）のみになった。`getTierAndOrg()` は tier キャッシュ機構を tier/org 兼用のまま維持しており（org のキャッシュ・バックグラウンド取得自体は残存）、statusline 側で org を単に破棄している。
+
+### 変更が必要なファイル（追補）
+| ファイル | リポジトリ | 変更内容 |
+|---|---|---|
+| `configs/claude/statusline.js` | dotfiles | `shortenOrgName()` を削除。`tierOrgInfo` の組み立てから org 参照を除去し `{ tier } = getTierAndOrg()` のみ使用する |
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-074 セクション）

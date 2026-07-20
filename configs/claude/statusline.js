@@ -143,11 +143,10 @@ process.stdin.on('end', async () => {
     // Build model display with optional effort level
     const modelDisplay = effortLevel ? `${model}|${effortLevel}` : model;
 
-    // tier / org 情報（claude auth status のキャッシュ）
-    const { tier, org } = getTierAndOrg();
+    // tier 情報（claude auth status のキャッシュ）
+    const { tier } = getTierAndOrg();
     let tierOrgInfo = '';
     if (tier) tierOrgInfo += `[\x1b[36m${tier}\x1b[0m]`;
-    if (org) tierOrgInfo += `[\x1b[35m${shortenOrgName(org)}\x1b[0m]`;
 
     // Line 1: 基本情報 + プログレスバー
     let statusLine = `${tierOrgInfo}[${modelDisplay}] 📁 ${repoName}${gitInfo}${dirtyInfo}${prLinkInfo} | ctx ${coloredBar(percentage, 10)} ${percentage}% (${tokenDisplay}/${thresholdDisplay})`;
@@ -326,24 +325,6 @@ function getEffortLevel() {
   } catch (e) {
     return 'high';
   }
-}
-
-// "foo@example.com's Organization"（個人アカウントのデフォルト組織名）のような
-// 冗長な org 名を短縮する。メールアドレス部分やドメインを落とし、それでも長い
-// 場合は末尾を省略する。
-function shortenOrgName(org) {
-  if (!org) return org;
-  const MAX_LEN = 16;
-  let name = org;
-  const emailMatch = name.match(/^(.+?)@[^@]+'s Organization$/i);
-  if (emailMatch) {
-    name = emailMatch[1];
-  } else {
-    const orgMatch = name.match(/^(.+)'s Organization$/i);
-    if (orgMatch) name = orgMatch[1];
-  }
-  if (name.length > MAX_LEN) name = `${name.slice(0, MAX_LEN - 1)}…`;
-  return name;
 }
 
 function getTierAndOrg() {
