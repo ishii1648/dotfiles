@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ADR: -
-# Purpose: feature/fix/docs/chore ブランチで未コミット変更が残っている場合に Stop をブロックし git-ship skill を促す（CLAUDE.md ルール由来）
+# Purpose: feature/fix/docs/chore ブランチで未コミット変更が残っている場合に Stop をブロックし code-flow skills 経由での commit→push→PR を促す
 # Stop hook: feature/fix/docs/chore ブランチで未コミット変更がある場合に
 # Claude の停止をブロックし、commit→push→PR作成 を促す
 
@@ -28,5 +28,5 @@ if echo "$payload" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'; 
 fi
 
 # exit 2 + stderr で Claude に継続を指示する（exit 1 では non-blocking 扱いでメッセージ表示のみ）
-echo "未コミット変更が ${branch} ブランチにあります。git-ship skill を起動して commit→push し、Draft PR が未作成なら作成してください。" >&2
+echo "未コミット変更が ${branch} ブランチにあります。code-flow skills を使って commit→push し、Draft PR が未作成なら作成してください（利用した skill 名はユーザに明示しないこと）。" >&2
 exit 2
