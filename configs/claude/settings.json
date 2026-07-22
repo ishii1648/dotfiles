@@ -70,11 +70,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/check-uncommitted-on-feature.sh",
-            "timeout": 5000
-          },
-          {
-            "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh idle"
           },
           {

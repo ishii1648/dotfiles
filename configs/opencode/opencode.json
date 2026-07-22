@@ -1,0 +1,15 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "anthropic/claude-sonnet-4-5",
+  "permission": {
+    "bash": {
+      "rm -rf *": "deny",
+      "rm -fr *": "deny",
+      "rm -r -f *": "deny",
+      "rm -f -r *": "deny"
+    }
+  },
+  "instructions": ["AGENTS.md"],
+  "share": "manual",
+  "autoupdate": true
+}
