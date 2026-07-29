@@ -89,8 +89,6 @@ components:
         target: configs/claude/statusline.js
       - link: ~/.claude/skills/codex-sync
         target: configs/claude/skills/codex-sync
-      - link: ~/.claude/skills/contextual-commit
-        target: configs/claude/skills/contextual-commit
     copies:
       - src: configs/claude/settings.json
         dest: ~/.claude/settings.json

@@ -13,6 +13,7 @@
     ],
     "PostToolUse": [
       {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",
@@ -44,6 +45,16 @@
     ],
     "Stop": [
       {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+          }
+        ]
+      },
+      {
+        "matcher": "",
         "hooks": [
           {
             "type": "command",

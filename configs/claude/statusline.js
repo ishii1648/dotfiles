@@ -358,6 +358,23 @@ function getTierAndOrg() {
 }
 
 function getPrInfo(cwd) {
+  const cacheTTL = 600000; // 10 min
+  let cacheFile = null;
+  try {
+    const branch = getCurrentBranch(cwd) || '';
+    const key = crypto.createHash('md5').update(`${cwd}\0${branch}`).digest('hex');
+    cacheFile = `/tmp/claude-gh-pr-cache-${key}.json`;
+    if (fs.existsSync(cacheFile)) {
+      const cache = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));
+      if (Date.now() - cache.timestamp < cacheTTL) {
+        return cache.data;
+      }
+    }
+  } catch (e) {
+    // cache miss
+  }
+
+  let result = null;
   try {
     const output = execSync('gh pr view --json url,number,isDraft -q ".number,.url,.isDraft"', {
       cwd: cwd,
@@ -367,12 +384,18 @@ function getPrInfo(cwd) {
     });
     const lines = output.trim().split('\n');
     if (lines.length >= 3) {
-      return { number: lines[0], url: lines[1], isDraft: lines[2] === 'true' };
+      result = { number: lines[0], url: lines[1], isDraft: lines[2] === 'true' };
     }
-    return null;
   } catch (e) {
-    return null;
+    result = null;
   }
+
+  if (cacheFile) {
+    try {
+      fs.writeFileSync(cacheFile, JSON.stringify({ timestamp: Date.now(), data: result }));
+    } catch (e) {}
+  }
+  return result;
 }
 
 function parseStdinRateLimits(rateLimits) {

@@ -24,7 +24,15 @@
 - 中断されたアクションを無断で再試行しない（特に push 等の外向き操作）。ユーザが別タスクへ誘導したら、そのタスクを終えてから再開可否を確認する。
 - `~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク。編集は実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/CLAUDE.md` に対して行う。
 
+## セカンドオピニオンは codex-advise を使う
+built-in `advisor` ツールは server-side tool で `permissions.deny` の対象外（deny しても
+"matches no known tool" 警告が出るだけで効かない）。`~/.claude/settings.json` の
+`env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1"` で無効化済み。設計判断・実装方針のセカンドオピニオンが
+必要な場合は `codex-advise` skill（Codex/GPT-5 への相談、openai-codex plugin 経由）を使う。
+codex-advise が使えない状況（openai-codex 未導入・未ログイン等）でも advisor には戻さない。その場合は不足を
+ユーザに伝えて判断を仰ぐ。
+
 ## 調査結果のまとめ
-- 調査結果をまとめる際に表を使う場合はmarkdownを使うこと
 - 調査結果は`.outputs/claude/`に出力すること（global gitignoreで除外済み）
 - ただし、プロジェクト CLAUDE.md で調査ドキュメントの出力先が指定されている場合はそちらに従う
+

@@ -6,3 +6,5 @@ end
 
 # opencode
 fish_add_path /Users/sho/.opencode/bin
+
+eval (fdev secrets load --format fish codex-cli-flugel-pass-through-api-token)
