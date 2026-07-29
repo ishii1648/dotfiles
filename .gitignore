@@ -12,6 +12,8 @@ scripts/setup-manifest.local.yml
 # Fish shell
 configs/fish/fish_variables
 configs/fish/functions/__*
+configs/fish/functions/claude.fish
+configs/fish/functions/fable.fish
 
 
 # Claude output
