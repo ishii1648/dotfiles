@@ -26,10 +26,6 @@
 - 仕様は実装後に更新してよい（後追いOK）
 - 「なぜこうしたか」だけ書く。実装手順は仕様に書かない
 
-### agent-telemetry（別リポジトリ）
-
-PR 単位 token 効率の計測は `ishii1648/agent-telemetry`（旧 `hitl-metrics`、claudedog の後継）に分離されている。hook 登録は本 dotfiles で管理し、binary のインストールと dashboard 設定は当該リポジトリの [docs/setup.md](https://github.com/ishii1648/agent-telemetry/blob/main/docs/setup.md) を参照。
-
 ### Claude Code フックスクリプトのヘッダ規約（ADR-042）
 
 `configs/claude/scripts/` 配下で settings.json から呼び出される hook スクリプトは、ファイル先頭（shebang の直後）に以下のヘッダを必須とする。
@@ -43,7 +39,7 @@ PR 単位 token 効率の計測は `ishii1648/agent-telemetry`（旧 `hitl-metri
 - `# ADR:` 行: 根拠 ADR の番号。特定 ADR を持たないスクリプト（プロジェクト規約由来など）は `# ADR: -` を記載する
 - `# Purpose:` 行: スクリプトの目的を 1 行で記述（必須）
 - `setup.sh` 実行時に `scripts/lib/validate.sh` がヘッダ未記入を WARN で検出する
-- 外部 CLI 提供のコマンド形式 hook（例: `agent-telemetry hook session-start`）は dotfiles 管理外のスクリプトを呼ぶため対象外
+- 外部 CLI 提供のコマンド形式 hook は dotfiles 管理外のスクリプトを呼ぶため対象外
 
 新規 hook を追加する際は settings.json への登録と同時にヘッダも記入すること。`grep -rE '^# ADR:' ~/.claude/scripts/` で全 hook の根拠が一覧できる状態を維持する。
 

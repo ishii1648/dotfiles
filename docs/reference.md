@@ -17,7 +17,6 @@
 
 | コンポーネント | 管理場所 |
 |---|---|
-| agent-telemetry | `ishii1648/agent-telemetry` — Claude Code / Codex CLI の PR 単位 token 効率を追跡・可視化する計測ツール（旧 `hitl-metrics`、claudedog の後継） |
 | tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI） |
 | agmsg-go（`dispatch` / `review-loop` skills + IPC コア） | `ishii1648/agmsg-go` — 共有 SQLite を通信路とするエージェント間 IPC binary（`agmsg`）と、その上で動く `dispatch` / `review-loop` skills を同梱。`go install github.com/ishii1648/agmsg-go/cmd/agmsg@v0.0.1`（version pin）→ `agmsg skills install --force` で `~/.claude/skills` へ実ファイル展開する。`setup.sh` が bootstrap する（ADR-072） |
 

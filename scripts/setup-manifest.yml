@@ -15,7 +15,6 @@ profiles:
     - tmux
     - claude
     - codex
-    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -25,7 +24,6 @@ profiles:
     - nvim
     - tmux
     - claude
-    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -35,7 +33,6 @@ profiles:
     - nvim
     - tmux
     - claude
-    - agent-telemetry
     - tmux-sidebar
     - aqua
     - git
@@ -107,9 +104,6 @@ components:
         target: configs/claude/skills/orchestrate
       - link: ~/.codex/skills/session-log
         target: configs/claude/skills/session-log
-
-  agent-telemetry:
-    setup: configs/agent-telemetry/setup.sh
 
   tmux-sidebar:
     setup: configs/tmux-sidebar/setup.sh
