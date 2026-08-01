@@ -13,9 +13,11 @@ profiles:
     - nvim
     - ghostty
     - tmux
-    - herdr
     - claude
     - codex
+    # herdr integration は ~/.claude/settings.json と ~/.codex/hooks.json（dotfiles への
+    # symlink）を書き換えるため、claude / codex の配置が終わった後に実行する（ADR-076）
+    - herdr
     - tmux-sidebar
     - aqua
     - git

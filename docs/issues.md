@@ -1066,7 +1066,9 @@ Phase 0（Spike）の受け入れ条件。Phase 1 以降の条件は Spike 完�
 - [x] herdr 0.7.5 が導入されている（`herdr --version`）
 - [x] `configs/herdr/config.toml` が `~/.config/herdr/config.toml` に symlink され、`herdr config check` が `config: ok` を返す
 - [x] `scripts/setup-manifest.yml` に `herdr` コンポーネント（symlink + setup）が定義され、profile `full` に含まれる
-- [ ] `configs/herdr/setup.sh` 経由で `herdr integration install claude` / `codex` が完了し、`herdr integration status` で両者が `installed` になる
+- [x] profile 内の順序が `claude` / `codex` → `herdr` になっている（herdr integration が両者の設定ファイルを書き換えるため）
+- [x] `configs/herdr/setup.sh` 経由で `herdr integration install claude` / `codex` が完了し、`herdr integration status` で両者が `current` になる
+- [x] `configs/herdr/setup.sh` が冪等（2 回連続実行しても `configs/codex/hooks.json` に追加の差分が出ない。`--dry-run` も `current` を正しく OK 判定する）
 - [ ] Spike: **日本語 IME の入力** — `open -na Ghostty --args --command=/opt/homebrew/bin/herdr` で起動した herdr 内の Claude Code で、変換候補窓がカーソルに追従し、確定文字列の欠落・重複が起きない
 - [ ] Spike: **IME 有効時の prefix** — CJK IME が有効な状態でも `ctrl+space` の prefix が herdr に届く（`switch_ascii_input_source_in_prefix = true` の効果を確認。macOS の IME 切替と衝突する場合は prefix 変更を検討する）
 - [ ] Spike: **描画品質** — BIZ UDGothic Bold + `adjust-cell-height = 20%` で日本語が崩れず、Claude Code / Codex の TUI が正しくレンダリングされる

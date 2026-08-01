@@ -2,65 +2,74 @@
   "hooks": {
     "PermissionRequest": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
-            "command": "tmux-sidebar hook permission --kind codex"
+            "command": "tmux-sidebar hook permission --kind codex",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/scripts/agent-pane-state.sh running codex post"
+            "command": "~/.claude/scripts/agent-pane-state.sh running codex post",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ],
     "PreToolUse": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
-            "command": "tmux-sidebar hook running --kind codex"
+            "command": "tmux-sidebar hook running --kind codex",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ],
     "SessionStart": [
       {
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex",
+            "type": "command"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "command": "bash '/Users/sho/.codex/herdr-agent-state.sh' session",
+            "timeout": 10,
+            "type": "command"
           }
         ]
       }
     ],
     "Stop": [
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex"
+            "command": "~/.claude/scripts/agent-pane-state.sh idle codex",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       },
       {
-        "matcher": "",
         "hooks": [
           {
-            "type": "command",
-            "command": "tmux-sidebar hook idle --kind codex --reset"
+            "command": "tmux-sidebar hook idle --kind codex --reset",
+            "type": "command"
           }
-        ]
+        ],
+        "matcher": ""
       }
     ]
   }

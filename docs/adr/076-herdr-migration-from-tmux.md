@@ -80,6 +80,23 @@ Spike中
 
 Phase 0 の結果を本 ADR に追記し、`Spike完了` へ遷移させたうえで Phase 1 以降の可否を判断する。**日本語 IME が実用水準に達しない場合は移行そのものを中止する。**
 
+## Spike の記録
+
+### 2026-08-01: integration 導入で判明した dotfiles 管理との衝突
+
+`herdr integration install <agent>` は hook スクリプトを展開するだけでなく、**エージェントの設定ファイルにも hook 定義を書き込む**。
+
+- `~/.claude/settings.json`（実ファイル）: `SessionStart` に `herdr-agent-state.sh session` を 1 件追加。既存 hook は全て保持されたが、JSON のキー順がソートされ末尾改行が失われる
+- `~/.codex/hooks.json`（**dotfiles への symlink**）: herdr は symlink を追跡し、**dotfiles の実体 `configs/codex/hooks.json` を書き換える**
+
+対策として以下を入れた:
+
+1. `configs/herdr/setup.sh` は `herdr integration status` が `current` を返す間は install を実行しない（実行のたびに JSON を書き直して差分ノイズを出すため）。`status` の行頭は `<agent>: current (vN)` 形式で、`installed` ではない
+2. install 直後に `~/.codex/hooks.json` / `~/.claude/settings.json` の末尾改行を補う
+3. manifest の profile 順で `herdr` を `claude` / `codex` の **後** に置く。逆順だと新規マシンで `~/.claude/settings.json` が存在しないまま herdr が生成してしまい、`if_missing: true` の copy がスキップされて dotfiles の設定が反映されない事故になる
+
+Phase 4 で tmux-sidebar の hook（`tmux-sidebar hook ... --kind codex`, `agent-pane-state.sh`）を撤去する際は、この herdr hook だけが残る形になる。
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-076 セクション）

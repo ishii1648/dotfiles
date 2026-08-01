@@ -9,6 +9,12 @@
 #
 # NOTE: 展開先（~/.claude/hooks/, ~/.codex/）は dotfiles の symlink 管理下ではなく
 #       herdr 自身が所有する。バージョン更新時に再実行して追従させる。
+#
+# 重要: install は hook 定義をエージェントの設定ファイル（~/.claude/settings.json,
+#       ~/.codex/hooks.json）にも書き込む。~/.codex/hooks.json は dotfiles への
+#       symlink なので、herdr は symlink を追跡して **dotfiles の実体を書き換える**
+#       （JSON のキー順ソートと末尾改行の削除という副作用も伴う）。そのため
+#       `herdr integration status` が current を返す間は install を実行しない。
 set -euo pipefail
 
 DRY_RUN="${DRY_RUN:-false}"
@@ -24,11 +30,17 @@ fi
 # 対象エージェント。手元で使うものだけに絞る（`herdr integration status` で全一覧）。
 AGENTS=(claude codex)
 
+# `herdr integration status` の行頭は "<agent>: current (vN) (<path>)" /
+# "<agent>: not installed (<path>)" 形式。current 以外は install が必要。
+is_current() {
+    grep -qE "^${1}: current" <<<"$2"
+}
+
 if [[ "$DRY_RUN" == "true" ]]; then
     status_out="$(herdr integration status 2>/dev/null || true)"
     rc=0
     for agent in "${AGENTS[@]}"; do
-        if grep -q "^${agent}: installed" <<<"$status_out"; then
+        if is_current "$agent" "$status_out"; then
             echo "  herdr integration ${agent}: ✓ OK"
         else
             echo "  herdr integration ${agent}: ✗ MISSING"
@@ -43,10 +55,20 @@ if [[ "$DRY_RUN" == "true" ]]; then
     exit "$rc"
 fi
 
-# install は冪等（既に入っていれば上書き更新される）
+# current なら何もしない（install は毎回 JSON を書き直すため、symlink 経由で
+# dotfiles の configs/codex/hooks.json に無用な差分が出る）
+status_out="$(herdr integration status 2>/dev/null || true)"
 for agent in "${AGENTS[@]}"; do
+    if is_current "$agent" "$status_out"; then
+        echo "  herdr integration ${agent}: ✓ already current"
+        continue
+    fi
     if herdr integration install "$agent" >/dev/null 2>&1; then
         echo "  herdr integration ${agent}: installed"
+        # herdr は JSON を書き戻す際に末尾改行を落とすため補う（差分ノイズ抑制）
+        for f in "$HOME/.codex/hooks.json" "$HOME/.claude/settings.json"; do
+            [[ -f "$f" && -n "$(tail -c 1 "$f")" ]] && printf '\n' >>"$f"
+        done
     else
         echo "  herdr integration ${agent}: ✗ install failed"
         exit 1
