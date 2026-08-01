@@ -1053,3 +1053,27 @@
 - [x] `configs/tmux/tmux.conf` の `prefix+S`（Cmd+Shift+S）が `display-popup -E` ではなく `new-window` で `tmux-sidebar new` を起動する
 - [x] Cmd+Shift+S の既存 keybind（ghostty 側）は変更不要のまま動作する
 - [x] `tmux-sidebar` 側（upstream）の spec.md / design.md / setup.md / history.md が popup 前提から new-window 前提の記述に更新されている（[issues/0022](https://github.com/ishii1648/tmux-sidebar/blob/main/issues/0022-feat-drop-popup-launch.md) 側で対応）
+
+### ADR-076: ghostty + tmux + tmux-sidebar から ghostty + herdr へ移行する
+
+**コンポーネント**: herdr / tmux / tmux-sidebar / claude / codex | **ADR**: [ADR-076](adr/076-herdr-migration-from-tmux.md)
+
+Phase 0（Spike）の受け入れ条件。Phase 1 以降の条件は Spike 完了後に追記する。
+**日本語 IME の項目が満たせない場合は移行を中止する。**
+
+**受け入れ条件**:
+
+- [x] herdr 0.7.5 が導入されている（`herdr --version`）
+- [x] `configs/herdr/config.toml` が `~/.config/herdr/config.toml` に symlink され、`herdr config check` が `config: ok` を返す
+- [x] `scripts/setup-manifest.yml` に `herdr` コンポーネント（symlink + setup）が定義され、profile `full` に含まれる
+- [ ] `configs/herdr/setup.sh` 経由で `herdr integration install claude` / `codex` が完了し、`herdr integration status` で両者が `installed` になる
+- [ ] Spike: **日本語 IME の入力** — `open -na Ghostty --args --command=/opt/homebrew/bin/herdr` で起動した herdr 内の Claude Code で、変換候補窓がカーソルに追従し、確定文字列の欠落・重複が起きない
+- [ ] Spike: **IME 有効時の prefix** — CJK IME が有効な状態でも `ctrl+space` の prefix が herdr に届く（`switch_ascii_input_source_in_prefix = true` の効果を確認。macOS の IME 切替と衝突する場合は prefix 変更を検討する）
+- [ ] Spike: **描画品質** — BIZ UDGothic Bold + `adjust-cell-height = 20%` で日本語が崩れず、Claude Code / Codex の TUI が正しくレンダリングされる
+- [ ] Spike: **分割方向** — `split_vertical` / `split_horizontal` の実際の分割方向を確認し、tmux（`prefix+n` = 左右、`prefix+v` = 上下）と同じ体験になるよう config のキー割当を確定する
+- [ ] Spike: **エージェント状態検出** — herdr 内で Claude Code を 2 本走らせ、サイドバーの idle / working / blocked が実態と一致する（permission プロンプトが blocked として現れる）
+- [ ] Spike: **通知** — `[ui.toast] delivery = "system"` で macOS 通知が発火し、`claude-notify.sh`（tmux 位置情報付き通知）の代替になる
+- [ ] Spike: **scrollback 取得** — `herdr pane read --source recent-unwrapped` が URL 抽出に足る行数を返し、OSC 8 ハイパーリンクの URL を回収できる（`fzf-pr-popup.sh` 移植の可否判断）
+- [ ] Spike: **クリップボード** — `copy_on_select` とコピー操作で ghostty のクリップボードに入る。`herdr --remote` 経由でも osc52 相当が機能する
+- [ ] Spike: **worktree** — `herdr worktree create/open/remove` が `tmw` の代替になる（配置規約、`remove --force` 時の未コミット変更の扱い）
+- [ ] Spike: 検証結果を ADR-076 に追記し、ステータスを `Spike完了` に遷移させる

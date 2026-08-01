@@ -1,0 +1,101 @@
+# herdr configuration — dotfiles 管理（ADR-076 Spike）
+# 実体: configs/herdr/config.toml → ~/.config/herdr/config.toml（symlink）
+# 既定値の全一覧は `herdr --default-config` で出力できる。
+# Docs: https://herdr.dev/docs/configuration/
+#
+# キーバインドは現行 tmux.conf の体系に寄せてある。tmux 側の対応は各行のコメント参照。
+
+[theme]
+name = "dracula"
+
+[terminal]
+# 新規ペインは呼び出し元の cwd を継承（tmux の split-window -c "#{pane_current_path}" 相当）
+new_cwd = "follow"
+
+[keys]
+# tmux と同じ prefix。tmux の内側で起動すると ctrl+space を tmux に横取りされるため、
+# Spike 中は tmux を経由しない ghostty ウィンドウで検証する:
+#   open -na Ghostty --args --command=/opt/homebrew/bin/herdr
+prefix = "ctrl+space"
+
+# --- ペイン操作（tmux.conf: bind h/j/k/l, n, v, x, z, H/J/K/L） ---
+focus_pane_left = "prefix+h"
+focus_pane_down = "prefix+j"
+focus_pane_up = "prefix+k"
+focus_pane_right = "prefix+l"
+# NOTE: herdr の vertical/horizontal は vim（:vsplit = 左右）系の命名と推測している。
+#       tmux は -h が左右で逆なので、Spike で実際の分割方向を確認して必要なら入れ替える。
+split_vertical = "prefix+n"        # tmux: bind n split-window -h（左右に並ぶ）
+split_horizontal = "prefix+v"      # tmux: bind v split-window -v（上下に並ぶ）
+close_pane = "prefix+x"
+zoom = "prefix+z"
+resize_mode = "prefix+r"           # tmux: bind -r H/J/K/L resize-pane（herdr はモード式）
+
+# --- タブ（tmux の window 相当） ---
+new_tab = "prefix+c"               # tmux: bind c new-window
+close_tab = "prefix+shift+x"
+switch_tab = "prefix+1..9"         # tmux: Cmd+1~9 → select-window（user-keys 経由）
+previous_tab = "prefix+p"
+next_tab = ""                      # prefix+n は split_vertical に割当済みのため無効化
+rename_tab = "prefix+shift+t"
+
+# --- workspace（tmux の session 相当） ---
+workspace_picker = "prefix+s"      # tmux: bind s display-popup -E "fish -c 'tm --sessions-only'"
+new_workspace = "prefix+shift+n"
+rename_workspace = "prefix+shift+w"
+close_workspace = "prefix+shift+d"
+goto = "prefix+g"
+settings = "prefix+shift+s"        # 既定の prefix+s は workspace_picker に譲る
+
+# --- エージェント（ADR-058 の claude-session-switch / claude-nav カーソルモードの代替） ---
+focus_agent = "prefix+alt+1..9"
+
+# --- worktree（fish 関数 tmw の代替） ---
+new_worktree = "prefix+shift+g"
+open_worktree = "prefix+shift+o"
+
+# --- その他 ---
+toggle_sidebar = "prefix+e"        # tmux: bind e run-shell 'tmux-sidebar toggle'
+edit_scrollback = "prefix+shift+e" # 既定の prefix+e は toggle_sidebar に譲る
+detach = "prefix+d"                # tmux 既定の detach と同じキーに合わせる
+reload_config = "prefix+shift+r"
+
+# URL / PR popup（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup"）
+# Phase 2 で fzf-pr-popup.sh を `tmux capture-pane` → `herdr pane read` に移植してから有効化する。
+# [[keys.command]]
+# key = "prefix+u"
+# type = "popup"
+# command = "~/.local/bin/herdr-fzf-pr-popup"
+# width = "90%"
+# height = "70%"
+
+[ui]
+sidebar_width = 26
+copy_on_select = true
+# エージェント状態をペイン境界にも表示する（tmux-sidebar の @pane_role 表示の代替）
+show_agent_labels_on_pane_borders = true
+
+[ui.toast]
+# claude-notify.sh（tmux display-message で session/window/pane を付けた osascript 通知）の
+# 代替になるかを検証する。
+delivery = "system"
+
+[ui.sound]
+enabled = true
+
+[session]
+# 公式 integration が入っていれば、サーバー再起動後にエージェントの会話セッションを復元する
+resume_agents_on_restore = true
+
+[worktrees]
+directory = "~/.herdr/worktrees"
+
+[experimental]
+# --- Spike の最重要検証項目: 日本語 IME ---
+# CJK IME 有効時に prefix が届かない問題への対策（macOS のみ、best-effort）
+switch_ascii_input_source_in_prefix = true
+# Claude Code / Codex が自前でカーソルを描くと IME 候補窓が追従しない問題への対策
+reveal_hidden_cursor_for_cjk_ime = true
+cjk_ime_agents = ["claude", "codex"]
+# サーバー再起動でスクロールバックを失わない（既定 false）
+pane_history = true

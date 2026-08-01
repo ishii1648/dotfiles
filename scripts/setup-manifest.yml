@@ -13,6 +13,7 @@ profiles:
     - nvim
     - ghostty
     - tmux
+    - herdr
     - claude
     - codex
     - tmux-sidebar
@@ -74,6 +75,14 @@ components:
       - src: configs/tmux-sidebar/pinned_sessions.example
         dest: ~/.config/tmux-sidebar/pinned_sessions
         if_missing: true
+
+  # ADR-076 Spike: tmux からの移行を検証中。tmux コンポーネントと並走できる
+  # （config.toml を置くだけで既存の tmux 構成には影響しない）。
+  herdr:
+    setup: configs/herdr/setup.sh
+    symlinks:
+      - link: ~/.config/herdr/config.toml
+        target: configs/herdr/config.toml
 
   claude:
     setup: configs/claude/setup.sh
