@@ -1069,13 +1069,16 @@ Phase 0（Spike）の受け入れ条件。Phase 1 以降の条件は Spike 完�
 - [x] profile 内の順序が `claude` / `codex` → `herdr` になっている（herdr integration が両者の設定ファイルを書き換えるため）
 - [x] `configs/herdr/setup.sh` 経由で `herdr integration install claude` / `codex` が完了し、`herdr integration status` で両者が `current` になる
 - [x] `configs/herdr/setup.sh` が冪等（2 回連続実行しても `configs/codex/hooks.json` に追加の差分が出ない。`--dry-run` も `current` を正しく OK 判定する）
-- [ ] Spike: **日本語 IME の入力** — `open -na Ghostty --args --command=/opt/homebrew/bin/herdr` で起動した herdr 内の Claude Code で、変換候補窓がカーソルに追従し、確定文字列の欠落・重複が起きない
-- [ ] Spike: **IME 有効時の prefix** — CJK IME が有効な状態でも `ctrl+space` の prefix が herdr に届く（`switch_ascii_input_source_in_prefix = true` の効果を確認。macOS の IME 切替と衝突する場合は prefix 変更を検討する）
-- [ ] Spike: **描画品質** — BIZ UDGothic Bold + `adjust-cell-height = 20%` で日本語が崩れず、Claude Code / Codex の TUI が正しくレンダリングされる
-- [ ] Spike: **分割方向** — `split_vertical` / `split_horizontal` の実際の分割方向を確認し、tmux（`prefix+n` = 左右、`prefix+v` = 上下）と同じ体験になるよう config のキー割当を確定する
-- [ ] Spike: **エージェント状態検出** — herdr 内で Claude Code を 2 本走らせ、サイドバーの idle / working / blocked が実態と一致する（permission プロンプトが blocked として現れる）
-- [ ] Spike: **通知** — `[ui.toast] delivery = "system"` で macOS 通知が発火し、`claude-notify.sh`（tmux 位置情報付き通知）の代替になる
-- [ ] Spike: **scrollback 取得** — `herdr pane read --source recent-unwrapped` が URL 抽出に足る行数を返し、OSC 8 ハイパーリンクの URL を回収できる（`fzf-pr-popup.sh` 移植の可否判断）
+- [x] Spike: **日本語 IME の入力** — `open -na Ghostty --args --command=/opt/homebrew/bin/herdr` で起動した herdr 内の Claude Code で、変換候補窓がカーソルに追従し、確定文字列の欠落・重複が起きない（実機確認で良好）
+- [x] Spike: **IME 有効時の prefix** — CJK IME が有効な状態でも `ctrl+space` の prefix が herdr に届く（実機確認で良好）
+- [x] Spike: **描画品質** — BIZ UDGothic Bold + `adjust-cell-height = 20%` で日本語が崩れず、Claude Code / Codex の TUI が正しくレンダリングされる（実機確認で良好）
+- [ ] Spike: **分割方向** — `split_vertical` / `split_horizontal` の実際の分割方向を確認し、tmux（`prefix+n` = 左右、`prefix+v` = 上下）と同じ体験になるよう config のキー割当を確定する（API の `--direction right` = 左右は確認済み。config キー名との対応が未確定）
+- [x] Spike: **エージェント状態検出（idle）** — `herdr agent list` が Claude Code を検出し、`agent_status: idle` と会話セッション UUID（`source: herdr:claude`）を報告する
+- [ ] Spike: **エージェント状態検出（working / blocked）** — permission プロンプトが `blocked` として現れ、応答待ちが実態と一致する
+- [x] Spike: **通知** — `herdr notification show` が `shown: true` を返し、`[ui.toast] delivery = "system"` で macOS 通知が発火する
+- [x] Spike: **scrollback 取得** — `pane read --source recent` / `recent-unwrapped` が viewport を超えた scrollback 全体を返し（実測 214 行）、生 URL を完全に抽出できる
+- [x] Spike: **OSC 8 ハイパーリンク（結果: NG）** — `--format ansi` でも `\e]8;;<URL>` は落ち、表示テキストしか残らない。API にも link 抽出メソッドが無い。Phase 2 で案 A（生 URL + PR フィルタのみ）か案 B（`mouse_capture = false` で ghostty に委譲）を選ぶ
 - [ ] Spike: **クリップボード** — `copy_on_select` とコピー操作で ghostty のクリップボードに入る。`herdr --remote` 経由でも osc52 相当が機能する
-- [ ] Spike: **worktree** — `herdr worktree create/open/remove` が `tmw` の代替になる（配置規約、`remove --force` 時の未コミット変更の扱い）
+- [x] Spike: **worktree（list）** — `herdr worktree list` が repo_root / branch / `open_workspace_id` を返し、workspace と worktree の紐付けを把握できる
+- [ ] Spike: **worktree（create/remove）** — `herdr worktree create/open/remove` が `tmw` の代替になる（配置規約、`remove --force` 時の未コミット変更の扱い）
 - [ ] Spike: 検証結果を ADR-076 に追記し、ステータスを `Spike完了` に遷移させる

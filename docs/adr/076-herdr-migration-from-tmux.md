@@ -97,6 +97,26 @@ Phase 0 の結果を本 ADR に追記し、`Spike完了` へ遷移させたう�
 
 Phase 4 で tmux-sidebar の hook（`tmux-sidebar hook ... --kind codex`, `agent-pane-state.sh`）を撤去する際は、この herdr hook だけが残る形になる。
 
+### 2026-08-01: 実機での API 実測
+
+`open -na Ghostty --args --command=herdr` で起動した herdr 0.7.5 に対して CLI から実測した。
+
+| 項目 | 結果 |
+|---|---|
+| agent 検出 | **OK**。`herdr agent list` が Claude Code を `agent_status: idle` で検出し、`agent_session` に会話セッションの UUID（`source: herdr:claude`）を報告した。integration hook が効いており、スクリーン検出のみだった前回調査時とは前提が変わっている |
+| scrollback 取得 | **OK**。`pane read --source recent` / `recent-unwrapped` は viewport を超えた scrollback 全体を返す（実測 214 行）。`visible` は viewport のみ（41 行） |
+| 生 URL の回収 | **OK**。`https://…` のテキストは完全に抽出できる |
+| **OSC 8 ハイパーリンク** | **NG**。`--format ansi` は SGR（色）を保持するが `\e]8;;<URL>` は落とし、表示テキストしか残らない。`herdr api schema` にも link/url 抽出のメソッドは無い |
+| 通知 | **OK**。`herdr notification show` が `shown: true` を返し、`[ui.toast] delivery = "system"` で発火する |
+| worktree | `worktree list` が repo_root / branch / `open_workspace_id`（workspace との紐付け）を返す。`tmw` の代替として成立する見込み |
+| 分割方向（API） | `pane split --direction right` が左右分割になることを `pane layout` の rect で確認（x=26 → x=156）。config の `split_vertical` / `split_horizontal` がどちらに対応するかはキー操作での確認が必要 |
+| 日本語 IME / 描画 | 実機確認で良好（利用者判断）。項目別の切り分けは未実施 |
+
+**OSC 8 が取れないことの影響**: 現行 `fzf-pr-popup.sh` の URL 源は (1) git remote から生成する PR URL (2) OSC 8 リンク (3) 生 URL テキスト の 3 つ。(1)(3) は移植できるが (2) は失われる。対応案は 2 つあり、Phase 2 で選択する。
+
+- A: (1)+(3) だけで popup を構成し、OSC 8 由来 URL は諦める（fzf で選ぶ体験は維持）
+- B: `[ui] mouse_capture = false` にして ghostty の Cmd+click に OSC 8 リンクを委ねる（herdr のマウス UI を失う）
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-076 セクション）
