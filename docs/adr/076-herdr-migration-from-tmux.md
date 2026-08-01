@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Spike中
+Draft（Phase 0 Spike 完了。Phase 1 並走運用中、Phase 2 以降の設計は保留）
 
 ## 関連 ADR
 
@@ -116,6 +116,28 @@ Phase 4 で tmux-sidebar の hook（`tmux-sidebar hook ... --kind codex`, `agent
 
 - A: (1)+(3) だけで popup を構成し、OSC 8 由来 URL は諦める（fzf で選ぶ体験は維持）
 - B: `[ui] mouse_capture = false` にして ghostty の Cmd+click に OSC 8 リンクを委ねる（herdr のマウス UI を失う）
+
+### Spike の結論（2026-08-01）
+
+**移行を阻む要因は見つからなかった**。最大のリスクとしていた日本語 IME・描画・IME 有効時の prefix はいずれも実機で良好で、agent 状態検出も integration hook の導入により前回調査（スクリーン検出のみ）とは前提が変わっている。
+
+**機能後退は許容する判断とした**。対象は以下:
+
+- OSC 8 ハイパーリンク由来の URL 抽出
+- pinned / hidden セッション管理（tmux-sidebar 独自）
+- graveyard / undo close（tmux-sidebar 独自）
+
+Phase 1（並走運用）に進み、**herdr の運用感を得てから Phase 2 以降の設計を確定する**。以下は運用しながら判断する持ち越し項目:
+
+| 持ち越し項目 | 判断のタイミング |
+|---|---|
+| `split_vertical` / `split_horizontal` とキー割当の対応 | 使いながら違和感が出た時点で config を調整 |
+| permission プロンプトの `blocked` 検出精度 | 日常運用での観察 |
+| クリップボード / osc52（`herdr --remote` 越しを含む） | リモート作業が発生した時点 |
+| `herdr worktree create/remove` の実運用 | worktree が必要になった時点 |
+| URL popup の案 A / 案 B | Phase 2 着手時 |
+
+Phase 1 の間は tmux 構成を無傷のまま残す。撤去（Phase 4）は、herdr での日常運用が定着してから判断する。
 
 ## 受け入れ条件
 

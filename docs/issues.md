@@ -1058,8 +1058,10 @@
 
 **コンポーネント**: herdr / tmux / tmux-sidebar / claude / codex | **ADR**: [ADR-076](adr/076-herdr-migration-from-tmux.md)
 
-Phase 0（Spike）の受け入れ条件。Phase 1 以降の条件は Spike 完了後に追記する。
-**日本語 IME の項目が満たせない場合は移行を中止する。**
+Phase 0（Spike）は完了。移行続行と機能後退（OSC 8 由来 URL / pinned・hidden セッション /
+graveyard）の許容を決定した（ADR-076「Spike の結論」参照）。
+**未チェックの項目は Phase 1（並走運用）で使いながら判断する持ち越し**であり、Phase 0 のブロッカーではない。
+Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記する。
 
 **受け入れ条件**:
 
@@ -1081,4 +1083,5 @@ Phase 0（Spike）の受け入れ条件。Phase 1 以降の条件は Spike 完�
 - [ ] Spike: **クリップボード** — `copy_on_select` とコピー操作で ghostty のクリップボードに入る。`herdr --remote` 経由でも osc52 相当が機能する
 - [x] Spike: **worktree（list）** — `herdr worktree list` が repo_root / branch / `open_workspace_id` を返し、workspace と worktree の紐付けを把握できる
 - [ ] Spike: **worktree（create/remove）** — `herdr worktree create/open/remove` が `tmw` の代替になる（配置規約、`remove --force` 時の未コミット変更の扱い）
-- [ ] Spike: 検証結果を ADR-076 に追記し、ステータスを `Spike完了` に遷移させる
+- [x] Spike: 検証結果を ADR-076 に追記し、ステータスを Draft（Phase 0 完了・Phase 1 並走運用中）に遷移させる
+- [x] Phase 1: fish 関数 `hd` で herdr セッションを起動/アタッチできる（tmux を経由しない ghostty ウィンドウで開く）
