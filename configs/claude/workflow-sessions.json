@@ -1,5 +1,0 @@
-{
-  "auto_log": {
-    "spawn": { "log_dir": "docs/workflow-logs/{session_name}" }
-  }
-}

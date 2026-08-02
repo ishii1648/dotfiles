@@ -108,13 +108,6 @@ components:
 
   codex:
     setup: configs/codex/setup.sh
-    # dispatch / review-loop は agmsg-go から ~/.codex/skills へ実展開する（configs/claude/setup.sh が
-    # codex CLI 検出時に `agmsg skills install --dest ~/.codex/skills` を実行）。ADR-072 参照。
-    symlinks:
-      - link: ~/.codex/skills/orchestrate
-        target: configs/claude/skills/orchestrate
-      - link: ~/.codex/skills/session-log
-        target: configs/claude/skills/session-log
 
   tmux-sidebar:
     setup: configs/tmux-sidebar/setup.sh

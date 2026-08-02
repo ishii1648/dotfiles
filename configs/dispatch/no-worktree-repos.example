@@ -1,8 +1,0 @@
-# dispatch no-worktree-repos
-# worktree を作成せずメインリポジトリで直接 claude を起動するリポジトリのリスト
-# フォーマット: <host>/<owner>/<repo>（ghq root からの相対パス）
-# 実体ファイルは ~/.config/dispatch/no-worktree-repos に配置する
-#
-# 例:
-# github.com/ishii1648/dotfiles
-# github.com/your-org/your-sandbox

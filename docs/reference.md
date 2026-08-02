@@ -10,15 +10,15 @@
 | tmux 設定 | `configs/tmux/` | マルチプレクサ設定 |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
-| Claude Code skills | `configs/claude/skills/` | orchestrate（エージェントチェーン順次実行）・session-log など（dispatch / review-loop は agmsg-go から配布。下記参照） |
+| Claude Code skills | `configs/claude/skills/` | codex-sync（skill を Codex CLI にも展開） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 
 ### 管理対象外（別リポジトリ）
 
 | コンポーネント | 管理場所 |
 |---|---|
-| tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI） |
-| agmsg-go（`dispatch` / `review-loop` skills + IPC コア） | `ishii1648/agmsg-go` — 共有 SQLite を通信路とするエージェント間 IPC binary（`agmsg`）と、その上で動く `dispatch` / `review-loop` skills を同梱。`go install github.com/ishii1648/agmsg-go/cmd/agmsg@v0.0.1`（version pin）→ `agmsg skills install --force` で `~/.claude/skills` へ実ファイル展開する。`setup.sh` が bootstrap する（ADR-072） |
+| tmux-sidebar | `ishii1648/tmux-sidebar` — active session の監視・移動 UI（Go 製 TUI）。herdr 移行（[ADR-076](adr/076-herdr-migration-from-tmux.md)）に伴い撤去予定 |
+| agmsg-go（`dispatch` / `review-loop` skills + IPC コア） | `ishii1648/agmsg-go` — 共有 SQLite を通信路とするエージェント間 IPC binary（`agmsg`）と、その上で動く `dispatch` / `review-loop` skills を同梱。dotfiles からの自動配布（bootstrap）は herdr 移行に伴い廃止した（[ADR-076](adr/076-herdr-migration-from-tmux.md)）。手動で使う場合は `go install github.com/ishii1648/agmsg-go/cmd/agmsg@latest` → `agmsg skills install` |
 
 ## ツールスタック
 
@@ -32,61 +32,9 @@
 | package manager | aqua | `aqua.yaml` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
-## 並列スケール開発アーキテクチャ（独立タスクの並列実行）
+## 並列スケール開発アーキテクチャ（廃止）
 
-> **スコープ**: このセクションは**相互に独立したサブタスクの並列実行**（10-20 エージェント同時稼働）を対象とする。依存関係のある stacked PR 管理は現行スコープ外（後述）。
-
-**現行の実装済みコンポーネント:**
-
-| 役割 | コンポーネント | 実装状況 | 関連 ADR |
-|---|---|---|---|
-| 軽量タスク起動（1 worktree + 1 worker） | `/dispatch` skill（agmsg-go 配布。起動 agent を agmsg team に auto-join） | 実装済み | [ADR-059](adr/059-dispatch-orchestrate-split.md), [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
-| エージェントチェーン順次実行（1 worktree + N agent） | `/orchestrate` skill | 実装済み | [ADR-060](adr/060-orchestrate-v4-agent-chain-restoration.md), [ADR-059](adr/059-dispatch-orchestrate-split.md) |
-| 元セッション主導の反復レビュー（逆エージェントがレビュー→自分で修正→収束まで・同一 tmux session。reviewer↔implementer のシグナリングは agmsg IPC） | `/review-loop` skill（agmsg-go 配布。`agmsg` 必須） | 実装済み | [ADR-071](adr/071-session-driven-review-loop.md), [ADR-072](adr/072-externalize-dispatch-review-loop-to-agmsg-go.md) |
-| workflow session log の収集・コミット | Stop hook + `/session-log` skill | 実装済み | [ADR-058](adr/058-workflow-session-log-collection.md) |
-| session 監視・移動 | tmux-sidebar (`ishii1648/tmux-sidebar`) | 実装済み | [ADR-051](adr/051-go-tmux-sidebar-tool.md) |
-| dispatch 起動ランチャー（popup picker） | `tmux-sidebar new`（upstream の `internal/picker`、prefix+S / Cmd+Shift+S 起動） | 実装済み | [ADR-069](adr/069-popup-launcher-tmux-sidebar-new-migration.md) |
-
-dispatch は表示用のセッション名（`<owner>/<repo>` 形式）と、リソースのスコープキーとして使う不変の **session-id**（`<slug>-YYYYMMDD-HHMMSS-XXXX` 形式）を分離する。ブランチ・worktree パスはすべて session-id でスコープされるため、セッション名が衝突しても別の実行のリソースを誤削除しない。
-
-各セッションのマニフェストはリポジトリ外に記録される（エージェントによる改ざんを防ぐため）:
-- `/dispatch`: `~/.dispatch/<session-id>/manifest.json`
-- `/orchestrate`: `~/.orchestrate/<session-id>/manifest.json`
-
-**最初の副作用（git worktree 作成）より前に全リソースを `created: false` で事前宣言して書き込む**（manifest-first）。cleanup は manifest の `repo_root` を参照して呼び出し元の CWD に依存せずどこからでも動作し、`git worktree list` および `git branch` との reconciliation でクラッシュ直前に作成されたリソースも回収する。
-
-起動時には session-id がユーザに表示される（例: `session 作成: ishii1648/tmux-sidebar [session-id: ishii1648-tmux-sidebar-20260412-152030]`）。
-
-**部分起動中断時の手動復旧手順:**
-1. `/dispatch cleanup <session-id>` または `/orchestrate cleanup <session-id>` を実行する（session-id を使うと一意に特定できるため推奨）
-2. 原因を確認してから再実行する（新規 session-id で起動）
-
-> 注: 自動再試行・自動調整は未実装。マニフェストはすべての副作用（tmux 作成を含む）より前に書き込まれるため、クラッシュ直後でも session-id でセッションを発見できる。
-
-現行の並列実行アーキテクチャ:
-
-```
-/dispatch skill（軽量版）
-  └─ 1 worktree + 1 worker Claude を直接起動（planning なし）
-
-/orchestrate skill（エージェントチェーン版）
-  └─ ワークフロータイプ（feature/bugfix/refactor/security/custom）に応じた
-     エージェントチェーンを tmux wait-for で順次実行
-     例: planner → tdd-guide → code-reviewer → security-reviewer
-     └─ 1 worktree + N tmux ウィンドウ（各エージェント専用）
-     └─ ハンドオフ文書で引き継ぎ、advance ループで自動進行
-        ↓
-tmux-sidebar: active session の監視・移動 UI (ADR-051)
-
-cmd+shift+s → popup picker (`tmux-sidebar new`): repo + launcher (claude/codex) + prompt 入力で /dispatch 起動 (ADR-069)
-                                                  orchestrate を使う場合は claude session 起動後に /orchestrate skill を呼ぶ
-```
-
-**計画中の拡張（現行アーキテクチャのスコープ外）:**
-
-| 役割 | コンポーネント | 状況 | 関連 ADR |
-|---|---|---|---|
-| stacked PR の依存グラフ表現・自動 rebase | monitoring agent | 設計中（Draft）— 統合インタフェース未確定 | [ADR-057](adr/057-stacked-prs-dependency-management.md) |
+独立タスクの並列実行のため `/dispatch`・`/orchestrate`・`/session-log` skill と tmux-sidebar の popup picker を使う仕組みがあったが、herdr 移行（[ADR-076](adr/076-herdr-migration-from-tmux.md)）に伴い廃止した。orchestrate・session-log は dotfiles vendor を削除、dispatch・review-loop（agmsg-go 配布）は自動配布（bootstrap）を止めた。並列実行は herdr の agent 機能（`agent start`/`agent send` 等）への置き換えを検討中（未実装）。
 
 ### 手動並列作業（従来）
 
@@ -121,14 +69,6 @@ ghq 管理リポジトリと既存 tmux セッションを統合した fzf セ�
 | `gw_rm [--dry-run] [--days N]` | マージ済み・古い worktree を一括削除（デフォルト 30 日） |
 
 worktree 配置先: `<リポジトリ>@<worktree名>`（例: `dotfiles@feat-tmux`）
-
-### dispatch popup picker — `tmux-sidebar new`
-
-`cmd+shift+s`（tmux prefix + S）で popup を開き、ghq リポジトリを選択、`tab` で claude / codex を切替、タスク記述を入力して実行する（ADR-069）。upstream `ishii1648/tmux-sidebar` の `internal/picker` + `internal/dispatch` が一連の処理（worktree 作成 + prompt file 書き込み + launcher 起動）を担う。
-
-prompt 先頭行に `:<branch>` を書くと、新規 worktree を作らず既存 remote ブランチを checkout して launcher を idle で起動する（チェックアウトモード）。`~/.config/dispatch/no-worktree-repos` に登録した repo はメイン worktree のデフォルトブランチで起動する。
-
-orchestrate を使う場合は claude session を起動してから `/orchestrate` skill を呼ぶ（popup から直接 orchestrate を起動する経路は ADR-069 で廃止）。
 
 ### セットアップ
 

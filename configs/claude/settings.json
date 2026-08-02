@@ -15,10 +15,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh idle"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/workflow-session-start.sh"
           }
         ]
       }
@@ -71,10 +67,6 @@
           {
             "type": "command",
             "command": "~/.claude/scripts/claude-pane-state.sh idle"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/workflow-session-log.sh"
           }
         ]
       }

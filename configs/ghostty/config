@@ -71,18 +71,21 @@ keybind = super+k=text:\x1b[107;9~
 keybind = super+j=text:\x1b[106;9~
 
 # タブ切替 (super+1~9 → herdr switch_tab = prefix+1..9)
-# 旧: tmux user-keys (User4-12 → select-window) 経由だった。tmux 側は
-# Cmd+1..9 での window 切替を失う（素の prefix+1..9 は claude-session-switch に
-# 予約済みで代替手段が無いため、tmux では choose-tree かマウスで選ぶ運用になる）。
-keybind = super+one=text:\x001
-keybind = super+two=text:\x002
-keybind = super+three=text:\x003
-keybind = super+four=text:\x004
-keybind = super+five=text:\x005
-keybind = super+six=text:\x006
-keybind = super+seven=text:\x007
-keybind = super+eight=text:\x008
-keybind = super+nine=text:\x009
+# NOTE: 数字キーの正しい key 名は super+digit_N（super+one 等は無効な key 名で
+# silent に無視される。`ghostty +list-keybinds` の出力に一切出ないことで判明）。
+# ghostty には super+digit_1..8=goto_tab:N という既定バインドがあり、この上書きになる
+# （ネイティブの ghostty タブ機能は使っていないため実害なし）。
+# 旧: tmux user-keys (User4-12 → select-window) 経由の想定だったが、旧 super+one 等が
+# そもそも無効な key 名だったため実際には一度も機能しておらず、tmux 側の喪失は無い。
+keybind = super+digit_1=text:\x001
+keybind = super+digit_2=text:\x002
+keybind = super+digit_3=text:\x003
+keybind = super+digit_4=text:\x004
+keybind = super+digit_5=text:\x005
+keybind = super+digit_6=text:\x006
+keybind = super+digit_7=text:\x007
+keybind = super+digit_8=text:\x008
+keybind = super+digit_9=text:\x009
 
 # Claude セッションナビゲーション (ADR-058): super+c → tmux cursor mode
 keybind = super+c=text:\x1b[99;9~
