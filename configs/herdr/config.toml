@@ -40,8 +40,10 @@ zoom = "prefix+z"                       # tmux: prefix+z
 copy_mode = "prefix+i"                  # tmux: bind i copy-mode
 edit_scrollback = "prefix+shift+e"      # 既定の prefix+e は toggle_sidebar に譲る
 # tmux の `bind -r H/J/K/L resize-pane -L/-D/-U/-R 5` に相当する個別バインドは herdr に無い。
-# prefix+r で resize モードに入り h/j/k/l で調整して esc で抜ける方式のみ。
-resize_mode = "prefix+r"
+# prefix+shift+r で resize モードに入り h/j/k/l で調整して esc で抜ける方式のみ。
+# tmux 自体にも resize 用の Cmd ショートカットは無い（H/J/K/L 直押しのみ）ため、
+# ここも物理キー入力のみで Cmd ショートカット経由の到達性は無くてよい。
+resize_mode = "prefix+shift+r"
 
 # --- タブ（tmux の window） ---
 new_tab = "prefix+c"                    # tmux: bind c new-window
@@ -59,11 +61,16 @@ workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c
 switch_workspace = "prefix+shift+1..9"
 previous_workspace = "prefix+["         # tmux: prefix+( switch-client -p に相当
 next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相当
-new_workspace = "prefix+shift+n"
+# ghostty: super+shift+s=text:\x00S（prefix+shift+s、リテラル大文字 S）
+# tmux: bind S display-popup ... 'tmux-sidebar new'（新規セッション picker）に対応
+new_workspace = "prefix+shift+s"
 rename_workspace = "prefix+shift+w"
 close_workspace = "prefix+shift+d"
 goto = "prefix+g"                       # session navigator（tmux の choose-tree に最も近い）
-settings = "prefix+shift+s"             # 既定の prefix+s は workspace_picker に譲る
+# settings は既定 prefix+s だが workspace_picker に譲り、new_workspace が
+# prefix+shift+s（Cmd+Shift+S の実際の送出先）を占有するため空けておく。
+# 現状 ghostty 側に settings 用の Cmd ショートカットは無い。
+settings = ""
 # tmux の `bind m switch-client -l`（直前のセッションへ戻る）に相当するアクションは herdr に無い
 # （`last_workspace` は存在しない。previous_workspace は「並び順で前」であって直前ではない）。
 
@@ -77,7 +84,9 @@ open_worktree = "prefix+shift+o"
 # --- その他 ---
 toggle_sidebar = "prefix+e"             # tmux: bind e run-shell 'tmux-sidebar toggle'
 detach = "prefix+d"                     # tmux 既定の detach と同じキーに合わせる
-reload_config = "prefix+shift+r"        # tmux は prefix+r だが、herdr は resize_mode が prefix+r
+# ghostty: super+shift+r=text:\x00r（prefix+r、リテラル小文字 r。shift は無視され小文字が送られる）
+# tmux: bind r source-file ~/.tmux.conf（reload）に対応
+reload_config = "prefix+r"
 
 # URL / PR popup（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup"）
 # Phase 2 で fzf-pr-popup.sh を `herdr pane read --source recent` ベースに移植してから有効化する。
