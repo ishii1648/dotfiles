@@ -24,6 +24,15 @@
 - 中断されたアクションを無断で再試行しない（特に push 等の外向き操作）。ユーザが別タスクへ誘導したら、そのタスクを終えてから再開可否を確認する。
 - `~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク。編集は実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/CLAUDE.md` に対して行う。
 
+## 並列セッションの衝突回避（worktree isolation）
+同一リポジトリで複数の Claude Code セッションが同時に走る前提で動くこと。ファイルの上書き合戦・`git` index lock の競合・自動コミットによる他セッション変更の巻き込みを防ぐ。
+- **ファイルを編集するタスクは、最初の Edit/Write の前に `EnterWorktree` で専用 worktree に移る。** 読み取り・調査のみのタスクは分離不要。
+- ただし **main worktree の未コミット変更を引き継ぐ場合は分離しない**。`EnterWorktree` は既定で `origin/<default-branch>` から新ブランチを切るため（`worktree.baseRef: head` で HEAD 基点に変更可）、未コミット変更は持ち込まれず取り残される。引き継ぎたいなら先に commit / stash する。
+- 既に worktree 内にいる場合（`git rev-parse --git-dir` と `--git-common-dir` が一致しない）は再分離しない。
+- サブエージェントに並列でファイルを書かせる場合は `Agent(isolation: "worktree")` を使う。
+- main worktree で作業せざるを得ない場合、**ステージはパスを明示する**。`git add -A` / `git commit -a` は他セッションの編集中ファイルを巻き込む。
+- 作業完了時に worktree を残すか消すかはユーザに確認する（`ExitWorktree` は指示があったときだけ呼ぶ）。
+
 ## セカンドオピニオンは codex-advise を使う
 built-in `advisor` ツールは server-side tool で `permissions.deny` の対象外（deny しても
 "matches no known tool" 警告が出るだけで効かない）。`~/.claude/settings.json` の
