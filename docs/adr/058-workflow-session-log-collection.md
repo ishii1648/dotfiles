@@ -1,7 +1,7 @@
 # ADR-058: workflow skill の session log 収集と commit の体系化
 
 ## ステータス
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（herdr 移行に伴い dispatch/orchestrate を削除、本 ADR の hook・skill も撤去）
 
 ## 関連 ADR
 - 関連: ADR-054（dispatch skill — 対象 workflow skill の筆頭）

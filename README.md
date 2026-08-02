@@ -87,9 +87,9 @@ F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/t
 
 ## Claude Code / Codex CLI
 
-`configs/claude/` 配下の設定・skill・statusline は `~/.claude/` に symlink される。skill は `dispatch` / `orchestrate` / `session-log` / `codex-sync` などを同梱しており、`codex` プロファイルでは Codex CLI 側 (`~/.codex/skills/`) にも同じ skill 実体が symlink される。
+`configs/claude/` 配下の設定・skill・statusline は `~/.claude/` に symlink される。skill は `codex-sync` などを同梱しており、`codex` プロファイルでは Codex CLI 側 (`~/.codex/skills/`) にも同じ skill 実体が symlink される（`dispatch` / `orchestrate` / `review-loop` / `session-log` は herdr 移行に伴い廃止、[ADR-076](docs/adr/076-herdr-migration-from-tmux.md) 参照）。
 
-並列開発の運用フロー（dispatch/orchestrate ランチャー、tmux-sidebar 連携、worktree 管理）は [docs/reference.md](docs/reference.md) を参照。
+worktree 管理は [docs/reference.md](docs/reference.md) を参照。
 
 ### Docker サンドボックス
 

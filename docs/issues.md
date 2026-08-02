@@ -1085,3 +1085,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [ ] Spike: **worktree（create/remove）** — `herdr worktree create/open/remove` が `tmw` の代替になる（配置規約、`remove --force` 時の未コミット変更の扱い）
 - [x] Spike: 検証結果を ADR-076 に追記し、ステータスを Draft（Phase 0 完了・Phase 1 並走運用中）に遷移させる
 - [x] Phase 1: fish 関数 `hd` で herdr セッションを起動/アタッチできる（tmux を経由しない ghostty ウィンドウで開く）
+- [x] Phase 2 は実施しない方針に変更。dispatch（agmsg-go 配布）・orchestrate（dotfiles vendor）は herdr CLI へ移植せず削除する。URL/PR popup の herdr 移植（案 A/案 B の選択）は保留とし、Phase 3/4 完了後に別途検討する
+- [x] dispatch/orchestrate 廃止: `configs/claude/skills/orchestrate/`・`configs/claude/skills/session-log/`（発火源を失うため同時削除）・`configs/claude/scripts/{dispatch-new-worker-window,workflow-window-register,workflow-session-start,workflow-session-log,workflow-skill-detect,tmux-send-prompt}.sh`・`configs/dispatch/`・`configs/claude/workflow-sessions.json` を削除。`configs/claude/setup.sh` の agmsg bootstrap（dispatch/review-loop 一括配布、分離不可のため review-loop も配布停止）を削除。実機 `~/.claude/skills`・`~/.codex/skills`・`~/.workflow-sessions/` をクリーンアップ済み
+- [ ] Phase 3: `configs/ghostty/config` の `command` を herdr に切替、`\x00`/CSI-u 経由の tmux keybind を herdr 直接バインドへ整理する
+- [ ] Phase 4: tmux 一式（`configs/tmux/`, `configs/tmux-sidebar/`, `tm`/`tms`/`tmw` 等の fish 関数, `claude-pane-state.sh`/`claude-notify.sh`, 関連テスト）を撤去する

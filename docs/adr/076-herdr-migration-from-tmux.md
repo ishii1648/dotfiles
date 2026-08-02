@@ -139,6 +139,13 @@ Phase 1（並走運用）に進み、**herdr の運用感を得てから Phase 2
 
 Phase 1 の間は tmux 構成を無傷のまま残す。撤去（Phase 4）は、herdr での日常運用が定着してから判断する。
 
+### 2026-08-02: Phase 2 を省略し Phase 3/4 へ進む方針転換
+
+herdr の日常運用が定着したため、Phase 2（herdr CLI への移植）を経ずに Phase 3（ghostty command 切替）と Phase 4（tmux 一式撤去）へ一括で進める判断とした。
+
+- **dispatch / orchestrate は herdr CLI へ移植せず削除**する。dispatch（agmsg-go 配布）・orchestrate（dotfiles vendor）ともに tmux の `new-window`/`send-keys` に構造的に依存しており、移植コストに見合わないため、herdr 搭載の agent 機能（`agent start`/`agent send` 等）で置き換える前提で一旦廃止した（置き換え自体は未実装）。agmsg CLI は dispatch/review-loop を分離インストールできない仕様のため、review-loop の自動配布も合わせて停止した。副作用として `session-log` skill と `workflow-session-start.sh`/`workflow-session-log.sh` hook も発火源を失うため削除した
+- **URL/PR popup の herdr 移植（案 A/案 B）は保留**する。tmux 撤去に伴い機能が一時的に失われることを許容し、Phase 3/4 完了後に別途検討する
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-076 セクション）
