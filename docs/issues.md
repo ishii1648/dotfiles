@@ -1108,6 +1108,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `configs/ghostty/config` の `super+shift+s` が `text:\x00p`（`prefix+p`、リテラル小文字）を送出し、`configs/herdr/config.toml` の `[[keys.command]] key = "prefix+p"` が popup（`~/.local/bin/herdr-new-workspace`）を起動する（設定反映済み。`herdr server reload-config` が `status: applied` / diagnostics 空）
 - [ ] 実機: Cmd+Shift+S でピッカー popup が開く（旧 `\x00S` の「大文字が小文字として解釈され `workspace_picker`（`prefix+s`）が開く」問題が解消している）。ghostty の設定リロード（Cmd+R）が必要
 - [ ] 実機: popup 内で `ghq list` のリポジトリ一覧が fzf で表示され、選択すると当該 repo を cwd とする workspace が作られてフォーカスが移る
+- [x] 一覧は default worktree（メインのチェックアウト）だけを表示し、`<repo>@<branch>` 形式の linked worktree は除外する（実測 175 件 → 13 件、40ms）
 - [x] 組み込みの `new_workspace`（cwd 継承でそのまま作る）は herdr 既定の `prefix+shift+n` に残っている
 - [x] 選択した repo を cwd とする workspace が `herdr workspace create --cwd <repo> --label <basename>` で作られる（fzf をモックして検証。label = basename を確認）
 - [x] 選んだ repo をカレントディレクトリに持つ workspace が既にある場合は、二重に作らず既存の workspace にフォーカスする（同上の方法で `focus w9` を確認）

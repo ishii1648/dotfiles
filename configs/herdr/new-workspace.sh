@@ -35,8 +35,18 @@ for cmd in ghq fzf jq "$HERDR_BIN"; do
 done
 
 # --- repo 選択 ---
+# `ghq list -p` は `<repo>@<branch>` 形式の linked worktree も列挙する（実測 175 件中の大半）。
+# ピッカーに出したいのは default worktree（メインのチェックアウト）だけなので絞り込む。
+# 判定は `.git` の種類: default worktree ではディレクトリ、linked worktree では
+# `gitdir: ...` を書いたファイルになる。全件に git を起動するより速い。
+list_default_worktrees() {
+    ghq list -p | while IFS= read -r repo; do
+        [ -d "$repo/.git" ] && printf '%s\n' "$repo"
+    done
+}
+
 # fzf のキャンセル（Esc / Ctrl+C）は exit 130 等になるので、その場合は何もせず閉じる。
-selected=$(ghq list -p | fzf --prompt='repo> ' --reverse --height=100% --border=none) || exit 0
+selected=$(list_default_worktrees | fzf --prompt='repo> ' --reverse --height=100% --border=none) || exit 0
 [ -n "$selected" ] || exit 0
 
 label=$(basename "$selected")
