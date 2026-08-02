@@ -49,12 +49,12 @@ resize_mode = "prefix+shift+r"
 new_tab = "prefix+c"                    # tmux: bind c new-window
 close_tab = "prefix+shift+x"
 rename_tab = "prefix+shift+t"
-switch_tab = "prefix+1..9"              # tmux: Cmd+1~9 → select-window（下の NOTE 参照）
+switch_tab = "prefix+1..9"              # Cmd+1~9 → ghostty が prefix+<digit> を送出（配線済み）
 next_tab = "ctrl+tab"                   # tmux: bind-key -n C-Tab next-window（prefix 不要の直接バインド）
 previous_tab = "ctrl+shift+tab"         # tmux: bind-key -n C-BTab previous-window
-# NOTE: ghostty は Cmd 系を `text:` でエスケープシーケンスに変換して送っている
-#       （Cmd+1~9 → tmux の user-keys）。herdr に user-keys 相当は無いため、Cmd 系は
-#       Phase 3 で ghostty 側の keybind を herdr が解釈できる形に置き換える必要がある。
+# Cmd+1~9 は元々 tmux の user-keys（User4-12 → select-window）用エスケープシーケンス
+# だったが、herdr の switch_tab 用に転用済み（ユーザー選択）。tmux 側は Cmd+1~9 での
+# window 切替を失う（素の prefix+1..9 は claude-session-switch に予約済みで代替手段なし）。
 
 # --- workspace（tmux の session） ---
 workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c 'tm --sessions-only'"
