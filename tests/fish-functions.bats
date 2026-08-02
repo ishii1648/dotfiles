@@ -21,20 +21,31 @@ FUNCTIONS_DIR="configs/fish/functions"
   fi
 }
 
-@test "__tm_session_name: github.com/org/repo → org_repo" {
-  local result
-  result=$(fish --no-config -c "source $FUNCTIONS_DIR/__tm_session_name.fish; __tm_session_name 'github.com/org/repo'; or true")
-  [ "$result" = "org_repo" ]
+# ADR-078: ssh ラッパがタブラベルに出すホスト名の抽出
+ssh_tab_host() {
+  fish --no-config -c "source $FUNCTIONS_DIR/_ssh_tab_host.fish; _ssh_tab_host $*; or true"
 }
 
-@test "__tm_session_name: github.com/org/my.repo → org_my-repo" {
-  local result
-  result=$(fish --no-config -c "source $FUNCTIONS_DIR/__tm_session_name.fish; __tm_session_name 'github.com/org/my.repo'; or true")
-  [ "$result" = "org_my-repo" ]
+@test "_ssh_tab_host: host" {
+  [ "$(ssh_tab_host example.com)" = "example.com" ]
 }
 
-@test "__tm_session_name: github.com/org/a/b → org_a_b" {
-  local result
-  result=$(fish --no-config -c "source $FUNCTIONS_DIR/__tm_session_name.fish; __tm_session_name 'github.com/org/a/b'; or true")
-  [ "$result" = "org_a_b" ]
+@test "_ssh_tab_host: user@host strips user" {
+  [ "$(ssh_tab_host root@example.com)" = "example.com" ]
+}
+
+@test "_ssh_tab_host: -p 2222 host skips option value" {
+  [ "$(ssh_tab_host -p 2222 example.com)" = "example.com" ]
+}
+
+@test "_ssh_tab_host: -oPort=22 host handles attached option" {
+  [ "$(ssh_tab_host -oPort=22 example.com)" = "example.com" ]
+}
+
+@test "_ssh_tab_host: host cmd ignores remote command" {
+  [ "$(ssh_tab_host example.com uptime)" = "example.com" ]
+}
+
+@test "_ssh_tab_host: no host yields empty" {
+  [ -z "$(ssh_tab_host -V)" ]
 }

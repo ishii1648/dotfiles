@@ -1117,3 +1117,21 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] エラー時は popup がキー入力待ちで表示を保持し、`$XDG_STATE_HOME/herdr/new-workspace.log`（既定 `~/.local/state/herdr/new-workspace.log`）にも記録される
 - [x] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-new-workspace` の symlink が定義されている
 - [x] `herdr config check` が `config: ok` を返す
+
+### ADR-078: SSH 接続中は herdr のタブラベルを接続先ホストにする
+
+**コンポーネント**: fish / herdr | **ADR**: [ADR-078](adr/078-ssh-tab-label.md)
+
+**受け入れ条件**:
+
+- [x] herdr のペインで `ssh <host>` すると、そのタブのラベルが `⇢ <host>` になる（`ssh` をモックして実タブで確認。`-p 2222 root@host` でもホスト名だけが出る）
+- [x] ssh を抜けると元のラベル（連番 or 手動で付けた名前）に戻る（`emit fish_prompt` でハンドラを発火させて確認）
+- [ ] ssh の接続待ちで Ctrl-C した場合も、次のプロンプトが出た時点で元のラベルに戻る
+- [x] `ssh a; ssh b` のように 1 コマンドラインで続けて接続しても、最後に戻るのは最初のラベルである
+- [x] `_ssh_tab_host` が `user@host` / `-p 2222 host` / `-oPort=22 host` / `host cmd` から `host` を取り出す（bats）
+- [x] `_ssh_tab_host` はホストを含まない引数（`-V` のみ等）では何も出力せず、その場合ラッパはリネームしない
+- [x] `HERDR_TAB_ID` が無い環境（herdr の外、remote プロファイルの fish）では素の `ssh` と同じ挙動になる
+- [x] herdr サーバが停止していて `herdr tab rename` が失敗しても、ssh 自体は通常どおり実行される（`HERDR_SOCKET_PATH` を無効パスにして確認。元ラベルを控えられないためリネーム自体を行わない）
+- [ ] master 取り込み後に `configs/fish/setup.sh` を実行し、`--dry-run` が `conf.d/herdr-ssh-tab.fish` を含めて OK を返す（worktree からの実行では既存 symlink が master 実体を指すため WRONG TARGET になる。対象リストに入っていることは MISSING 判定で確認済み）
+- [x] `tests/fish-functions.bats` の "all fish functions load successfully" が新規関数を含めて通る
+- [x] 撤去済み `__tm_session_name`（`.gitignore` の `configs/fish/functions/__*` により配布されず、CI で常に失敗していた）のテスト 3 件を削除し、`bats tests/` が緑になる（9/9 ok。テスト名に全角括弧を含めると bats がテスト名を解決できず実行されないため ASCII に統一した）

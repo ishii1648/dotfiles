@@ -100,8 +100,8 @@ fi
 check_or_link "$HOME/.config/fish/completions" "$SCRIPT_DIR/completions" "completions"
 
 # conf.d 個別 symlink（共通ファイルのみ）
-for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish path.fish \
-          ssh-agent.fish; do
+for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish \
+          herdr-ssh-tab.fish path.fish ssh-agent.fish; do
     check_or_link "$HOME/.config/fish/conf.d/$f" "$SCRIPT_DIR/conf.d/$f" "conf.d/$f"
 done
 
