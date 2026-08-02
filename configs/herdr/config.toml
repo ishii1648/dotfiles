@@ -80,6 +80,10 @@ settings = ""
 
 # --- エージェント（ADR-058 の claude-session-switch / claude-nav カーソルモードの代替） ---
 focus_agent = "prefix+alt+1..9"
+# 直近の通知の発生元ペイン/タブへジャンプする。macOS の通知バナーはクリックしても
+# タブ移動できない（herdr は OS 通知に action を紐付けないため）ので、通知に気付いたら
+# このキーで飛ぶ。既定値と同じだが用途が分かりにくいので明示しておく。
+open_notification_target = "prefix+o"
 
 # --- worktree（fish 関数 tmw の代替） ---
 new_worktree = "prefix+shift+g"
