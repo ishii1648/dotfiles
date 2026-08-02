@@ -80,9 +80,9 @@ settings = ""
 
 # --- エージェント（ADR-058 の claude-session-switch / claude-nav カーソルモードの代替） ---
 focus_agent = "prefix+alt+1..9"
-# 直近の通知の発生元ペイン/タブへジャンプする。macOS の通知バナーはクリックしても
-# タブ移動できない（herdr は OS 通知に action を紐付けないため）ので、通知に気付いたら
-# このキーで飛ぶ。既定値と同じだが用途が分かりにくいので明示しておく。
+# 表示中の通知の発生元ペイン/タブへジャンプする（既定値のまま。用途が分かりにくいので明示）。
+# NOTE: [ui.toast] delivery = "off" にしたため、対象になる「表示中の通知」が出ない可能性が高い
+#       （未検証）。実際に飛べない場合は goto（prefix+g）かサイドバーから選ぶ。
 open_notification_target = "prefix+o"
 
 # --- worktree（fish 関数 tmw の代替） ---
@@ -128,8 +128,13 @@ rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent
 rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 
 [ui.toast]
-# claude-notify.sh（tmux display-message で session/window/pane を付けた osascript 通知）の代替
-delivery = "system"
+# 通知は出さない。macOS の通知バナーはクリックしても発生元タブに移動できず
+# （herdr は OS 通知に action を紐付けない。`notification show` にも宛先指定が無い）、
+# 「鳴っても飛べない」ため通知としての価値が薄い。状態把握はサイドバーの
+# state_icon（および pane 境界の agent ラベル）で足りる。
+# クリックでタブ遷移させたい場合は $HERDR_PANE_ID + `herdr agent focus` を使う
+# 自前実装か、第三者プラグイン（yankewei/herdr-focus-notify）が必要になる。
+delivery = "off"
 
 [ui.sound]
 # 通知は [ui.toast] の macOS 通知のみで足りるため、herdr 自身の通知音は鳴らさない
