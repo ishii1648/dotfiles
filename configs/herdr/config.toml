@@ -128,7 +128,8 @@ rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 delivery = "system"
 
 [ui.sound]
-enabled = true
+# 通知は [ui.toast] の macOS 通知のみで足りるため、herdr 自身の通知音は鳴らさない
+enabled = false
 
 [session]
 # 公式 integration が入っていれば、サーバー再起動後にエージェントの会話セッションを復元する
