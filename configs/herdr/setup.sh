@@ -22,9 +22,40 @@ if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
 fi
 
+# herdr 本体の導入・更新は herdr.dev 公式 install script（$HOME/.local/bin/herdr に
+# 配置、sudo 不要）で管理する。Homebrew/mise/Nix で入れた場合は `herdr update` が
+# 使えない（各パッケージマネージャ側での更新が必要になる）ため、install script 経由
+# であることを固定する。
+HERDR_INSTALL_DIR="${HERDR_INSTALL_DIR:-$HOME/.local/bin}"
+HERDR_INSTALL_SCRIPT_URL="https://herdr.dev/install.sh"
+
 if ! command -v herdr >/dev/null 2>&1; then
-    echo "  herdr: SKIP (herdr not installed)"
-    exit 0
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "  herdr: ✗ NOT INSTALLED (would install via ${HERDR_INSTALL_SCRIPT_URL})"
+        exit 1
+    fi
+    echo "  herdr: not found, installing via install script..."
+    if ! curl -fsSL "$HERDR_INSTALL_SCRIPT_URL" | sh; then
+        echo "  herdr: ✗ install script failed"
+        exit 1
+    fi
+    hash -r
+    if ! command -v herdr >/dev/null 2>&1; then
+        echo "  herdr: ✗ install script ran but herdr still not on PATH (check ${HERDR_INSTALL_DIR})"
+        exit 1
+    fi
+fi
+
+HERDR_BIN="$(command -v herdr)"
+if [[ "$HERDR_BIN" == "${HERDR_INSTALL_DIR}/herdr" ]]; then
+    if [[ "$DRY_RUN" == "true" ]]; then
+        echo "  herdr: ✓ install-script managed ($HERDR_BIN)"
+    else
+        echo "  herdr: updating (install-script managed)..."
+        herdr update || echo "  herdr update: ✗ failed (continuing)"
+    fi
+else
+    echo "  herdr: ⚠ managed outside install script ($HERDR_BIN) — 'herdr update' unavailable; update via its package manager"
 fi
 
 # 対象エージェント。手元で使うものだけに絞る（`herdr integration status` で全一覧）。
