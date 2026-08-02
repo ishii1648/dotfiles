@@ -66,11 +66,12 @@ workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c
 switch_workspace = "prefix+shift+1..9"
 previous_workspace = "prefix+["         # tmux: prefix+( switch-client -p に相当
 next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相当
-# tmux: bind S display-popup ... 'tmux-sidebar new'（新規セッション picker）に対応。
-# 既知の不具合: ghostty の super+shift+s=text:\x00S は大文字 S が s として解釈されるため
-# ここには届かず、workspace_picker（prefix+s）が開く。close_workspace / close_tab と同様に
-# prefix+<小文字> へ移せば直るが、キー選定が未決のため現状は物理 prefix 押しのみで到達可能。
-new_workspace = "prefix+shift+s"
+# Cmd+Shift+S は組み込みの new_workspace ではなく、ghq リポジトリを選ばせる
+# [[keys.command]]（prefix+p）に譲った（ADR-077）。ghostty 側も super+shift+s=text:\x00p へ
+# 変更済みで、「大文字 \x00S が s として解釈され workspace_picker が開く」問題も併せて解消した。
+# 組み込みの new_workspace（cwd 継承でそのまま作る）は herdr 既定のキーに残す
+# （ghostty 経路は無く、物理 prefix 押しのみで到達可能）。
+new_workspace = "prefix+shift+n"
 rename_workspace = "prefix+shift+w"
 # Cmd+D = フォーカス中の space（サイドバーで選択中の space）を閉じる。
 # ghostty: super+d=text:\x00d（prefix+d、リテラル小文字 d）。
@@ -89,8 +90,7 @@ goto = "prefix+g"                       # session navigator（tmux の choose-tr
 # tmux-sidebar は j/k でも window 行を移動できる（docs/spec.md）ため揃える。
 navigate_workspace_up = "k"
 navigate_workspace_down = "j"
-# settings は既定 prefix+s だが workspace_picker に譲り、new_workspace が
-# prefix+shift+s（Cmd+Shift+S の実際の送出先）を占有するため空けておく。
+# settings は既定 prefix+s だが workspace_picker に譲って空けておく。
 # 現状 ghostty 側に settings 用の Cmd ショートカットは無い。
 settings = ""
 # tmux の `bind m switch-client -l`（直前のセッションへ戻る）に相当するアクションは herdr に無い
@@ -127,6 +127,20 @@ reload_config = "prefix+r"
 key = "prefix+u"
 type = "shell"
 command = "~/.local/bin/herdr-open-pr"
+
+# Cmd+Shift+S: ghq リポジトリを選んで workspace を作る（ADR-077）
+# 組み込みの new_workspace は cwd を継承するだけで repo を選べないため、tmux 時代の
+# `tmux-sidebar new`（ADR-069/075）相当のピッカーを popup で復活させる。
+# type = "popup" はコマンド終了まで全入力（Esc 含む）を受け取るモーダル端末なので fzf が動く。
+# ghostty: super+shift+s=text:\x00p（prefix+p、リテラル小文字 p）。close_workspace / close_tab
+# と同じ理由で prefix+<小文字> を使う（herdr はリテラル大文字を shift 付きとして解釈しない）。
+# prefix+p は他のアクションに使われていない。
+[[keys.command]]
+key = "prefix+p"
+type = "popup"
+command = "~/.local/bin/herdr-new-workspace"
+width = "80%"
+height = "60%"
 
 [ui]
 sidebar_width = 26

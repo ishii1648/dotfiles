@@ -60,6 +60,9 @@ components:
       # config.toml の [[keys.command]] key = "prefix+u" から呼ばれる
       - link: ~/.local/bin/herdr-open-pr
         target: configs/herdr/open-pr.sh
+      # config.toml の [[keys.command]] key = "prefix+shift+s" から呼ばれる（ADR-077）
+      - link: ~/.local/bin/herdr-new-workspace
+        target: configs/herdr/new-workspace.sh
 
   claude:
     setup: configs/claude/setup.sh

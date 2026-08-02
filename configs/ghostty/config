@@ -67,7 +67,10 @@ keybind = super+shift+w=close_surface
 # herdr: workspace_picker（prefix+s、"Select space" ピッカー）。
 # 一時 close_workspace を割り当てていたが、close_workspace は Cmd+D へ移したため picker に戻した。
 keybind = super+s=text:\x00s
-keybind = super+shift+s=text:\x00S
+# herdr: ghq リポジトリピッカー popup（[[keys.command]] key = "prefix+p"、ADR-077）。
+# 旧 \x00S は herdr がリテラル大文字を shift 付きとして解釈しないため prefix+s と等価になり、
+# workspace_picker が開いてしまっていた。close_workspace / close_tab と同様に小文字へ移す。
+keybind = super+shift+s=text:\x00p
 # herdr: goto（session navigator、prefix+g）。tmux に bind g は無いため tmux 側は影響なし
 keybind = super+g=text:\x00g
 keybind = super+shift+e=text:\x00e
