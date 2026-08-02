@@ -64,11 +64,14 @@ keybind = super+shift+e=text:\x00e
 keybind = ctrl+tab=text:\x1b[9;5u
 keybind = ctrl+shift+tab=text:\x1b[9;6u
 
-# ペインスクロール (tmux user-keys経由)
-keybind = super+up=text:\x1b[1;9A
-keybind = super+down=text:\x1b[1;9B
-keybind = super+k=text:\x1b[107;9~
-keybind = super+j=text:\x1b[106;9~
+# ペインスクロール (herdr の page-key 横取り経由)
+# 旧: tmux user-keys (\x1b[1;9A / \x1b[106;9~ 等)。herdr にはこれらのバインドが
+# 存在せず、ペイン内アプリへ生シーケンスが漏れるだけだったため PageUp/PageDown へ差替。
+# herdr はページキーをフォーカス中ペインの scrollback スクロールとして横取りする。
+keybind = super+up=text:\x1b[5~
+keybind = super+down=text:\x1b[6~
+keybind = super+k=text:\x1b[5~
+keybind = super+j=text:\x1b[6~
 
 # タブ切替 (super+1~9 → herdr switch_tab = prefix+1..9)
 # NOTE: 数字キーの正しい key 名は super+digit_N（super+one 等は無効な key 名で
@@ -87,8 +90,9 @@ keybind = super+digit_7=text:\x007
 keybind = super+digit_8=text:\x008
 keybind = super+digit_9=text:\x009
 
-# Claude セッションナビゲーション (ADR-058): super+c → tmux cursor mode
-keybind = super+c=text:\x1b[99;9~
+# Claude セッションナビゲーション (ADR-058) の super+c → tmux cursor mode は削除。
+# herdr には対応バインドが無く、Ghostty 既定の super+c=copy_to_clipboard を潰したうえで
+# ペインへ \x1b[99;9~ が漏れるだけだった。COPY モード (super+i) の y/enter でコピーする。
 
 # ローカル設定（オプション、git管理外）
 config-file = ?local.conf
