@@ -9,74 +9,12 @@
     "pr": ""
   },
   "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh idle"
-          }
-        ]
-      }
-    ],
     "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh running"
-          },
-          {
-            "type": "command",
             "command": "test -n \"$SSH_CONNECTION\" && printf '[SSH環境] ホスト: %s, 接続元: %s' \"$(hostname)\" \"$(echo $SSH_CONNECTION | cut -d' ' -f1)\"; exit 0"
-          }
-        ]
-      }
-    ],
-    "Notification": [
-      {
-        "matcher": "permission_prompt",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-notify.sh"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh permission"
-          }
-        ]
-      },
-      {
-        "matcher": "elicitation_dialog",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-notify.sh"
-          },
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh ask"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh idle"
-          }
-        ]
-      }
-    ],
-    "SessionEnd": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh end"
           }
         ]
       }
@@ -113,14 +51,6 @@
       }
     ],
     "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/claude-pane-state.sh running post"
-          }
-        ]
-      },
       {
         "matcher": "Skill",
         "hooks": [

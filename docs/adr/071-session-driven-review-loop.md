@@ -1,7 +1,7 @@
 # ADR-071: 元セッション主導の反復レビューループ（review-loop 再設計）
 
 ## ステータス
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（review-loop の自動配布を廃止。tmux 前提の実装のため）
 
 ## 関連 ADR
 - 依存: ADR-070（headless コーディネータ方式を置換する。完了マーカー検知・codex の stdout エコー対策・pane_id 固定の実装知見は継承する）

@@ -30,7 +30,6 @@ install_deps() {
 
         BREW_PACKAGES=(
             "fish:fish"
-            "tmux:tmux"
             "nvim:neovim"
             "jq:jq"
             "aqua:aqua"

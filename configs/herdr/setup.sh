@@ -47,15 +47,18 @@ if ! command -v herdr >/dev/null 2>&1; then
 fi
 
 HERDR_BIN="$(command -v herdr)"
-if [[ "$HERDR_BIN" == "${HERDR_INSTALL_DIR}/herdr" ]]; then
-    if [[ "$DRY_RUN" == "true" ]]; then
-        echo "  herdr: ✓ install-script managed ($HERDR_BIN)"
-    else
-        echo "  herdr: updating (install-script managed)..."
-        herdr update || echo "  herdr update: ✗ failed (continuing)"
-    fi
-else
+if [[ "$HERDR_BIN" != "${HERDR_INSTALL_DIR}/herdr" ]]; then
     echo "  herdr: ⚠ managed outside install script ($HERDR_BIN) — 'herdr update' unavailable; update via its package manager"
+elif [[ "$DRY_RUN" == "true" ]]; then
+    echo "  herdr: ✓ install-script managed ($HERDR_BIN)"
+elif [[ -n "${HERDR_ENV:-}" ]]; then
+    # herdr は稼働中セッションの内側からの自己更新を拒否する（"run `herdr update`
+    # outside herdr after detaching from the session"）。ghostty の command が herdr に
+    # なった（ADR-076 Phase 3）ため setup.sh は通常 herdr 内で実行され、ここに来る。
+    echo "  herdr update: SKIP (inside a herdr session; detach and run 'herdr update')"
+else
+    echo "  herdr: updating (install-script managed)..."
+    herdr update || echo "  herdr update: ✗ failed (continuing)"
 fi
 
 # 対象エージェント。手元で使うものだけに絞る（`herdr integration status` で全一覧）。

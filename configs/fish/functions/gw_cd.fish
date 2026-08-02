@@ -1,13 +1,3 @@
-function __gw_cd_switch_tmux_session --argument-names worktree_path
-    if test -z "$TMUX"
-        return
-    end
-    set -l session_name (basename $worktree_path)
-    if tmux has-session -t $session_name 2>/dev/null
-        tmux switch-client -t $session_name
-    end
-end
-
 function gw_cd -d "Change directory to a git worktree"
     if not git rev-parse --git-dir >/dev/null 2>&1
         echo "gw_cd: Not in a git repository." >&2
@@ -38,7 +28,6 @@ function gw_cd -d "Change directory to a git worktree"
                     end
                 else
                     cd "$main_worktree"
-                    __gw_cd_switch_tmux_session "$main_worktree"
                     git pull origin "$default_branch"
                 end
             end
@@ -50,7 +39,6 @@ function gw_cd -d "Change directory to a git worktree"
             set -l wt_branch (git -C "$wt" rev-parse --abbrev-ref HEAD 2>/dev/null)
             if test "$wt_branch" = "$argv[1]"
                 cd "$wt"
-                __gw_cd_switch_tmux_session "$wt"
                 return 0
             end
         end
@@ -59,7 +47,6 @@ function gw_cd -d "Change directory to a git worktree"
         for wt in $worktrees
             if string match -q "*/$argv[1]" "$wt"; or string match -q "*/$argv[1]/*" "$wt"
                 cd "$wt"
-                __gw_cd_switch_tmux_session "$wt"
                 return 0
             end
         end
@@ -87,10 +74,8 @@ function gw_cd -d "Change directory to a git worktree"
         end
     else if test "$selected" = "$main_worktree"
         cd "$selected"
-        __gw_cd_switch_tmux_session "$selected"
         git pull origin "$default_branch"
     else
         cd "$selected"
-        __gw_cd_switch_tmux_session "$selected"
     end
 end

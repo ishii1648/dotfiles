@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft（Phase 0 Spike 完了。Phase 1 並走運用中、Phase 2 以降の設計は保留）
+採用済み（Phase 3/4 完了 = tmux 一式撤去済み。Phase 2 の URL/PR popup 移植のみ保留）
 
 ## 関連 ADR
 
@@ -145,6 +145,26 @@ herdr の日常運用が定着したため、Phase 2（herdr CLI への移植）
 
 - **dispatch / orchestrate は herdr CLI へ移植せず削除**する。dispatch（agmsg-go 配布）・orchestrate（dotfiles vendor）ともに tmux の `new-window`/`send-keys` に構造的に依存しており、移植コストに見合わないため、herdr 搭載の agent 機能（`agent start`/`agent send` 等）で置き換える前提で一旦廃止した（置き換え自体は未実装）。agmsg CLI は dispatch/review-loop を分離インストールできない仕様のため、review-loop の自動配布も合わせて停止した。副作用として `session-log` skill と `workflow-session-start.sh`/`workflow-session-log.sh` hook も発火源を失うため削除した
 - **URL/PR popup の herdr 移植（案 A/案 B）は保留**する。tmux 撤去に伴い機能が一時的に失われることを許容し、Phase 3/4 完了後に別途検討する
+
+### 2026-08-02: Phase 3/4 完了（tmux 一式撤去）
+
+`configs/ghostty/config` の `command` を herdr に切り替え（`ghostty-tmux-init.sh` は削除）、実機で herdr 起動を確認したうえで tmux 一式を撤去した。
+
+撤去したもの:
+
+- `configs/tmux/`（tmux.conf, fzf-pr-popup.sh, osc52-copy.sh, tmux-fzf-url-pr-filter, conf テンプレート一式）・`configs/tmux-sidebar/`・`configs/ghostty/prtrack-popup.sh`
+- fish 関数: `tm` / `tms` / `tmw` とヘルパー（`__tm_*`, `__tmux_passthrough_*`）、`ssh`（tmux 自動アタッチが主目的のため関数ごと削除。素の `ssh` コマンドに戻る）。`gw_add` は worktree 作成部分を残し tmux 依存部分のみ除去
+- hook: `claude-pane-state.sh` / `agent-pane-state.sh` / `claude-notify.sh` と、`configs/claude/settings.json`・`configs/codex/hooks.json` の該当エントリ（codex 側は herdr integration の `SessionStart` hook のみ残る）
+- `scripts/setup-manifest.yml` の `tmux` / `tmux-sidebar` コンポーネント（remote / linux プロファイルは `herdr` に差し替え）、`scripts/lib/deps-macos.sh` の brew `tmux`
+- テスト: `tests/{tmux-config,popup,passthrough,keybind-chain}.bats`、`tests/static-analysis.bats` の tmux.conf ロードテスト、`tests/Dockerfile` の tmux パッケージ
+- `docs/tmux/tmux-operation.md`
+
+ghostty の keybind は `\x00`（ctrl+space = herdr prefix）経由の間接送信方式をそのまま踏襲した。tmux が居なくなり herdr が直接 prefix を受け取るため、ADR の設計案にあった「直接バインドへの整理」は行わず既存のキー体系を維持している。
+
+**残存する機能後退**（Spike の結論で許容済みのものに加えて）:
+
+- URL/PR popup（`prefix+u`）— ghostty config にバインドは残置。herdr 側の移植は未着手
+- `prtrack` セッション管理（`prtrack-popup.sh`）
 
 ## 受け入れ条件
 

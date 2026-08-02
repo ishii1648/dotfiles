@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（agent-pane-state.sh を撤去し herdr integration hook へ移行）
 
 ## 関連 ADR
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bats
 
 # Layer 1: 静的解析テスト
-# fish / bash スクリプトの構文チェックと tmux.conf の読み込み検証
+# fish / bash スクリプトの構文チェック
 
 @test "all .fish files pass fish -n syntax check" {
   local failed=()
@@ -35,10 +35,4 @@
     printf 'syntax error: %s\n' "${failed[@]}"
     return 1
   fi
-}
-
-@test "tmux.conf loads without error" {
-  local tmux_conf="$HOME/.tmux.conf"
-  [ -f "$tmux_conf" ] || tmux_conf="configs/tmux/tmux.conf"
-  tmux -f "$tmux_conf" start-server \; kill-server
 }

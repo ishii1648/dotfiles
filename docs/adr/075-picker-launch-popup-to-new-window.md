@@ -2,7 +2,7 @@
 
 ## ステータス
 
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（picker を廃止）
 
 ## 関連 ADR
 

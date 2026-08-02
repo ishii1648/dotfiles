@@ -1,5 +1,0 @@
-# tmux ローカル設定（マシン固有のオーバーライド）
-# ~/.tmux.local.conf にコピーしてカスタマイズ
-#
-# 例:
-# set -g status-right "#[fg=#6272a4]%H:%M "

@@ -135,7 +135,7 @@ map("n", "<D-S-f>", telescope("live_grep"), {
   desc = "Live grep (VSCode Cmd+Shift+F)",
 })
 map("n", "<M-F>", telescope("live_grep"), {
-  desc = "Live grep (Cmd+Shift+F via tmux)",
+  desc = "Live grep (Cmd+Shift+F)",
 })
 map("n", "<leader>fg", telescope("live_grep"), {
   desc = "Live grep",
@@ -145,7 +145,7 @@ map("n", "<D-p>", telescope("find_files"), {
   desc = "Find files (VSCode Cmd+P)",
 })
 map("n", "<M-p>", telescope("find_files"), {
-  desc = "Find files (Cmd+P via tmux)",
+  desc = "Find files (Cmd+P)",
 })
 map("n", "<leader>ff", telescope("find_files"), {
   desc = "Find files",

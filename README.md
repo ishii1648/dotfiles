@@ -6,7 +6,7 @@
 
 ### 前提条件
 
-- **macOS**: [Homebrew](https://brew.sh) と Python3 (PyYAML) がインストールされていること。`setup.sh` が fish / tmux / neovim / jq / aqua / docker / colima / docker-compose を自動インストールする（colima は `--profile linux` 以外で対象。Docker サンドボックス用）。
+- **macOS**: [Homebrew](https://brew.sh) と Python3 (PyYAML) がインストールされていること。`setup.sh` が fish / neovim / jq / aqua / docker / colima / docker-compose を自動インストールする（colima は `--profile linux` 以外で対象。Docker サンドボックス用）。herdr は公式 install script で導入・更新される。
 - **Linux**: 事前にパッケージのインストールが必要。Docker テスト用の `tests/Dockerfile` を参照。
 
 ### 事前設定（初回のみ）
@@ -70,20 +70,13 @@ SSH 先のマシンに dotfiles をデプロイする場合は `remote` プロ�
 # 1. dotfiles を clone
 git clone <repo> ~/dotfiles && cd ~/dotfiles
 
-# 2. remote プロファイルでセットアップ（fish, nvim, tmux, claude, aqua, git, vim + tmux テンプレートコピー）
+# 2. remote プロファイルでセットアップ（fish, nvim, claude, herdr, aqua, git, vim）
 bash scripts/setup.sh --profile remote
 ```
 
-### tmux ネスト対応
+### リモート接続
 
-ローカル PC からリモートの tmux にネスト接続する際、`tms` 関数を使うとパススルーモードが自動で切り替わる。
-
-```fish
-tms lab           # SSH先の tmux セッション "work" に接続（パススルー自動ON）
-tms lab dev       # セッション名を指定
-```
-
-F12 キーで手動トグルも可能（`~/.tmux.local.conf` に `configs/tmux/tmux.local.conf.example` の F12 設定をコピーしておく）。
+リモートマシンのセッションには `herdr --remote <ssh-target>` でアタッチする（tmux のネスト構成と F12 パススルーは herdr 移行に伴い不要になった、[ADR-076](docs/adr/076-herdr-migration-from-tmux.md) 参照）。
 
 ## Claude Code / Codex CLI
 
@@ -105,8 +98,6 @@ Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付�
 | Git (linux) | `~/.gitconfig` | `configs/git/gitconfig` を `copies: if_missing` で配布 |
 | Claude Code | `~/.claude/settings.json` | `configs/claude/settings.json` を `copies: if_missing` で配布。`hooks` / `statusLine` / `env` は setup 時に自動同期 |
 | Ghostty | `~/.config/ghostty/local.conf` | `configs/ghostty/local.conf.example`（手動コピー） |
-| tmux (remote) | `~/.tmux.local.conf` | `configs/tmux/tmux.remote.conf.example` を `copies: if_missing` で配布 |
-| tmux (full) | `~/.tmux.local.conf` | `configs/tmux/tmux.local.conf.example`（手動コピー、F12 トグル等） |
 | Neovim | `configs/nvim/lua/local.lua` | `configs/nvim/lua/local.lua.example`（手動コピー） |
 
 `setup.sh --dry-run` で validate チェックが実行され、共通設定のキーが `~/.gitconfig` や `~/.claude/settings.json` に存在するか検証される（WARN 出力のみ、失敗しない）。

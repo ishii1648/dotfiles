@@ -1087,5 +1087,6 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] Phase 1: fish 関数 `hd` で herdr セッションを起動/アタッチできる（tmux を経由しない ghostty ウィンドウで開く）
 - [x] Phase 2 は実施しない方針に変更。dispatch（agmsg-go 配布）・orchestrate（dotfiles vendor）は herdr CLI へ移植せず削除する。URL/PR popup の herdr 移植（案 A/案 B の選択）は保留とし、Phase 3/4 完了後に別途検討する
 - [x] dispatch/orchestrate 廃止: `configs/claude/skills/orchestrate/`・`configs/claude/skills/session-log/`（発火源を失うため同時削除）・`configs/claude/scripts/{dispatch-new-worker-window,workflow-window-register,workflow-session-start,workflow-session-log,workflow-skill-detect,tmux-send-prompt}.sh`・`configs/dispatch/`・`configs/claude/workflow-sessions.json` を削除。`configs/claude/setup.sh` の agmsg bootstrap（dispatch/review-loop 一括配布、分離不可のため review-loop も配布停止）を削除。実機 `~/.claude/skills`・`~/.codex/skills`・`~/.workflow-sessions/` をクリーンアップ済み
-- [ ] Phase 3: `configs/ghostty/config` の `command` を herdr に切替、`\x00`/CSI-u 経由の tmux keybind を herdr 直接バインドへ整理する
-- [ ] Phase 4: tmux 一式（`configs/tmux/`, `configs/tmux-sidebar/`, `tm`/`tms`/`tmw` 等の fish 関数, `claude-pane-state.sh`/`claude-notify.sh`, 関連テスト）を撤去する
+- [x] Phase 3: `configs/ghostty/config` の `command` を herdr に切替（`ghostty-tmux-init.sh` 削除）。keybind は `\x00` 経由の間接送信のまま維持した（tmux が居なくなり herdr が直接 prefix を受けるため、直接バインドへの置換は不要と判断）
+- [x] Phase 4: tmux 一式（`configs/tmux/`, `configs/tmux-sidebar/`, `prtrack-popup.sh`, `tm`/`tms`/`tmw`/`ssh` 等の fish 関数, `claude-pane-state.sh`/`agent-pane-state.sh`/`claude-notify.sh` と hook エントリ, manifest の tmux/tmux-sidebar コンポーネント, brew tmux, 関連テスト, `docs/tmux/`）を撤去した
+- [ ] URL/PR popup（`prefix+u`）の herdr 移植 — 案 A（生 URL + PR フィルタのみ）か案 B（`mouse_capture = false` で ghostty に委譲）を選んで実装する。ghostty 側のバインドは残置済み

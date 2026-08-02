@@ -1,7 +1,7 @@
 # ADR-060: orchestrate v0.0.4 — エージェントチェーンの復元と tmux wait-for による順次実行
 
 ## ステータス
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（orchestrate を廃止）
 
 ## 関連 ADR
 - 依存: ADR-052（orchestrate skill の初期設計 — ワークフロータイプ・ハンドオフ文書の原型）

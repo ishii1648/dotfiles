@@ -12,7 +12,7 @@
 #
 # プロファイル:
 #   full    - 全コンポーネント（デフォルト）
-#   remote  - fish, nvim, tmux, claude, aqua のみ（リモートマシン用）
+#   remote  - fish, nvim, claude, herdr, aqua のみ（リモートマシン用）
 #
 # 終了コード:
 #   0 - 全てOK

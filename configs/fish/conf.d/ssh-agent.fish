@@ -6,7 +6,7 @@ if ssh-add -l &>/dev/null; or test $status -eq 1
     return
 end
 
-# 固定ソケットで agent を共有（tmux ペイン間で増殖しない）
+# 固定ソケットで agent を共有（ペイン間で増殖しない）
 set -gx SSH_AUTH_SOCK "$HOME/.ssh/agent.sock"
 
 # 固定ソケットの agent が生きていればそのまま使う

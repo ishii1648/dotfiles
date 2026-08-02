@@ -1,47 +1,6 @@
 {
   "hooks": {
-    "PermissionRequest": [
-      {
-        "hooks": [
-          {
-            "command": "tmux-sidebar hook permission --kind codex",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/scripts/agent-pane-state.sh running codex post",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "tmux-sidebar hook running --kind codex",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
     "SessionStart": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex",
-            "type": "command"
-          }
-        ]
-      },
       {
         "hooks": [
           {
@@ -50,26 +9,6 @@
             "type": "command"
           }
         ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "command": "~/.claude/scripts/agent-pane-state.sh idle codex",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      },
-      {
-        "hooks": [
-          {
-            "command": "tmux-sidebar hook idle --kind codex --reset",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
       }
     ]
   }

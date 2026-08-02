@@ -2,7 +2,7 @@
 
 ## ステータス
 
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（`herdr --remote` により tmux ネスト構成と F12 パススルーが不要化）
 
 ## 関連 ADR
 

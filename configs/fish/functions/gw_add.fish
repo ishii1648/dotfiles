@@ -28,20 +28,8 @@ function gw_add -d "Add a git worktree and cd into it"
     if test -d "$worktree_path"
         echo "gw_add: Warning: Worktree already exists at $worktree_path" >&2
         cd "$worktree_path"
-        # tmux session 自動作成・切替
-        if test -n "$TMUX"
-            set -l session_name (basename $worktree_path)
-            if not tmux has-session -t $session_name 2>/dev/null
-                tmux new-session -d -s $session_name -c $worktree_path
-            end
-            if set -q _flag_claude
-                tmux send-keys -t $session_name "claude" Enter
-            end
-            tmux switch-client -t $session_name
-        else
-            if set -q _flag_claude
-                claude
-            end
+        if set -q _flag_claude
+            claude
         end
         return 0
     end
@@ -52,19 +40,8 @@ function gw_add -d "Add a git worktree and cd into it"
         set -l existing_worktree_path (string split -n " " $existing_worktree_line)[1]
         echo "gw_add: Branch '$worktree_name' is already checked out at $existing_worktree_path" >&2
         cd "$existing_worktree_path"
-        if test -n "$TMUX"
-            set -l session_name (basename $existing_worktree_path)
-            if not tmux has-session -t $session_name 2>/dev/null
-                tmux new-session -d -s $session_name -c $existing_worktree_path
-            end
-            if set -q _flag_claude
-                tmux send-keys -t $session_name "claude" Enter
-            end
-            tmux switch-client -t $session_name
-        else
-            if set -q _flag_claude
-                claude
-            end
+        if set -q _flag_claude
+            claude
         end
         return 0
     end
@@ -99,19 +76,7 @@ function gw_add -d "Add a git worktree and cd into it"
     end
 
     cd "$worktree_path"
-    # tmux session 自動作成・切替
-    if test -n "$TMUX"
-        set -l session_name (basename $worktree_path)
-        if not tmux has-session -t $session_name 2>/dev/null
-            tmux new-session -d -s $session_name -c $worktree_path
-        end
-        if set -q _flag_claude
-            tmux send-keys -t $session_name "claude" Enter
-        end
-        tmux switch-client -t $session_name
-    else
-        if set -q _flag_claude
-            claude
-        end
+    if set -q _flag_claude
+        claude
     end
 end

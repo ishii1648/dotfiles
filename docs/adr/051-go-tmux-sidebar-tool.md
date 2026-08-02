@@ -2,7 +2,7 @@
 
 ## ステータス
 
-Draft
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（tmux-sidebar を撤去し herdr のネイティブサイドバーへ移行）
 
 ## 関連 ADR
 

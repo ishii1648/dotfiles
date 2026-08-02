@@ -1,7 +1,7 @@
 # ADR-072: dispatch / review-loop の配布を agmsg-go へ外部化する
 
 ## ステータス
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（dotfiles からの dispatch / review-loop 自動配布を廃止）
 
 ## 関連 ADR
 - 関連: ADR-059（dispatch / orchestrate の連携モード分離 — dispatch は本 ADR で配布元が変わるが、連携モードの位置づけは不変）

@@ -2,7 +2,7 @@
 
 ## ステータス
 
-採用済み
+Superseded by [ADR-076](076-herdr-migration-from-tmux.md)（claude-pane-state.sh を撤去し herdr integration hook へ移行）
 
 ## 関連 ADR
 
