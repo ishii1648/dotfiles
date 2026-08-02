@@ -57,6 +57,9 @@ components:
     symlinks:
       - link: ~/.config/herdr/config.toml
         target: configs/herdr/config.toml
+      # config.toml の [[keys.command]] key = "prefix+u" から呼ばれる
+      - link: ~/.local/bin/herdr-open-pr
+        target: configs/herdr/open-pr.sh
 
   claude:
     setup: configs/claude/setup.sh

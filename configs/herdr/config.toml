@@ -1,3 +1,4 @@
+onboarding = false
 # herdr configuration — dotfiles 管理（ADR-076）
 # 実体: configs/herdr/config.toml → ~/.config/herdr/config.toml（symlink）
 # 既定値の全一覧は `herdr --default-config`、検証は `herdr config check`
@@ -96,15 +97,17 @@ detach = "prefix+d"                     # tmux 既定の detach と同じキー�
 # tmux: bind r source-file ~/.tmux.conf（reload）に対応
 reload_config = "prefix+r"
 
-# URL / PR popup（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup"）
-# Phase 2 で fzf-pr-popup.sh を `herdr pane read --source recent` ベースに移植してから有効化する。
-# OSC 8 由来の URL は herdr の API では回収できないため、生 URL + PR フィルタ構成になる。
-# [[keys.command]]
-# key = "prefix+u"
-# type = "popup"
-# command = "~/.local/bin/herdr-fzf-pr-popup"
-# width = "90%"
-# height = "70%"
+# PR を開く（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup" の後継）
+# 旧 tmux 版は capture-pane した画面から URL を総なめして fzf で選ばせていたが、
+# herdr の pane read は OSC 8 ハイパーリンクの URL を復元できない（実測: アンカー
+# テキストのみ残り URL は消える。CSI/SGR は保持される）。
+# statusline.js が表示中の PR を /tmp/gh-pr-<md5(cwd)> に書き出しているので、
+# 「statusline に出ている PR へ飛ぶ」用途は画面スクレイプ不要でそちらが一次情報。
+# fzf の選択 UI が要らなくなったので type = "popup" ではなく "shell"（背景実行）。
+[[keys.command]]
+key = "prefix+u"
+type = "shell"
+command = "~/.local/bin/herdr-open-pr"
 
 [ui]
 sidebar_width = 26
