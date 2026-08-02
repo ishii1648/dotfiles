@@ -1096,7 +1096,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] Cmd+D の誤爆で space を失わないよう `[ui] confirm_close = true` を明示し、閉じる前に確認プロンプトが出る
 - [x] Cmd+S は `workspace_picker`（"Select space" ピッカー）のまま維持される
 - [x] Cmd+D を追われた `close_tab` は Cmd+Shift+X（`\x00w` = `prefix+w`）から起動できる（`\x00X` は `close_pane` を誤発火するため使わない）
-- [ ] `new_workspace`（Cmd+Shift+S → `\x00S`）は同じ大文字問題で `workspace_picker` が開く。`prefix+<小文字>` へ移すか判断する
+- [x] `new_workspace`（Cmd+Shift+S → `\x00S`）は同じ大文字問題で `workspace_picker` が開く。`prefix+<小文字>` へ移すか判断する → ADR-077 で `\x00p` = `prefix+p`（ghq ピッカー popup）に付け替えて解消
 - [x] `herdr config check` が `config: ok` を返す
 
 ### ADR-077: Cmd+Shift+S の workspace 作成に ghq リポジトリピッカーを挟む
@@ -1105,13 +1105,14 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 
 **受け入れ条件**:
 
-- [ ] `configs/ghostty/config` の `super+shift+s` が `text:\x00p`（`prefix+p`、リテラル小文字）を送出し、`configs/herdr/config.toml` の `[[keys.command]] key = "prefix+p"` が popup（`~/.local/bin/herdr-new-workspace`）を起動する
-- [ ] 旧 `\x00S` の「大文字が小文字として解釈され `workspace_picker`（`prefix+s`）が開く」問題が解消し、Cmd+Shift+S でピッカーが開く
-- [ ] 組み込みの `new_workspace`（cwd 継承でそのまま作る）は herdr 既定の `prefix+shift+n` に残っている
-- [ ] popup 内で `ghq list` のリポジトリ一覧が fzf で表示され、選択すると当該 repo を cwd とする workspace が作られてフォーカスが移る
-- [ ] 選んだ repo をカレントディレクトリに持つ workspace が既にある場合は、二重に作らず既存の workspace にフォーカスする
-- [ ] fzf を Esc / Ctrl+C でキャンセルすると workspace を作らずに popup が閉じる
-- [ ] `ghq` / `fzf` が herdr サーバの PATH に無い環境でも、スクリプトが aqua / homebrew の bin を PATH に前置して解決する
-- [ ] エラー時は popup がキー入力待ちで表示を保持し、`$XDG_STATE_HOME/herdr/new-workspace.log`（既定 `~/.local/state/herdr/new-workspace.log`）にも記録される
-- [ ] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-new-workspace` の symlink が定義されている
-- [ ] `herdr config check` が `config: ok` を返す
+- [x] `configs/ghostty/config` の `super+shift+s` が `text:\x00p`（`prefix+p`、リテラル小文字）を送出し、`configs/herdr/config.toml` の `[[keys.command]] key = "prefix+p"` が popup（`~/.local/bin/herdr-new-workspace`）を起動する（設定反映済み。`herdr server reload-config` が `status: applied` / diagnostics 空）
+- [ ] 実機: Cmd+Shift+S でピッカー popup が開く（旧 `\x00S` の「大文字が小文字として解釈され `workspace_picker`（`prefix+s`）が開く」問題が解消している）。ghostty の設定リロード（Cmd+R）が必要
+- [ ] 実機: popup 内で `ghq list` のリポジトリ一覧が fzf で表示され、選択すると当該 repo を cwd とする workspace が作られてフォーカスが移る
+- [x] 組み込みの `new_workspace`（cwd 継承でそのまま作る）は herdr 既定の `prefix+shift+n` に残っている
+- [x] 選択した repo を cwd とする workspace が `herdr workspace create --cwd <repo> --label <basename>` で作られる（fzf をモックして検証。label = basename を確認）
+- [x] 選んだ repo をカレントディレクトリに持つ workspace が既にある場合は、二重に作らず既存の workspace にフォーカスする（同上の方法で `focus w9` を確認）
+- [x] fzf を Esc / Ctrl+C でキャンセルすると workspace を作らずに popup が閉じる（fzf の exit 130 で workspace が増えないことを確認）
+- [x] `ghq` / `fzf` が herdr サーバの PATH に無い環境でも、スクリプトが aqua / homebrew の bin を PATH に前置して解決する
+- [x] エラー時は popup がキー入力待ちで表示を保持し、`$XDG_STATE_HOME/herdr/new-workspace.log`（既定 `~/.local/state/herdr/new-workspace.log`）にも記録される
+- [x] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-new-workspace` の symlink が定義されている
+- [x] `herdr config check` が `config: ok` を返す
