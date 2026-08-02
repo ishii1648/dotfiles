@@ -25,15 +25,18 @@ keybind = shift+enter=text:\x1b\r
 # Ctrl+D は意図的にバインドしない。ペイン内アプリへ 0x04(EOF) をそのまま渡し、
 # fish / less / REPL / Claude Code の Ctrl+D 終了を使えるようにするため
 # （旧: herdr close_pane = prefix+x にバインドしていたが解除）。
-# Cmd+D = herdr close_workspace（prefix+shift+d、リテラル大文字 D）。フォーカス中の
-# space を閉じる。prefix+d は detach が占有しているため shift 付きへ送る。
+# Cmd+D = herdr close_workspace（prefix+d、リテラル小文字 d）。フォーカス中の space を閉じる。
+# herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（\x00D を送ると
+# prefix+shift+d ではなく prefix+d が発火する）ため、herdr 側で close_workspace を
+# prefix+d に置き、detach を prefix+q へ退避してある。ghostty からは小文字だけを送る。
 # 旧: close_tab（\x00X）。さらに旧: vim-visual-multi (multi cursor) 用 \x1b[100;9u。
 # prefix シーケンスは herdr が消費するためペインへ届かず、Cmd+D 経由の multi cursor は
 # 到達不能。Neovim 内では vm の既定キー（<C-n> 等）を直接押す運用に戻る。
-keybind = super+d=text:\x00D
-# Cmd+Shift+X = herdr close_tab（prefix+shift+x、リテラル大文字 X）。
-# Cmd+D を close_workspace に譲ったための移設先。herdr のバインド名と同じ X に揃えた。
-keybind = super+shift+x=text:\x00X
+keybind = super+d=text:\x00d
+# Cmd+Shift+X = herdr close_tab（prefix+w、リテラル小文字 w）。Cmd+D を close_workspace に
+# 譲ったための移設先。上と同じ理由で \x00X は使えない（close_pane が発火する）ので、
+# herdr 側の close_tab を prefix+w に移してある。キー名 X と送出文字 w がずれるのはこのため。
+keybind = super+shift+x=text:\x00w
 
 # Neovim: Cmd+Shift+F → live_grep, Cmd+P → find_files (tmux経由はAltにリマップ)
 keybind = super+shift+f=text:\x1bF

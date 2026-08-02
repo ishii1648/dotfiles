@@ -48,7 +48,11 @@ resize_mode = "prefix+shift+r"
 
 # --- タブ（tmux の window） ---
 new_tab = "prefix+c"                    # tmux: bind c new-window
-close_tab = "prefix+shift+x"
+# ghostty: super+shift+x=text:\x00w（prefix+w、リテラル小文字 w）。
+# 既定の prefix+shift+x のままだと、ghostty から \x00X を送っても herdr は大文字 X を
+# x として扱い close_pane（prefix+x）が発火してしまう（close_workspace の項を参照）。
+# prefix+w は workspace_picker を prefix+s に移したことで空いている。
+close_tab = "prefix+w"
 rename_tab = "prefix+shift+t"
 switch_tab = "prefix+1..9"              # Cmd+1~9 → ghostty が prefix+<digit> を送出（配線済み）
 next_tab = "ctrl+tab"                   # tmux: bind-key -n C-Tab next-window（prefix 不要の直接バインド）
@@ -62,17 +66,24 @@ workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c
 switch_workspace = "prefix+shift+1..9"
 previous_workspace = "prefix+["         # tmux: prefix+( switch-client -p に相当
 next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相当
-# ghostty: super+shift+s=text:\x00S（prefix+shift+s、リテラル大文字 S）
-# tmux: bind S display-popup ... 'tmux-sidebar new'（新規セッション picker）に対応
+# tmux: bind S display-popup ... 'tmux-sidebar new'（新規セッション picker）に対応。
+# 既知の不具合: ghostty の super+shift+s=text:\x00S は大文字 S が s として解釈されるため
+# ここには届かず、workspace_picker（prefix+s）が開く。close_workspace / close_tab と同様に
+# prefix+<小文字> へ移せば直るが、キー選定が未決のため現状は物理 prefix 押しのみで到達可能。
 new_workspace = "prefix+shift+s"
 rename_workspace = "prefix+shift+w"
 # Cmd+D = フォーカス中の space（サイドバーで選択中の space）を閉じる。
-# ghostty: super+d=text:\x00D（prefix+shift+d、リテラル大文字 D）。
-# prefix+d は detach が占有しているため、herdr 既定の prefix+shift+d のまま使う。
+# ghostty: super+d=text:\x00d（prefix+d、リテラル小文字 d）。
+# 重要: herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない。
+# 一度 close_workspace = "prefix+shift+d" + ghostty \x00D で組んだところ、herdr は
+# 大文字 D を d として扱い detach（当時 prefix+d）が発火してクライアントが切断された
+# （herdr-server.log の "client detach requested via keybind" で確認）。そのため
+# ghostty から到達させるアクションは prefix+<小文字> だけを使い、detach を prefix+q
+# （herdr 既定）へ退避して prefix+d を close_workspace に空けた。
 # herdr にはコンテキスト別バインド（サイドバーがアクティブなときだけ別動作、の類）が
 # 無いため、サイドバーの状態に関係なく常に close_workspace になる。
 # 誤爆対策は [ui] confirm_close = true（既定値だが明示）の確認プロンプト。
-close_workspace = "prefix+shift+d"
+close_workspace = "prefix+d"
 goto = "prefix+g"                       # session navigator（tmux の choose-tree に最も近い）
 # goto / workspace_picker で開く一覧内のカーソル移動（既定は矢印キーのみ）。
 # tmux-sidebar は j/k でも window 行を移動できる（docs/spec.md）ため揃える。
@@ -98,7 +109,9 @@ open_worktree = "prefix+shift+o"
 
 # --- その他 ---
 toggle_sidebar = "prefix+e"             # tmux: bind e run-shell 'tmux-sidebar toggle'
-detach = "prefix+d"                     # tmux 既定の detach と同じキーに合わせる
+# detach は tmux 既定に合わせて prefix+d にしていたが、close_workspace（Cmd+D）に
+# 譲って herdr 既定の prefix+q へ移した。ghostty 側に Cmd ショートカットは無い。
+detach = "prefix+q"
 # ghostty: super+shift+r=text:\x00r（prefix+r、リテラル小文字 r。shift は無視され小文字が送られる）
 # tmux: bind r source-file ~/.tmux.conf（reload）に対応
 reload_config = "prefix+r"
