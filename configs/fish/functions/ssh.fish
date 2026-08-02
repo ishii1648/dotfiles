@@ -16,7 +16,7 @@ function ssh --wraps ssh --description 'SSH 接続中は herdr のタブラベ�
             end
         end
         if set -q __herdr_ssh_prev_tab_label
-            herdr tab rename $HERDR_TAB_ID "⇢ $host" >/dev/null 2>&1
+            herdr tab rename $HERDR_TAB_ID (_ssh_tab_icon $host)" $host" >/dev/null 2>&1
         end
     end
 

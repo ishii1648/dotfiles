@@ -57,7 +57,7 @@
 | `g_reset` | fzf で commit 選択 → git reset |
 | `gh_rate_limit` | GitHub API レート確認 |
 | `s_ghq` | ghq リポジトリを fzf で検索 |
-| `ssh` | ssh 実行中だけ herdr のタブラベルを `⇢ <host>` にする（[ADR-078](adr/078-ssh-tab-label.md)）。ホスト抽出は `_ssh_tab_host`、書き戻しは `conf.d/herdr-ssh-tab.fish` |
+| `ssh` | ssh 実行中だけ herdr のタブラベルを `<色付きアイコン> <host>` にする（[ADR-078](adr/078-ssh-tab-label.md)）。ホスト抽出は `_ssh_tab_host`、色は `_ssh_tab_icon`（ホスト名から決定）、書き戻しは `conf.d/herdr-ssh-tab.fish` |
 | `fish_prompt` | カスタムプロンプト (git branch + worktree 状態表示) |
 
 ## aqua 管理ツール

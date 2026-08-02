@@ -49,3 +49,26 @@ ssh_tab_host() {
 @test "_ssh_tab_host: no host yields empty" {
   [ -z "$(ssh_tab_host -V)" ]
 }
+
+ssh_tab_icon() {
+  fish --no-config -c "source $FUNCTIONS_DIR/_ssh_tab_icon.fish; _ssh_tab_icon $*"
+}
+
+@test "_ssh_tab_icon: same host yields the same icon" {
+  local a b
+  a=$(ssh_tab_icon example.com)
+  b=$(ssh_tab_icon example.com)
+  [ -n "$a" ]
+  [ "$a" = "$b" ]
+}
+
+@test "_ssh_tab_icon: icon comes from the palette" {
+  local out
+  for host in example.com prod-web db-01 10.0.0.1 bastion; do
+    out=$(ssh_tab_icon "$host")
+    case "$out" in
+      🔴|🟠|🟡|🟢|🔵|🟣) ;;
+      *) printf 'unexpected icon for %s: %s\n' "$host" "$out"; return 1 ;;
+    esac
+  done
+}
