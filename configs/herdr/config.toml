@@ -1,9 +1,11 @@
-# herdr configuration — dotfiles 管理（ADR-076 Spike）
+# herdr configuration — dotfiles 管理（ADR-076）
 # 実体: configs/herdr/config.toml → ~/.config/herdr/config.toml（symlink）
-# 既定値の全一覧は `herdr --default-config` で出力できる。
-# Docs: https://herdr.dev/docs/configuration/
+# 既定値の全一覧は `herdr --default-config`、検証は `herdr config check`
+# （`config check` は未知のアクション名を "unknown config key" として報告するので、
+#   キー名の実在確認に使える）。
+# Docs: https://herdr.dev/docs/config-reference/
 #
-# キーバインドは現行 tmux.conf の体系に寄せてある。tmux 側の対応は各行のコメント参照。
+# キーバインドは現行 tmux.conf の体系に合わせてある。各行のコメントが tmux 側の対応。
 
 [theme]
 name = "dracula"
@@ -14,38 +16,56 @@ new_cwd = "follow"
 
 [keys]
 # tmux と同じ prefix。tmux の内側で起動すると ctrl+space を tmux に横取りされるため、
-# Spike 中は tmux を経由しない ghostty ウィンドウで検証する:
-#   open -na Ghostty --args --command=/opt/homebrew/bin/herdr
+# Phase 1（並走運用）では fish 関数 `hd` で tmux を経由しない ghostty ウィンドウを開く。
 prefix = "ctrl+space"
 
-# --- ペイン操作（tmux.conf: bind h/j/k/l, n, v, x, z, H/J/K/L） ---
-focus_pane_left = "prefix+h"
+# --- ペイン（tmux の pane） ---
+focus_pane_left = "prefix+h"            # tmux: bind h select-pane -L
 focus_pane_down = "prefix+j"
 focus_pane_up = "prefix+k"
 focus_pane_right = "prefix+l"
+swap_pane_left = "prefix+shift+h"       # tmux: prefix+{ / } に相当（herdr は方向指定）
+swap_pane_down = "prefix+shift+j"
+swap_pane_up = "prefix+shift+k"
+swap_pane_right = "prefix+shift+l"
+last_pane = "prefix+semicolon"          # tmux 既定の prefix+; と同じ
+cycle_pane_next = "prefix+tab"
+cycle_pane_previous = "prefix+shift+tab"
 # NOTE: herdr の vertical/horizontal は vim（:vsplit = 左右）系の命名と推測している。
-#       tmux は -h が左右で逆なので、Spike で実際の分割方向を確認して必要なら入れ替える。
-split_vertical = "prefix+n"        # tmux: bind n split-window -h（左右に並ぶ）
-split_horizontal = "prefix+v"      # tmux: bind v split-window -v（上下に並ぶ）
-close_pane = "prefix+x"
-zoom = "prefix+z"
-resize_mode = "prefix+r"           # tmux: bind -r H/J/K/L resize-pane（herdr はモード式）
+#       実機で逆だった場合はこの 2 行を入れ替える。
+split_vertical = "prefix+n"             # tmux: bind n split-window -h（左右に並ぶ）
+split_horizontal = "prefix+v"           # tmux: bind v split-window -v（上下に並ぶ）
+close_pane = "prefix+x"                 # tmux: bind x kill-pane
+zoom = "prefix+z"                       # tmux: prefix+z
+copy_mode = "prefix+i"                  # tmux: bind i copy-mode
+edit_scrollback = "prefix+shift+e"      # 既定の prefix+e は toggle_sidebar に譲る
+# tmux の `bind -r H/J/K/L resize-pane -L/-D/-U/-R 5` に相当する個別バインドは herdr に無い。
+# prefix+r で resize モードに入り h/j/k/l で調整して esc で抜ける方式のみ。
+resize_mode = "prefix+r"
 
-# --- タブ（tmux の window 相当） ---
-new_tab = "prefix+c"               # tmux: bind c new-window
+# --- タブ（tmux の window） ---
+new_tab = "prefix+c"                    # tmux: bind c new-window
 close_tab = "prefix+shift+x"
-switch_tab = "prefix+1..9"         # tmux: Cmd+1~9 → select-window（user-keys 経由）
-previous_tab = "prefix+p"
-next_tab = ""                      # prefix+n は split_vertical に割当済みのため無効化
 rename_tab = "prefix+shift+t"
+switch_tab = "prefix+1..9"              # tmux: Cmd+1~9 → select-window（下の NOTE 参照）
+next_tab = "ctrl+tab"                   # tmux: bind-key -n C-Tab next-window（prefix 不要の直接バインド）
+previous_tab = "ctrl+shift+tab"         # tmux: bind-key -n C-BTab previous-window
+# NOTE: ghostty は Cmd 系を `text:` でエスケープシーケンスに変換して送っている
+#       （Cmd+1~9 → tmux の user-keys）。herdr に user-keys 相当は無いため、Cmd 系は
+#       Phase 3 で ghostty 側の keybind を herdr が解釈できる形に置き換える必要がある。
 
-# --- workspace（tmux の session 相当） ---
-workspace_picker = "prefix+s"      # tmux: bind s display-popup -E "fish -c 'tm --sessions-only'"
+# --- workspace（tmux の session） ---
+workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c 'tm --sessions-only'"
+switch_workspace = "prefix+shift+1..9"
+previous_workspace = "prefix+["         # tmux: prefix+( switch-client -p に相当
+next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相当
 new_workspace = "prefix+shift+n"
 rename_workspace = "prefix+shift+w"
 close_workspace = "prefix+shift+d"
-goto = "prefix+g"
-settings = "prefix+shift+s"        # 既定の prefix+s は workspace_picker に譲る
+goto = "prefix+g"                       # session navigator（tmux の choose-tree に最も近い）
+settings = "prefix+shift+s"             # 既定の prefix+s は workspace_picker に譲る
+# tmux の `bind m switch-client -l`（直前のセッションへ戻る）に相当するアクションは herdr に無い
+# （`last_workspace` は存在しない。previous_workspace は「並び順で前」であって直前ではない）。
 
 # --- エージェント（ADR-058 の claude-session-switch / claude-nav カーソルモードの代替） ---
 focus_agent = "prefix+alt+1..9"
@@ -55,13 +75,13 @@ new_worktree = "prefix+shift+g"
 open_worktree = "prefix+shift+o"
 
 # --- その他 ---
-toggle_sidebar = "prefix+e"        # tmux: bind e run-shell 'tmux-sidebar toggle'
-edit_scrollback = "prefix+shift+e" # 既定の prefix+e は toggle_sidebar に譲る
-detach = "prefix+d"                # tmux 既定の detach と同じキーに合わせる
-reload_config = "prefix+shift+r"
+toggle_sidebar = "prefix+e"             # tmux: bind e run-shell 'tmux-sidebar toggle'
+detach = "prefix+d"                     # tmux 既定の detach と同じキーに合わせる
+reload_config = "prefix+shift+r"        # tmux は prefix+r だが、herdr は resize_mode が prefix+r
 
 # URL / PR popup（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup"）
-# Phase 2 で fzf-pr-popup.sh を `tmux capture-pane` → `herdr pane read` に移植してから有効化する。
+# Phase 2 で fzf-pr-popup.sh を `herdr pane read --source recent` ベースに移植してから有効化する。
+# OSC 8 由来の URL は herdr の API では回収できないため、生 URL + PR フィルタ構成になる。
 # [[keys.command]]
 # key = "prefix+u"
 # type = "popup"
@@ -76,8 +96,7 @@ copy_on_select = true
 show_agent_labels_on_pane_borders = true
 
 [ui.toast]
-# claude-notify.sh（tmux display-message で session/window/pane を付けた osascript 通知）の
-# 代替になるかを検証する。
+# claude-notify.sh（tmux display-message で session/window/pane を付けた osascript 通知）の代替
 delivery = "system"
 
 [ui.sound]
@@ -91,7 +110,7 @@ resume_agents_on_restore = true
 directory = "~/.herdr/worktrees"
 
 [experimental]
-# --- Spike の最重要検証項目: 日本語 IME ---
+# --- 日本語 IME 対策（Phase 0 で実機確認済み） ---
 # CJK IME 有効時に prefix が届かない問題への対策（macOS のみ、best-effort）
 switch_ascii_input_source_in_prefix = true
 # Claude Code / Codex が自前でカーソルを描くと IME 候補窓が追従しない問題への対策
