@@ -98,6 +98,9 @@ settings = ""
 
 # --- エージェント（ADR-058 の claude-session-switch / claude-nav カーソルモードの代替） ---
 focus_agent = "prefix+alt+1..9"
+# 一覧から選ぶ経路は Cmd+A の [[keys.command]]（prefix+a）が担う（ADR-079）。
+# 組み込みの goto（prefix+g）は workspace とペインを 1 つのツリーで辿る作りで、
+# 「エージェントだけ」に絞る設定が無いため自前 popup で補っている。
 # 表示中の通知の発生元ペイン/タブへジャンプする（既定値のまま。用途が分かりにくいので明示）。
 # NOTE: [ui.toast] delivery = "off" にしたため、対象になる「表示中の通知」が出ない可能性が高い
 #       （未検証）。実際に飛べない場合は goto（prefix+g）かサイドバーから選ぶ。
@@ -139,6 +142,20 @@ command = "~/.local/bin/herdr-open-pr"
 key = "prefix+p"
 type = "popup"
 command = "~/.local/bin/herdr-new-workspace"
+width = "80%"
+height = "60%"
+
+# Cmd+A: エージェント一覧を j/k で辿ってフォーカスする（ADR-079）
+# navigate mode（goto = prefix+g）は workspace とペインを 1 つのツリーで扱い、spaces と
+# agents に分ける設定が無い。spaces 側は組み込みの workspace_picker（prefix+s = Cmd+S）が
+# あるため、欠けている agents 側だけを popup で補う。
+# ghostty: super+a=text:\x00a（prefix+a、リテラル小文字 a）。close_workspace / close_tab と
+# 同じ理由で prefix+<小文字> を使う（herdr はリテラル大文字を shift 付きとして解釈しない）。
+# prefix+a は herdr 既定でも本 config でも未使用。
+[[keys.command]]
+key = "prefix+a"
+type = "popup"
+command = "~/.local/bin/herdr-agent-picker"
 width = "80%"
 height = "60%"
 

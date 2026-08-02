@@ -63,6 +63,9 @@ components:
       # config.toml の [[keys.command]] key = "prefix+shift+s" から呼ばれる（ADR-077）
       - link: ~/.local/bin/herdr-new-workspace
         target: configs/herdr/new-workspace.sh
+      # config.toml の [[keys.command]] key = "prefix+a" から呼ばれる（ADR-079）
+      - link: ~/.local/bin/herdr-agent-picker
+        target: configs/herdr/agent-picker.sh
 
   claude:
     setup: configs/claude/setup.sh

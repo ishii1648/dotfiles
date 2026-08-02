@@ -1151,3 +1151,28 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [ ] master 取り込み後に `configs/fish/setup.sh` を実行し、`--dry-run` が `conf.d/herdr-ssh-tab.fish` を含めて OK を返す（worktree からの実行では既存 symlink が master 実体を指すため WRONG TARGET になる。対象リストに入っていることは MISSING 判定で確認済み）
 - [x] `tests/fish-functions.bats` の "all fish functions load successfully" が新規関数を含めて通る
 - [x] 撤去済み `__tm_session_name`（`.gitignore` の `configs/fish/functions/__*` により配布されず、CI で常に失敗していた）のテスト 3 件を削除し、`bats tests/` が緑になる（9/9 ok。テスト名に全角括弧を含めると bats がテスト名を解決できず実行されないため ASCII に統一した）
+
+### ADR-079: Cmd+A でエージェント一覧を j/k で辿ってフォーカスする
+
+**コンポーネント**: herdr | **ADR**: [ADR-079](adr/079-agent-picker-popup.md)
+
+**受け入れ条件**:
+
+- [x] navigate mode（`goto`）を spaces と agents に分ける設定が herdr に無いことを確認した（`herdr --default-config` のキー一覧に navigate mode を開くアクションは `goto` のみ。バイナリのアクション enum にも `FocusSidebar` 相当は無く、末尾は `OpenNotificationTarget, OpenNavigator`）
+- [x] `configs/ghostty/config` の `super+a` が `text:\x00a`（`prefix+a`、リテラル小文字）を送出し、`configs/herdr/config.toml` の `[[keys.command]] key = "prefix+a"` が popup（`~/.local/bin/herdr-agent-picker`）を起動する定義になっている
+- [x] `prefix+a` が herdr 組み込みアクションおよび既存の `[[keys.command]]` と衝突しない（`config.toml` の全キーを走査して確認）
+- [x] 一覧は `herdr api snapshot` 1 回から生成され、`<状態アイコン> <workspace>/<tab>  <agent>  <タイトル>` の形式で workspace 順に並ぶ（実測 2 エージェント）
+- [x] `pane_id` は一覧に表示されない（TSV の 1 列目に埋め、fzf の `--with-nth=2..` で隠す）
+- [x] j/k で一覧を移動できる（`--no-input` で検索欄を隠して bind。pty 上で `jj` → 3 行目、`G` → 末尾、`Gk` → 1 つ上を実測）
+- [x] 文字を打っても絞り込みが起きず選択行が動かない（`abc` を打っても 1 行目のまま。j/k との両立は不可能なため絞り込みを捨てる判断）
+- [x] 選択すると `herdr agent focus <pane_id>` が呼ばれる（herdr をモックして `agent focus wM:p2` を確認）
+- [x] Esc / Ctrl+C / q でキャンセルすると focus を呼ばずに popup が閉じる（fzf の exit 130 で `agent focus` が呼ばれないことを確認）
+- [x] fzf が起動失敗（exit が 0/1/130 以外）したときは popup を閉じずにエラーを表示し、`$XDG_STATE_HOME/herdr/agent-picker.log` に残る（exit 2 を起こして入力待ちとログを確認）
+- [x] エージェントが 1 件も無いときは popup が一瞬で閉じず、メッセージを出してキー入力を待つ（空の snapshot をモックして確認）
+- [x] `fzf` / `jq` が herdr サーバの PATH に無い環境でも、スクリプトが aqua / homebrew の bin を PATH に前置して解決する（`AQUA_GLOBAL_CONFIG` も明示して cwd 非依存にする。ADR-077 と同型）
+- [x] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-agent-picker` の symlink が定義されている
+- [ ] master 取り込み後: `herdr config check` が `config: ok` を返す（`~/.config/herdr/config.toml` は master 実体への symlink のため、worktree では検証できない）
+- [ ] master 取り込み後: `scripts/setup.sh` を実行し、`~/.local/bin/herdr-agent-picker` の symlink が作られる
+- [ ] 実機: ghostty の設定リロード（Cmd+R）後、Cmd+A でピッカー popup が開き、j/k で移動して Enter で当該エージェントにフォーカスが移る
+- [ ] 実機: 別 workspace のエージェントを選んでも workspace を跨いでフォーカスが移る
+- [ ] 実機: herdr 以外の ghostty ウィンドウで Cmd+A が全選択でなくなることを許容できるか確認する（ghostty にアプリ別バインドが無いため上書きは全ウィンドウに及ぶ）

@@ -73,6 +73,10 @@ keybind = super+s=text:\x00s
 keybind = super+shift+s=text:\x00p
 # herdr: goto（session navigator、prefix+g）。tmux に bind g は無いため tmux 側は影響なし
 keybind = super+g=text:\x00g
+# herdr: エージェントピッカー popup（[[keys.command]] key = "prefix+a"、ADR-079）。
+# ghostty 組み込みの super+a=select_all を上書きする。herdr セッションでは
+# [ui] copy_on_select = true と copy_mode（Cmd+I）があるため全選択の欠落は許容する。
+keybind = super+a=text:\x00a
 keybind = super+shift+e=text:\x00e
 
 # tmux ウィンドウ移動 (Ctrl+Tab / Ctrl+Shift+Tab → CSI u シーケンス)

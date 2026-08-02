@@ -44,6 +44,7 @@ Ghostty 起動時に herdr が起動する（`command = ~/.local/bin/herdr`）�
 |---------|------|
 | リポジトリ単位 | herdr workspace（`prefix+s` の workspace picker / `prefix+g` の goto で切替） |
 | リポジトリ内の並列 | git worktree（`gw_add` で作成、herdr の `prefix+shift+g` / `prefix+shift+o` でも操作可能） |
+| エージェント単位 | `prefix+a`（Cmd+A）のエージェントピッカーで一覧を j/k で辿って移動（[ADR-079](adr/079-agent-picker-popup.md)）。番号指定は `prefix+alt+1..9` |
 
 ## 主要な運用フロー
 
