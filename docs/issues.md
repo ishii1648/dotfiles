@@ -1090,7 +1090,8 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] Phase 3: `configs/ghostty/config` の `command` を herdr に切替（`ghostty-tmux-init.sh` 削除）。keybind は `\x00` 経由の間接送信のまま維持した（tmux が居なくなり herdr が直接 prefix を受けるため、直接バインドへの置換は不要と判断）
 - [x] Phase 4: tmux 一式（`configs/tmux/`, `configs/tmux-sidebar/`, `prtrack-popup.sh`, `tm`/`tms`/`tmw`/`ssh` 等の fish 関数, `claude-pane-state.sh`/`agent-pane-state.sh`/`claude-notify.sh` と hook エントリ, manifest の tmux/tmux-sidebar コンポーネント, brew tmux, 関連テスト, `docs/tmux/`）を撤去した
 - [ ] URL/PR popup（`prefix+u`）の herdr 移植 — 案 A（生 URL + PR フィルタのみ）か案 B（`mouse_capture = false` で ghostty に委譲）を選んで実装する。ghostty 側のバインドは残置済み
-- [x] Cmd+S（`prefix+s`）が `workspace_picker` ではなく `close_workspace` になり、フォーカス中の space（サイドバーで選択中の space）だけを閉じる
-- [x] Cmd+S の誤爆で space を失わないよう `[ui] confirm_close = true` を明示し、閉じる前に確認プロンプトが出る
-- [x] `workspace_picker` は空（廃止）。workspace 一覧からの切替は `goto`（`prefix+g` / Cmd+G）とサイドバーで代替する
-- [x] `close_workspace` の旧バインド `prefix+shift+d` は解放され、`herdr config check` が `config: ok` を返す
+- [x] Cmd+D（ghostty から `\x00D` = `prefix+shift+d`）で `close_workspace` が起動し、フォーカス中の space（サイドバーで選択中の space）だけを閉じる。`prefix+d` は `detach` が占有しているため herdr 既定の `prefix+shift+d` のまま使う
+- [x] Cmd+D の誤爆で space を失わないよう `[ui] confirm_close = true` を明示し、閉じる前に確認プロンプトが出る
+- [x] Cmd+S は `workspace_picker`（"Select space" ピッカー）のまま維持される
+- [x] Cmd+D を追われた `close_tab` は Cmd+Shift+X（`\x00X` = `prefix+shift+x`）から起動できる
+- [x] `herdr config check` が `config: ok` を返す
