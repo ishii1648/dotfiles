@@ -67,6 +67,10 @@ new_workspace = "prefix+shift+s"
 rename_workspace = "prefix+shift+w"
 close_workspace = "prefix+shift+d"
 goto = "prefix+g"                       # session navigator（tmux の choose-tree に最も近い）
+# goto / workspace_picker で開く一覧内のカーソル移動（既定は矢印キーのみ）。
+# tmux-sidebar は j/k でも window 行を移動できる（docs/spec.md）ため揃える。
+navigate_workspace_up = "k"
+navigate_workspace_down = "j"
 # settings は既定 prefix+s だが workspace_picker に譲り、new_workspace が
 # prefix+shift+s（Cmd+Shift+S の実際の送出先）を占有するため空けておく。
 # 現状 ghostty 側に settings 用の Cmd ショートカットは無い。
@@ -103,6 +107,17 @@ sidebar_width = 26
 copy_on_select = true
 # エージェント状態をペイン境界にも表示する（tmux-sidebar の @pane_role 表示の代替）
 show_agent_labels_on_pane_borders = true
+# tmux-sidebar は session を見出し、window を子行にした階層表示（docs/spec.md）。
+# "spaces" は workspace 単位でグルーピングする指定で最も近い（既定値だが明示する）。
+agent_panel_sort = "spaces"
+
+[ui.sidebar.agents]
+# tmux-sidebar の window 行（[c]💬 のような agent タグ + 状態バッジ）に相当する表示。
+rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
+
+[ui.sidebar.spaces]
+# tmux-sidebar の session 見出しに相当（branch/git_status で pinned 相当の文脈情報を補う）
+rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 
 [ui.toast]
 # claude-notify.sh（tmux display-message で session/window/pane を付けた osascript 通知）の代替
