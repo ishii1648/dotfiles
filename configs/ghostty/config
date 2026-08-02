@@ -1,4 +1,4 @@
-command = ~/.local/bin/ghostty-tmux-init
+command = ~/.local/bin/herdr
 font-family = "BIZ UDGothic Bold"
 adjust-cell-height = 20%
 theme = Dracula

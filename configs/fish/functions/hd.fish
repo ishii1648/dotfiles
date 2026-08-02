@@ -1,4 +1,4 @@
-function hd --description 'herdr セッションを起動/アタッチする（macOS は tmux 外の ghostty ウィンドウで開く）'
+function hd --description 'herdr セッションを新規 ghostty ウィンドウで起動する（引数で --session 等を指定可能）'
     if set -q HERDR_ENV
         echo "hd: already inside a herdr pane" >&2
         return 1
@@ -10,9 +10,8 @@ function hd --description 'herdr セッションを起動/アタッチする（m
         return 1
     end
 
-    # ghostty は起動時に必ず tmux へアタッチする（configs/ghostty/ghostty-tmux-init.sh）。
-    # herdr を tmux の内側で動かすと prefix (ctrl+space) を tmux に横取りされるため、
-    # --command で tmux を経由しない新規ウィンドウを開く（ADR-076 Phase 1: tmux と並走）。
+    # ghostty の command は herdr（ADR-076 Phase 3）。新規ウィンドウは Cmd+N でも
+    # herdr が起動するが、--session 等の引数付きで別ウィンドウを開きたい場合に使う。
     if test (uname) = Darwin; and test -d /Applications/Ghostty.app
         set -l cmd $herdr_bin
         if test (count $argv) -gt 0

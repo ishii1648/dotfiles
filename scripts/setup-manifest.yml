@@ -54,8 +54,6 @@ components:
     symlinks:
       - link: ~/.config/ghostty/config
         target: configs/ghostty/config
-      - link: ~/.local/bin/ghostty-tmux-init
-        target: configs/ghostty/ghostty-tmux-init.sh
 
   tmux:
     setup: configs/tmux/setup.sh
