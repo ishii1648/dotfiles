@@ -58,7 +58,15 @@ previous_tab = "ctrl+shift+tab"         # tmux: bind-key -n C-BTab previous-wind
 # window 切替を失う（素の prefix+1..9 は claude-session-switch に予約済みで代替手段なし）。
 
 # --- workspace（tmux の session） ---
-workspace_picker = "prefix+s"           # tmux: bind s display-popup -E "fish -c 'tm --sessions-only'"
+# Cmd+S = フォーカス中の space を閉じる。herdr にはコンテキスト別バインド
+# （サイドバーがアクティブなときだけ別動作、の類）が無いため、「space サイドバーで
+# 選んでいる space を消す」は Cmd+S を常時 close_workspace に割り当てて表現する。
+# 誤爆対策は [ui] confirm_close = true（既定値だが明示）の確認プロンプト。
+close_workspace = "prefix+s"
+# 旧 workspace_picker（"Select space" ピッカー。tmux: bind s display-popup -E
+# "fish -c 'tm --sessions-only'"）は prefix+s を close_workspace に譲って廃止した。
+# workspace 一覧からの切替は goto（prefix+g / Cmd+G）とサイドバーで代替する。
+workspace_picker = ""
 switch_workspace = "prefix+shift+1..9"
 previous_workspace = "prefix+["         # tmux: prefix+( switch-client -p に相当
 next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相当
@@ -66,13 +74,12 @@ next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相
 # tmux: bind S display-popup ... 'tmux-sidebar new'（新規セッション picker）に対応
 new_workspace = "prefix+shift+s"
 rename_workspace = "prefix+shift+w"
-close_workspace = "prefix+shift+d"
 goto = "prefix+g"                       # session navigator（tmux の choose-tree に最も近い）
-# goto / workspace_picker で開く一覧内のカーソル移動（既定は矢印キーのみ）。
+# goto で開く一覧内のカーソル移動（既定は矢印キーのみ）。
 # tmux-sidebar は j/k でも window 行を移動できる（docs/spec.md）ため揃える。
 navigate_workspace_up = "k"
 navigate_workspace_down = "j"
-# settings は既定 prefix+s だが workspace_picker に譲り、new_workspace が
+# settings は既定 prefix+s だが close_workspace に譲り、new_workspace が
 # prefix+shift+s（Cmd+Shift+S の実際の送出先）を占有するため空けておく。
 # 現状 ghostty 側に settings 用の Cmd ショートカットは無い。
 settings = ""
@@ -112,6 +119,9 @@ command = "~/.local/bin/herdr-open-pr"
 [ui]
 sidebar_width = 26
 copy_on_select = true
+# close_workspace を Cmd+S（押しやすいキー）に割り当てているため、確認プロンプトは必須。
+# 既定値だが、既定が変わっても誤爆しないよう明示する。
+confirm_close = true
 # tmux の new-window は名前を聞かず番号(base-index)を自動採番するだけ。herdr は既定で
 # 確認プロンプトが出るため無効化する。ラベル未指定時は tab の連番がそのまま label に
 # なることを `herdr tab list` で実機確認済み（number: 1 → label: "1"）。

@@ -57,10 +57,10 @@ keybind = super+u=text:\x00u
 keybind = super+t=text:\x00c
 keybind = super+w=text:\x00x
 keybind = super+shift+w=close_surface
-# herdr: workspace_picker（prefix+s）。旧・tmux-sidebar focus-or-open（User15）から転用。
-# tmux 側は prefix+s = `bind s`（fzf セッション picker `tm`）に挙動が変わる。
-# tmux.conf の user-keys[15]/User15 バインドはこの変更後どのキーからも届かなくなる
-# （残置は無害。Phase 3 の tmux 撤去時にまとめて掃除する）
+# herdr: close_workspace（prefix+s）。フォーカス中の space（サイドバーで選択中の space）を
+# 閉じる。旧: workspace_picker（"Select space" ピッカー）。herdr にコンテキスト別バインドが
+# 無いため、サイドバーがアクティブかどうかに関係なく常に close_workspace になる。
+# 確認プロンプトは herdr 側 [ui] confirm_close = true で担保。
 keybind = super+s=text:\x00s
 keybind = super+shift+s=text:\x00S
 # herdr: goto（session navigator、prefix+g）。tmux に bind g は無いため tmux 側は影響なし
