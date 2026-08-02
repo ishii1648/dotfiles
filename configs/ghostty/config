@@ -71,8 +71,13 @@ keybind = super+s=text:\x00s
 # 旧 \x00S は herdr がリテラル大文字を shift 付きとして解釈しないため prefix+s と等価になり、
 # workspace_picker が開いてしまっていた。close_workspace / close_tab と同様に小文字へ移す。
 keybind = super+shift+s=text:\x00p
-# herdr: goto（session navigator、prefix+g）。tmux に bind g は無いため tmux 側は影響なし
-keybind = super+g=text:\x00g
+# Cmd+G は将来別のアクションに割り当てるため空けてある（ADR-080）。
+# 以前は herdr の goto（session navigator、prefix+g）へ配線していたが、エージェント間の移動は
+# Cmd+A のピッカー（ADR-079）と Cmd+S の workspace_picker で足りるため外した。
+# 単に行を消すと ghostty 組み込みの super+g=navigate_search:next が復活してしまうので、
+# ignore（ghostty が握り潰し、herdr にも渡さない）を明示する。
+# herdr 側の goto = "prefix+g" は残してあり、物理 Ctrl+Space → g では従来どおり開ける。
+keybind = super+g=ignore
 # herdr: エージェントピッカー popup（[[keys.command]] key = "prefix+a"、ADR-079）。
 # ghostty 組み込みの super+a=select_all を上書きする。herdr セッションでは
 # [ui] copy_on_select = true と copy_mode（Cmd+I）があるため全選択の欠落は許容する。

@@ -1176,3 +1176,14 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [ ] 実機: ghostty の設定リロード（Cmd+R）後、Cmd+A でピッカー popup が開き、j/k で移動して Enter で当該エージェントにフォーカスが移る
 - [ ] 実機: 別 workspace のエージェントを選んでも workspace を跨いでフォーカスが移る
 - [ ] 実機: herdr 以外の ghostty ウィンドウで Cmd+A が全選択でなくなることを許容できるか確認する（ghostty にアプリ別バインドが無いため上書きは全ウィンドウに及ぶ）
+
+### ADR-080: Cmd+G を空けて将来の割り当て用に確保する
+
+**コンポーネント**: ghostty / herdr | **ADR**: [ADR-080](adr/080-free-cmd-g-keybind.md)
+
+**受け入れ条件**:
+
+- [x] `configs/ghostty/config` の `super+g` が `ignore` になっている（`ghostty +validate-config --config-file` が診断を出さないことを確認。同ファイルに不正な action を足すと `keybind: unknown error error.InvalidAction` を報告するので、検証経路自体が機能していることも確認済み）
+- [x] 行を削除する方式は採らない（ghostty 組み込みの `super+g=navigate_search:next` が復活することを `ghostty +list-keybinds --default` で確認したため、`ignore` を明示する）
+- [x] herdr 側の `goto = "prefix+g"` は残っており、物理 Ctrl+Space → g で navigate mode を開ける（`configs/herdr/config.toml` は変更なし）
+- [ ] 実機: ghostty の設定リロード（Cmd+R）後、Cmd+G を押しても何も起きない（navigate mode も ghostty の検索も発火しない）
