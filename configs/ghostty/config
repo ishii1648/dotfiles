@@ -21,8 +21,15 @@ keybind = super+shift+r=text:\x00r
 # claude code
 keybind = shift+enter=text:\x1b\r
 
-# vim-visual-multi (multi cursor)
-keybind = super+d=text:\x1b[100;9u
+# タブ削除
+# Ctrl+D は意図的にバインドしない。ペイン内アプリへ 0x04(EOF) をそのまま渡し、
+# fish / less / REPL / Claude Code の Ctrl+D 終了を使えるようにするため
+# （旧: herdr close_pane = prefix+x にバインドしていたが解除）。
+# Cmd+D = herdr close_tab（prefix+shift+x、リテラル大文字 X）。
+# 旧: vim-visual-multi (multi cursor) 用 \x1b[100;9u。prefix シーケンスは herdr が
+# 消費するためペインへ届かず、Cmd+D 経由の multi cursor は到達不能になった。
+# Neovim 内では vm の既定キー（<C-n> 等）を直接押す運用に戻る。
+keybind = super+d=text:\x00X
 
 # Neovim: Cmd+Shift+F → live_grep, Cmd+P → find_files (tmux経由はAltにリマップ)
 keybind = super+shift+f=text:\x1bF
