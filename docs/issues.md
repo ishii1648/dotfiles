@@ -1165,14 +1165,14 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `pane_id` は一覧に表示されない（TSV の 1 列目に埋め、fzf の `--with-nth=2..` で隠す）
 - [x] j/k で一覧を移動できる（`--no-input` で検索欄を隠して bind。pty 上で `jj` → 3 行目、`G` → 末尾、`Gk` → 1 つ上を実測）
 - [x] 文字を打っても絞り込みが起きず選択行が動かない（`abc` を打っても 1 行目のまま。j/k との両立は不可能なため絞り込みを捨てる判断）
-- [x] 選択すると `herdr agent focus <pane_id>` が呼ばれる（herdr をモックして `agent focus wM:p2` を確認）
+- [x] 選択すると `herdr agent focus <pane_id>` が呼ばれる（herdr をモックして `agent focus wM:p2` を確認。実サーバへの `herdr agent focus` 自体も自ペインを対象に成功を実測）
 - [x] Esc / Ctrl+C / q でキャンセルすると focus を呼ばずに popup が閉じる（fzf の exit 130 で `agent focus` が呼ばれないことを確認）
 - [x] fzf が起動失敗（exit が 0/1/130 以外）したときは popup を閉じずにエラーを表示し、`$XDG_STATE_HOME/herdr/agent-picker.log` に残る（exit 2 を起こして入力待ちとログを確認）
 - [x] エージェントが 1 件も無いときは popup が一瞬で閉じず、メッセージを出してキー入力を待つ（空の snapshot をモックして確認）
 - [x] `fzf` / `jq` が herdr サーバの PATH に無い環境でも、スクリプトが aqua / homebrew の bin を PATH に前置して解決する（`AQUA_GLOBAL_CONFIG` も明示して cwd 非依存にする。ADR-077 と同型）
 - [x] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-agent-picker` の symlink が定義されている
-- [ ] master 取り込み後: `herdr config check` が `config: ok` を返す（`~/.config/herdr/config.toml` は master 実体への symlink のため、worktree では検証できない）
-- [ ] master 取り込み後: `scripts/setup.sh` を実行し、`~/.local/bin/herdr-agent-picker` の symlink が作られる
+- [x] master 取り込み後: `herdr config check` が `config: ok` を返し、`herdr server reload-config` が `status: applied` / diagnostics 空を返す（master に fast-forward 取り込み後に実測）
+- [x] master 取り込み後: `~/.local/bin/herdr-agent-picker` の symlink が作られ、`scripts/setup.sh --dry-run` が `herdr-agent-picker ✓ OK` を返す
 - [ ] 実機: ghostty の設定リロード（Cmd+R）後、Cmd+A でピッカー popup が開き、j/k で移動して Enter で当該エージェントにフォーカスが移る
 - [ ] 実機: 別 workspace のエージェントを選んでも workspace を跨いでフォーカスが移る
 - [ ] 実機: herdr 以外の ghostty ウィンドウで Cmd+A が全選択でなくなることを許容できるか確認する（ghostty にアプリ別バインドが無いため上書きは全ウィンドウに及ぶ）
