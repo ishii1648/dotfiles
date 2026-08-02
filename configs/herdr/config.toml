@@ -105,6 +105,10 @@ reload_config = "prefix+r"
 [ui]
 sidebar_width = 26
 copy_on_select = true
+# tmux の new-window は名前を聞かず番号(base-index)を自動採番するだけ。herdr は既定で
+# 確認プロンプトが出るため無効化する。ラベル未指定時は tab の連番がそのまま label に
+# なることを `herdr tab list` で実機確認済み（number: 1 → label: "1"）。
+prompt_new_tab_name = false
 # エージェント状態をペイン境界にも表示する（tmux-sidebar の @pane_role 表示の代替）
 show_agent_labels_on_pane_borders = true
 # tmux-sidebar は session を見出し、window を子行にした階層表示（docs/spec.md）。
