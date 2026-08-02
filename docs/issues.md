@@ -1118,6 +1118,20 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `scripts/setup-manifest.yml` の herdr コンポーネントに `~/.local/bin/herdr-new-workspace` の symlink が定義されている
 - [x] `herdr config check` が `config: ok` を返す
 
+**追加の受け入れ条件（popup が一瞬で消える不具合の修正）**:
+
+実機で「popup が一瞬で消える」「選択しても workspace が増えない」が発生。ログから原因を 2 つ特定した。
+(1) popup の cwd は `[terminal] new_cwd = "follow"` で呼び出し元ペインを継承するため、dotfiles 以外の repo で押すと aqua が cwd の `aqua.yaml` を探して `fzf: command is not found` で失敗する。旧コードは fzf の非0終了を `|| exit 0` で一括に握り潰していたため無言で閉じていた。
+(2) 既存 workspace の判定が「任意のペインの cwd 一致」だったため、別 repo の workspace 内に当該 repo のペインが 1 つあるだけで既存扱いになり、focus するだけで新規作成されなかった。
+
+- [x] dotfiles 以外の repo を cwd とするペインから Cmd+Shift+S を押しても fzf が起動する（`AQUA_GLOBAL_CONFIG` を明示して cwd 非依存で解決する。`env -i` + zeitreise の cwd で、未設定なら `command is not found`・設定すれば `fzf 0.68.0` を返すことを実測）
+- [x] fzf が起動失敗（exit が 0/1/130 以外）したときは popup を閉じずにエラーを表示し、fzf の stderr がログに残る（無効オプションで exit 2 を起こし、`unknown option` がログに残り入力待ちになることを確認）
+- [x] 選んだ repo と同じ label の workspace が無ければ、他の workspace が当該 repo のペインを持っていても新しい workspace を作る（herdr をモックし、zeitreise の workspace に dotfiles ペインがある状態で dotfiles を選ぶと `workspace create --cwd .../dotfiles --label dotfiles --focus` が呼ばれることを確認）
+- [x] 選んだ repo と同じ label の workspace が既にあれば、二重に作らずそれにフォーカスする（同上の方法で zeitreise 選択時に `workspace focus wH` を確認）
+- [x] `ghq list -p` の末尾が linked worktree でも選択結果が `pipefail` で捨てられない（旧実装は exit 1・`if` 包みの新実装は exit 0 を確認）
+- [x] popup 起動時に tty / TERM / cwd がログに記録され、消えた場合でも原因を追える（実機ログに `invoked pid=... tty=/dev/ttys010 term=xterm-256color cwd=...` を確認）
+- [ ] 実機: dotfiles 以外の repo のペインから Cmd+Shift+S を押して popup が消えずに一覧が出る
+
 ### ADR-078: SSH 接続中は herdr のタブラベルを接続先ホストにする
 
 **コンポーネント**: fish / herdr | **ADR**: [ADR-078](adr/078-ssh-tab-label.md)

@@ -49,9 +49,10 @@ herdr には `new_worktree`（`prefix+shift+g`）が既にあり、`herdr worktr
 
 - **バインド先は `prefix+p`（小文字）**: herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない。従来の `super+shift+s=text:\x00S` は herdr 側で `prefix+s` と等価に扱われ、`new_workspace`（`prefix+shift+s`）ではなく `workspace_picker` が開いていた（close_workspace / close_tab で先に判明していた同種の問題）。ghostty から到達させるアクションは `prefix+<小文字>` に限る必要があるため、未使用の `prefix+p`（picker）を割り当て、ghostty 側を `\x00p` に変更する。
 - **一覧は default worktree のみ**: `ghq list -p` は `<repo>@<branch>` 形式の linked worktree も列挙し、実測 175 件中 162 件がそれだった。ピッカーで選びたいのはメインのチェックアウトなので、`.git` がディレクトリのものだけを残す（linked worktree の `.git` は `gitdir: ...` を書いたファイル）。全件に `git` を起動する判定より速く、実測 40ms で 13 件に絞れる。worktree を開く用途は herdr の `open_worktree`（`prefix+shift+o`）が担う。
-- **既存 workspace の判定は「pane の cwd の完全一致」**: `herdr api snapshot` の `panes[].cwd` が選択した repo パスと一致する workspace を既存とみなす。前方一致（配下を含む）にすると worktree（`.claude/worktrees/*` 等）で作業中のペインまで拾ってしまい、repo ルートの workspace を新規に作りたいケースを潰すため、完全一致に限定する。
-- **PATH の明示補強**: popup のコマンドは herdr サーバから起動されるため、ログインシェル（fish）の PATH と一致する保証がない。スクリプト先頭で aqua（`fzf`）と homebrew（`ghq`）の bin ディレクトリを PATH に前置する。
+- **既存 workspace の判定は workspace の label**: `herdr api snapshot` の `workspaces[].label` が選択した repo の basename と一致するものを既存とみなす。当初は `panes[].cwd` の完全一致で見ていたが、**別 repo の workspace 内にその repo を開いたペインが 1 つでもあると既存扱いになり**、「選んでも workspace が増えない」状態になった（実測: zeitreise の workspace に dotfiles のペインが 1 つあり、dotfiles を選ぶたびにそこへ focus していた）。workspace 自体は cwd を持たない（`herdr api snapshot` / `herdr workspace get` のどちらも label・tab 情報のみ）ため、`--label <basename>` で作っている以上 label が唯一の同一性の手掛かりになる。別 org の同名 repo は区別できないが、その場合も既存の workspace へ飛ぶだけで実害は小さい。
+- **PATH と `AQUA_GLOBAL_CONFIG` の明示補強**: popup のコマンドは herdr サーバから起動されるため、ログインシェル（fish）の PATH / 環境変数と一致する保証がない。スクリプト先頭で aqua（`fzf`）と homebrew（`ghq`）の bin ディレクトリを PATH に前置する。加えて aqua の bin は proxy なので、実体の解決には設定ファイルが要る。popup の cwd は `[terminal] new_cwd = "follow"` で呼び出し元ペインを継承するため、`AQUA_GLOBAL_CONFIG` が渡っていないと **dotfiles 以外の repo で押したときだけ** aqua がその repo の `aqua.yaml` を探し、`fzf: command is not found` で落ちる。fish の `conf.d/env.fish` と同じグローバル設定をスクリプト側でも明示する。
 - **エラー時はキー入力待ちで止める**: popup はコマンド終了と同時に閉じるため、失敗メッセージが一瞬で消える。`open-pr.sh` と同じくログにも残しつつ、popup 上では任意キー待ちで表示を保持する。
+- **fzf の終了コードはキャンセルと異常を区別する**: `|| exit 0` で一括に握り潰すと、起動失敗（上記の aqua の件など）まで「Esc でキャンセルした」と同じ扱いになり、popup が無言で一瞬閉じるだけで手掛かりが残らない。1（マッチなし）と 130（Esc / Ctrl+C）だけをキャンセルとして扱い、それ以外は fzf の stderr をログに落として上記の入力待ちで表示する。popup 起動時の tty / TERM / cwd もログに記録し、消えた場合に追跡できるようにする。
 
 ## 変更が必要なファイル
 

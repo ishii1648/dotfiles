@@ -13,6 +13,12 @@ set -euo pipefail
 # fzf は aqua、ghq は homebrew 管理なので明示的に前置する。
 export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
+# aqua の bin は proxy なので、実体の解決には設定ファイルが要る。popup の cwd は
+# [terminal] new_cwd = "follow" で呼び出し元ペインを継承するため、dotfiles 以外の repo で
+# 押すと aqua がその repo の aqua.yaml を探し、fzf が `command is not found` で落ちる。
+# fish の conf.d と同じグローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
+export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
+
 HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/new-workspace.log"
 
@@ -30,6 +36,10 @@ die() {
     exit 1
 }
 
+# popup が「一瞬で消える」ときに何も手掛かりが残らないのを防ぐ。起動できたことと
+# 実行環境（TTY の有無・TERM）をまず記録しておく。fzf は TTY と terminfo が要る。
+log "invoked pid=$$ tty=$(tty 2>&1) term=${TERM:-unset} cwd=$PWD"
+
 for cmd in ghq fzf jq "$HERDR_BIN"; do
     command -v "$cmd" >/dev/null 2>&1 || die "$cmd が見つかりません (PATH=$PATH)"
 done
@@ -39,25 +49,46 @@ done
 # ピッカーに出したいのは default worktree（メインのチェックアウト）だけなので絞り込む。
 # 判定は `.git` の種類: default worktree ではディレクトリ、linked worktree では
 # `gitdir: ...` を書いたファイルになる。全件に git を起動するより速い。
+# `[ -d ] && printf` を末尾に置くと while の終了ステータスが最後の 1 件の判定結果になり、
+# 最後が linked worktree だと関数が exit 1 → pipefail で選択結果まで捨てられる。if で包む。
 list_default_worktrees() {
     ghq list -p | while IFS= read -r repo; do
-        [ -d "$repo/.git" ] && printf '%s\n' "$repo"
+        if [ -d "$repo/.git" ]; then
+            printf '%s\n' "$repo"
+        fi
     done
 }
 
-# fzf のキャンセル（Esc / Ctrl+C）は exit 130 等になるので、その場合は何もせず閉じる。
-selected=$(list_default_worktrees | fzf --prompt='repo> ' --reverse --height=100% --border=none) || exit 0
+# fzf の終了コードを `|| exit 0` で一括に握り潰すと、起動失敗（TTY なし・terminfo 不在など）
+# まで「キャンセル」と同じ扱いになり、popup が無言で一瞬で閉じるだけになる。
+# 1（マッチなし）と 130（Esc / Ctrl+C）だけをキャンセルとして扱い、それ以外は原因を残す。
+set +e
+selected=$(list_default_worktrees | fzf --prompt='repo> ' --reverse --height=100% --border=none 2>>"$LOG_FILE")
+fzf_status=$?
+set -e
+case "$fzf_status" in
+    0) ;;
+    1 | 130)
+        log "fzf cancelled (exit=$fzf_status)"
+        exit 0
+        ;;
+    *) die "fzf が異常終了しました (exit=$fzf_status)。詳細は $LOG_FILE" ;;
+esac
+
 [ -n "$selected" ] || exit 0
 
 label=$(basename "$selected")
 
 # --- 既存 workspace があれば focus する ---
-# 判定は pane の cwd の完全一致。前方一致にすると worktree（.claude/worktrees/* 等）で
-# 作業中のペインまで拾い、repo ルートの workspace を新規に作れなくなる（ADR-077）。
+# 判定は workspace の label（= 作成時に渡した basename）。以前はペインの cwd 一致で見ていたが、
+# 別 repo の workspace 内でその repo を開いたペインが 1 つでもあると既存扱いになり、
+# 「選んでも workspace が増えない」状態になった（実測: zeitreise の workspace に dotfiles の
+# ペインが 1 つあり、dotfiles を選ぶと毎回そこへ focus していた）。workspace の snapshot は
+# cwd を持たない（`herdr workspace get` も label / tab 情報のみ）ため label が唯一の手掛かり。
 existing=$("$HERDR_BIN" api snapshot 2>/dev/null |
-    jq -r --arg dir "$selected" '
-        .result.snapshot.panes
-        | map(select(.cwd == $dir))
+    jq -r --arg label "$label" '
+        .result.snapshot.workspaces
+        | map(select(.label == $label))
         | .[0].workspace_id // empty
     ' 2>/dev/null) || existing=""
 
