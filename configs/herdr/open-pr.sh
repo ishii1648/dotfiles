@@ -16,6 +16,15 @@
 #   - ログ: delivery 設定に依存せず必ず残る。失敗時の切り分けはこちらを見る。
 set -euo pipefail
 
+# herdr サーバから起動されるため、PATH はログインシェル（fish）のものと一致する保証がない。
+# gh は aqua 管理なので明示的に前置する（ADR-077/079 の new-workspace.sh / agent-picker.sh と同型）。
+export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# aqua の bin は proxy なので、実体の解決には設定ファイルが要る。$cwd は呼び出し元ペインの
+# cwd（statusline キャッシュが無い repo だと gh pr view フォールバックに落ちる）で、
+# dotfiles 以外だと aqua がその repo の aqua.yaml を探し `command is not found` で落ちる。
+# fish の conf.d と同じグローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
+export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
+
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/open-pr.log"
 
 log() {
