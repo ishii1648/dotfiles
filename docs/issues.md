@@ -1272,4 +1272,4 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `configs/fish/setup.sh` が `configs/claude/setup.sh` と同じパターン（`~/Library/LaunchAgents` へコピー、`launchctl load`、`--dry-run` での存在チェック）で launchd agent を導入する
 - [x] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する（未インストール状態で `✗ MISSING` と正しい Fix ヒントを実機で確認）
 - [x] 実機: ユーザーに 927 件の削除候補が存在することを確認したうえで `scripts/setup.sh --profile full` を実行して launchd agent を実際にインストールし、`launchctl list | grep com.user.worktree-auto-cleanup` でロードされていることを確認した（インストール時に `configs/fish/scripts/worktree-auto-cleanup.sh` に実行属性が付いていない不具合を発見・修正。`~/.local/bin/worktree-auto-cleanup` 経由で plist と同じ `bash -lc` 呼び出しが正常動作することも確認）
-- [ ] 実機: 初回の実運用実行（launchd の `StartCalendarInterval` による起動）で実際に対象が削除されることを確認する（隔離テストリポジトリでの `--force` 削除・`branch -D` 動作は確認済みだが、launchd 経由の実運用実行はまだ発生していない）
+- [x] 実機: ユーザーの許可を得て初回の実運用実行を行った。plist と同じ呼び出し形式（`bash -lc '$HOME/.local/bin/worktree-auto-cleanup'`、既定 72h）で手動起動し、`checked=931, removed=924, skipped_locked=1` で失敗ログなしに完了。実行前後で空き容量が増加したことを `df` で確認（計測開始が実行途中だったため正確な総回収量は不明だが、チェックポイント以降だけで 128Gi→149Gi の +21Gi を確認）。launchd の `StartCalendarInterval` による自動起動そのもの（次回は翌4:00）はまだ未検証
