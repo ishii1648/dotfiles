@@ -71,17 +71,6 @@
           }
         ]
       }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Skill",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/skill-call-counter.sh"
-          }
-        ]
-      }
     ]
   },
   "statusLine": {
