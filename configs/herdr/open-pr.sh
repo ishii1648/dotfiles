@@ -20,7 +20,9 @@ set -euo pipefail
 
 # herdr サーバから起動されるため、PATH はログインシェル（fish）のものと一致する保証がない。
 # fzf / gh は aqua 管理なので明示的に前置する（ADR-077/079 の new-workspace.sh / agent-picker.sh と同型）。
-export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# herdr 本体は公式 install script が $HOME/.local/bin に置く（configs/herdr/setup.sh）。popup の
+# PATH には含まれないため（実測: `herdr: command not found`）ここでも前置する。
+export PATH="$HOME/.local/bin:$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 # aqua の bin は proxy なので、実体の解決には設定ファイルが要る。gh pr view フォールバックは
 # 呼び出し元ペインの cwd で走るため、dotfiles 以外の repo でも aqua が解決できるよう
 # グローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
@@ -30,6 +32,11 @@ export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqu
 # 別バージョンで固定していると、そちらが優先解決されてしまう。AQUA_CONFIG で
 # dotfiles の aqua.yaml 1 本に固定し、cwd 方向の探索自体を無効化する。
 export AQUA_CONFIG="${AQUA_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
+
+# herdr は [[keys.command]] 実行時に自分自身の実体パスを HERDR_BIN_PATH で渡す。PATH 解決より
+# こちらを優先する（agent-picker.sh / new-workspace.sh と同型）。素の `herdr` を直接呼んでいた
+# 旧実装は PATH に $HOME/.local/bin が無いため command not found で全滅していた。
+HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/open-pr.log"
 
@@ -54,7 +61,18 @@ die() {
     exit 1
 }
 
-command -v fzf >/dev/null 2>&1 || die "fzf が見つかりません (PATH=$PATH)"
+# set -e で落ちたときも popup はそのまま閉じるだけで手掛かりが残らない（実測: herdr が
+# 見つからないまま候補ゼロで終わったケースを事後に追えなかった）。中断点を必ず記録する。
+trap 'log "aborted rc=$? line=$LINENO cmd=$BASH_COMMAND"' ERR
+
+# popup が「一瞬で消える」ときの手掛かりを残す（agent-picker.sh / new-workspace.sh と同型）。
+log "invoked pid=$$ tty=$(tty 2>&1) term=${TERM:-unset} cwd=$PWD"
+
+# herdr は必須。無いとスクロールバックのスクレイプが丸ごと空振りし、候補ゼロの
+# 「PR/URL が見つかりません」に化けて原因が見えなくなる（旧実装の実障害）。
+for cmd in fzf "$HERDR_BIN"; do
+    command -v "$cmd" >/dev/null 2>&1 || die "$cmd が見つかりません (PATH=$PATH)"
+done
 
 # --- 呼び出し元 pane を特定 ---
 # popup 自身も一つの pane なので、`herdr pane current --current` は「ポップアップ
@@ -67,7 +85,7 @@ pane_id="${HERDR_ACTIVE_PANE_ID:-}"
 
 foreground_cwd=""
 pane_cwd=""
-if pane_json=$(herdr pane get "$pane_id" 2>/dev/null); then
+if pane_json=$("$HERDR_BIN" pane get "$pane_id" 2>/dev/null); then
     pane_fields=$(
         printf '%s' "$pane_json" | python3 -c '
 import json, sys
@@ -108,7 +126,7 @@ if [[ ${#candidates[@]} -eq 0 ]]; then
     done
 fi
 
-scrollback=$(herdr pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
+scrollback=$("$HERDR_BIN" pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
 if [[ -n "$scrollback" ]]; then
     while IFS= read -r url; do
         [[ -n "$url" ]] && candidates+=("  $url")
@@ -119,6 +137,7 @@ if [[ -n "$scrollback" ]]; then
     )
 fi
 
+log "candidates=${#candidates[@]} (pane_id=$pane_id)"
 [[ ${#candidates[@]} -gt 0 ]] || notice "PR/URL が見つかりません（pane_id=$pane_id）"
 
 # 表示行の末尾フィールド（URL）で重複除去。先に追加したもの（pane キャッシュ由来）を優先する。
@@ -138,6 +157,8 @@ items=$(
 # fzf の終了コードは 1（候補なし）/ 130（Esc・Ctrl+C）だけをキャンセルとして扱う。
 # `|| exit 0` で一括に握り潰すと起動失敗まで「キャンセル」になり、popup が無言で閉じる
 # （configs/herdr/new-workspace.sh の教訓、ADR-077）。
+# fzf のキャンセル（130）は正常系なので ERR trap の「aborted」を出さない。
+trap - ERR
 set +e
 selected=$(printf '%s\n' "$items" | fzf \
     --ansi \
@@ -146,6 +167,7 @@ selected=$(printf '%s\n' "$items" | fzf \
     --reverse --height=100% --border=none 2>>"$LOG_FILE")
 fzf_status=$?
 set -e
+trap 'log "aborted rc=$? line=$LINENO cmd=$BASH_COMMAND"' ERR
 case "$fzf_status" in
     0) ;;
     1 | 130)
@@ -154,7 +176,10 @@ case "$fzf_status" in
         ;;
     *) die "fzf が異常終了しました (exit=$fzf_status)。詳細は $LOG_FILE" ;;
 esac
-[[ -n "$selected" ]] || exit 0
+if [[ -z "$selected" ]]; then
+    log "fzf returned empty selection"
+    exit 0
+fi
 
 # --- 開く ---
 if command -v open >/dev/null 2>&1; then
