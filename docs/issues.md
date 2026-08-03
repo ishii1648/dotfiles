@@ -1290,7 +1290,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 
 **受け入れ条件**:
 
-- [x] 認証が通っている環境で Step 6 が `✓ SSH connection to GitHub OK` を表示する（実機: `SETUP_*` 環境変数を与えて `configs/git/setup-github-ssh.sh` を直接実行し確認。`scripts/setup.sh` 経由の確認は worktree 内で実行すると symlink 先が worktree に張り替わるため、master 取り込み後に main worktree で行う）
+- [x] 認証が通っている環境で Step 6 が `✓ SSH connection to GitHub OK` を表示する（実機: まず `SETUP_*` 環境変数を与えて `configs/git/setup-github-ssh.sh` を直接実行して確認。`scripts/setup.sh` 経由の確認は worktree 内で実行すると symlink 先が worktree に張り替わるため master 取り込み後に main worktree で実施し、`Result: All OK (15)` とともに Step 6 が OK になることを確認済み）
 - [x] 認証が通らない環境（鍵未登録・鍵なし）では従来どおり WARN を表示する（`git@github.com: Permission denied (publickey).` を吐いて exit 255 する ssh スタブを PATH 先頭に置いて確認）
 - [x] `set -o pipefail` を無効化せず（他ステップの失敗検出を弱めず）に修正する（14行目の `set -uo pipefail` は変更せず、コマンド置換 + `|| true` で ssh の終了コードだけを局所的に無害化）
 - [x] 接続テストの失敗がスクリプトの終了コードに影響しない（ssh スタブでの失敗ケース実行時も終了コード 0 を確認）
