@@ -60,8 +60,21 @@ def nix_symlinks():
     return pairs
 
 
+def is_local_fish_function(name):
+    """.gitignore 済みの端末固有 fish 関数か（ADR-012 / ADR-020）。
+
+    setup.sh は実ディレクトリを glob するのでこれらも symlink するが、flake source は
+    git tracked のみを含むため Nix 側には現れない。dotfiles が管理する共通設定ではない
+    ので、parity の比較対象からは両側とも外す。
+    """
+    return name.startswith("__") or name in LOCAL_FISH_FUNCTIONS
+
+
 def setup_symlinks():
-    """setup-manifest.yml（full profile）と configs/*/setup.sh の symlink を再現する。"""
+    """setup-manifest.yml（full profile）と configs/*/setup.sh の symlink を再現する。
+
+    戻り値は (pairs, local_only) で、local_only は比較対象から外した端末固有 fish 関数。
+    """
     with open(os.path.join(ROOT, "scripts", "setup-manifest.yml")) as f:
         manifest = yaml.safe_load(f)
 
@@ -76,8 +89,12 @@ def setup_symlinks():
         "fzf.fish", "herdr-ssh-tab.fish", "path.fish", "ssh-agent.fish",
     ]:
         pairs[f".config/fish/conf.d/{name}"] = f"configs/fish/conf.d/{name}"
+    local_only = []
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/fish/functions/*.fish"))):
         name = os.path.basename(path)
+        if is_local_fish_function(name):
+            local_only.append(name)
+            continue
         pairs[f".config/fish/functions/{name}"] = f"configs/fish/functions/{name}"
     for name in ["config.fish", "fish_plugins"]:
         pairs[f".config/fish/{name}"] = f"configs/fish/{name}"
@@ -87,12 +104,12 @@ def setup_symlinks():
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/claude/skills/*/"))):
         name = os.path.basename(path.rstrip("/"))
         pairs[f".claude/skills/{name}"] = f"configs/claude/skills/{name}"
-    return pairs
+    return pairs, local_only
 
 
 def main():
     nix = nix_symlinks()
-    sh = setup_symlinks()
+    sh, local_only = setup_symlinks()
 
     mismatch = {k: (sh[k], nix[k]) for k in sh if k in nix and sh[k] != nix[k]}
     only_sh = {k: v for k, v in sh.items() if k not in nix}
@@ -116,6 +133,8 @@ def main():
             print(f"  excluded by design: {k}  # {INTENTIONAL_NIX_EXCLUDES[k]}")
         for k in sorted(set(nix) & set(MIGRATED_TO_NIX)):
             print(f"  migrated to nix: {k}  # {MIGRATED_TO_NIX[k]}")
+        for name in sorted(local_only):
+            print(f"  local only (setup.sh のみが張る): configs/fish/functions/{name}")
 
     if failed:
         return 1
