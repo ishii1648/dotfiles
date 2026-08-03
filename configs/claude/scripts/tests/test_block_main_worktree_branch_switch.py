@@ -113,6 +113,70 @@ class TestExtractGitSwitchInvocations(unittest.TestCase):
             result, [("switch", "feature/foo", os.path.join(self.cwd, "a", "b"))]
         )
 
+    def test_cd_updates_effective_cwd_without_dash_c(self):
+        cmd = "cd /some/absolute/path && git switch feature/foo"
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(result, [("switch", "feature/foo", "/some/absolute/path")])
+
+    def test_cd_relative_path_resolved_against_previous_cwd(self):
+        cmd = "cd sub/dir && git switch feature/foo"
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(
+            result, [("switch", "feature/foo", os.path.join(self.cwd, "sub/dir"))]
+        )
+
+    def test_chained_cd_accumulates(self):
+        cmd = "cd a && cd b && git switch feature/foo"
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(
+            result, [("switch", "feature/foo", os.path.join(self.cwd, "a", "b"))]
+        )
+
+    def test_cd_then_relative_dash_c_resolves_against_post_cd_cwd(self):
+        cmd = "cd /some/absolute/path && git -C rel switch feature/foo"
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(
+            result, [("switch", "feature/foo", "/some/absolute/path/rel")]
+        )
+
+    def test_dash_c_does_not_leak_into_running_cwd(self):
+        # -C は shell builtin ではないので、後続コマンドの実効 cwd には影響しない
+        cmd = "git -C /elsewhere status && git switch feature/foo"
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(result, [("switch", "feature/foo", self.cwd)])
+
+    def test_heredoc_body_text_is_not_parsed_as_shell(self):
+        # commit メッセージ内で cd/git switch を「文章として」説明していても
+        # 実コマンドとして誤検知してはいけない（本ファイル自身のコミットで再現した回帰）。
+        cmd = (
+            "git commit -m \"$(cat <<'EOF'\n"
+            "fix: cd /main && git switch bar のような回避を防いだ\n"
+            "EOF\n"
+            ")\""
+        )
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(result, [])
+
+    def test_heredoc_body_with_double_quote_delimiter(self):
+        cmd = (
+            'git commit -m "$(cat <<"EOF"\n'
+            "cd /repo && git switch other\n"
+            "EOF\n"
+            ')"'
+        )
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(result, [])
+
+    def test_real_switch_after_heredoc_is_still_detected(self):
+        cmd = (
+            "git commit -m \"$(cat <<'EOF'\n"
+            "cd /main && git switch bar\n"
+            "EOF\n"
+            ")\" && git switch feature/foo"
+        )
+        result = list(extract_git_switch_invocations(cmd, self.cwd))
+        self.assertEqual(result, [("switch", "feature/foo", self.cwd)])
+
 
 class TestGitWorktreeIntegration(unittest.TestCase):
     """is_main_worktree / default_branch / -C 経路のテスト（実 git リポジトリを使用）。"""
@@ -172,6 +236,24 @@ class TestGitWorktreeIntegration(unittest.TestCase):
 
     def test_switch_to_default_branch_in_main_worktree_is_not_blocked(self):
         cmd = "git switch main"
+        self.assertFalse(_would_be_blocked(cmd, self.repo))
+
+    def test_cd_to_main_worktree_without_dash_c_cannot_bypass_block(self):
+        # -C を使わず cd だけで main worktree に移動して switch しても検知されなければならない。
+        unrelated = os.path.join(self.tmp.name, "unrelated")
+        os.makedirs(unrelated)
+        cmd = f"cd {self.repo} && git switch feature/x"
+        self.assertTrue(_would_be_blocked(cmd, unrelated))
+
+    def test_cd_then_relative_dash_c_to_main_worktree_cannot_bypass_block(self):
+        # cd で main worktree の親に移動し、相対 -C で main worktree を指す回避も検知する。
+        unrelated = os.path.join(self.tmp.name, "unrelated")
+        os.makedirs(unrelated)
+        cmd = f"cd {self.tmp.name} && git -C repo switch feature/x"
+        self.assertTrue(_would_be_blocked(cmd, unrelated))
+
+    def test_cd_to_linked_worktree_is_not_falsely_blocked(self):
+        cmd = f"cd {self.linked} && git switch main"
         self.assertFalse(_would_be_blocked(cmd, self.repo))
 
 

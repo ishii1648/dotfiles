@@ -28,7 +28,10 @@ sre-hub リポジトリで作業中、main worktree（`/Users/sho-ishii/ghq/gith
 - **default branch 解決**: `git symbolic-ref refs/remotes/origin/HEAD` → 失敗時 `git config init.defaultBranch` → 最終フォールバック `main`
 - **検出**: コマンド文字列を `&&`/`||`/`;`/`|` で分割し、各セグメントで `git switch`/`git checkout` の呼び出しを検出。ターゲットのブランチ名を抽出し、default branch と不一致なら `hookSpecificOutput.permissionDecision: "deny"` を返す
 - **誤検知対策**: `git checkout <ref> -- <path>` のようなファイル復元系は `--` 検出で除外。`git checkout <path>`（曖昧系）は対象パスが cwd 上に実在すればファイル復元とみなし除外する
-- **`-C <path>` の解決**（Codex stop-review 指摘を受けて追加。初版は cwd 固定で判定していた）: セグメントごとに `-C` を解析し、そのセグメントの「実効ディレクトリ」を求めたうえで main worktree 判定・default branch 解決を行う。`-C` は git 本来の挙動どおり直前の実効ディレクトリに対して相対解決し、複数回指定にも対応する。これにより (a) main worktree の外から `git -C <main worktree> switch ...` を打つ回避経路と (b) main worktree の中から `git -C <linked worktree> switch ...` を打つ正当な操作の誤ブロックの両方を防ぐ
+- **`-C <path>` の解決**（Codex stop-review 指摘 1 を受けて追加。初版は cwd 固定で判定していた）: セグメントごとに `-C` を解析し、そのセグメントの「実効ディレクトリ」を求めたうえで main worktree 判定・default branch 解決を行う。`-C` は git 本来の挙動どおり直前の実効ディレクトリに対して相対解決し、複数回指定にも対応する。これにより (a) main worktree の外から `git -C <main worktree> switch ...` を打つ回避経路と (b) main worktree の中から `git -C <linked worktree> switch ...` を打つ正当な操作の誤ブロックの両方を防ぐ
+- **`cd` の追跡**（Codex stop-review 指摘 2 を受けて追加。上記 `-C` 対応だけでは `cd <dir> && git switch ...`（`-C` すら不要な回避）や `cd <dir> && git -C <相対パス> switch ...`（`-C` の相対解決基点がずれる回避）を検知できなかった）: コマンドをセグメントに分割したあと、左から順に走査しながら `running_cwd` を疑似シェルとして追跡する。`cd <path>` セグメントは `running_cwd` を更新し（相対パスは直前の `running_cwd` に対して解決、`cd` 単独は `~`）、以降の `git`/`-C` はすべてこの更新後の `running_cwd` を基点に解決する。`-C` は git 本来の挙動どおりその 1 回の呼び出しにしか効かないため `running_cwd` 自体は更新しない（`cd` との非対称性を明示的にテストで担保）
+- `hook_input` の `cwd` フィールド（Claude Code が追跡するセッション実際の cwd）があればそれを起点にし、無ければ hook プロセス自身の `os.getcwd()` にフォールバックする
+- **heredoc 本文の除外**（自己回帰: 本 ADR 自体の commit メッセージが `cd /main && git switch bar` という説明文を含んでいたため、`git commit -m "$(cat <<'EOF' ... EOF)"` の heredoc 本文がそのまま `&&`/`cd`/`git switch` として誤検知された）: セグメント分割の前に heredoc（`<<DELIM` 〜 `DELIM` 行）の本文を丸ごとスキップする前処理を追加した。heredoc は shell 構文ではなく任意のテキストなので、本文中に `cd`/`git switch` という**文字列**が現れても実行されるコマンドではない
 - **fail-open**: パース不能・git 実行失敗・非 git リポジトリなど例外時は常に許可（既存 hook スクリプト群と同じ設計思想）
 - `permission_mode` による skip は行わない。`defaultMode: "auto"` では通常の permission プロンプトが出ないため、まさにこの hook の deny が唯一の歯止めになる
 
@@ -46,6 +49,7 @@ sre-hub リポジトリで作業中、main worktree（`/Users/sho-ishii/ghq/gith
 - `git switch -`（直前ブランチへの復帰）は現状検出対象外
 - `git config alias.sw switch` のような git alias 経由の呼び出しは `switch`/`checkout` という subcommand 名の一致でしか検出しないため素通りする（fail-open の許容範囲として受容）
 - `--git-dir`/`--work-tree` は個別の実効ディレクトリ解決は行わず global flag としてスキップのみ行う（`-C` ほど一般的な用法ではないため優先度を下げた）
+- `pushd`/`popd`・サブシェル `( cd x && git switch y )`・`$(cd x && pwd)` のようなコマンド置換内の `cd` は追跡対象外（`cd`/`git`/`-C` のみを疑似シェルとして追跡しており、bash の完全な構文解析はしていない）
 
 ### 変更が必要なファイル
 

@@ -1215,5 +1215,12 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `git -C <main worktree> switch <branch>`（cwd が main worktree の外）で回避できない（Codex stop-review 指摘。統合テストで確認）
 - [x] `git -C <linked worktree> switch <branch>`（cwd が main worktree）を誤ってブロックしない（Codex stop-review 指摘。統合テストで確認）
 - [x] `-C` が複数回指定された場合も直前の実効ディレクトリに対して相対解決される
-- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（23/23、文字列パース 15 件 + 実 git worktree 統合テスト 8 件）
+- [x] `cd <main worktree> && git switch <branch>`（-C を使わない cd 単独の回避）で回避できない（Codex stop-review 指摘 2。統合テストで確認）
+- [x] `cd <dir> && git -C <相対パス> switch <branch>`（cd 後の相対 -C 基点ズレを突く回避）で回避できない（同上）
+- [x] `cd <linked worktree> && git switch <branch>` は誤ってブロックしない
+- [x] `-C` は git 本来の挙動どおり単発の呼び出しにしか効かず、`cd` のように後続コマンドの実効 cwd を書き換えない
+- [x] `hook_input.cwd`（Claude Code が追跡するセッション cwd）があれば優先し、無ければ `os.getcwd()` にフォールバックする
+- [x] `git commit -m "$(cat <<'EOF' ... EOF)"` の heredoc 本文に `cd`/`git switch` という**説明文字列**が含まれても実コマンドとして誤検知しない（自己回帰: 本 ADR 自身の commit で誤検知して発覚。統合テストで確認）
+- [x] heredoc 終了後に続く本物の `git switch` は引き続き検出される
+- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（34/34）
 - [ ] 実機: sre-hub の main worktree で `git switch <feature-branch>` を実行し、拒否メッセージとともに EnterWorktree の利用を促されることを確認する

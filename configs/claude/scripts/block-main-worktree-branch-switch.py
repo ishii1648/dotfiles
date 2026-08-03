@@ -54,8 +54,41 @@ def default_branch(cwd: str) -> str:
     return configured or "main"
 
 
+_HEREDOC_START_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
+
+
+def _strip_heredocs(command: str) -> str:
+    """Blank out heredoc bodies so their literal text isn't parsed as shell.
+
+    A heredoc body (e.g. the commit message inside
+    `git commit -m "$(cat <<'EOF' ... EOF)"`) is arbitrary text, not shell
+    syntax — but it can easily *contain* strings like `cd foo && git switch
+    bar` (this file's own commit messages do). Without this, such text gets
+    split on `&&`/`;`/`|` and misparsed as a real invocation.
+    """
+    lines = command.split("\n")
+    out = []
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        match = _HEREDOC_START_RE.search(line)
+        if not match:
+            out.append(line)
+            i += 1
+            continue
+        delimiter = match.group(2)
+        out.append(line)
+        i += 1
+        while i < len(lines) and lines[i].strip() != delimiter:
+            i += 1
+        if i < len(lines):
+            out.append(lines[i])
+            i += 1
+    return "\n".join(out)
+
+
 def _split_on_shell_separators(command: str):
-    return re.split(r"&&|\|\||[;|]", command)
+    return re.split(r"&&|\|\||[;|]", _strip_heredocs(command))
 
 
 def _switch_target(subcmd: str, rest: list, cwd: str) -> str:
@@ -82,25 +115,32 @@ def _switch_target(subcmd: str, rest: list, cwd: str) -> str:
     return target
 
 
-def _resolve_dash_c(path: str, cwd: str) -> str:
-    """Resolve a single `-C <path>` value against the current effective cwd.
-
-    git resolves repeated -C flags relative to the previous one, so callers
-    should thread the returned value back in as `cwd` for the next -C.
-    """
-    return path if os.path.isabs(path) else os.path.join(cwd, path)
+def _resolve_path(path: str, base: str) -> str:
+    """Resolve `path` (absolute, `~`, or relative) against `base`."""
+    expanded = os.path.expanduser(path)
+    return expanded if os.path.isabs(expanded) else os.path.join(base, expanded)
 
 
 def extract_git_switch_invocations(command: str, cwd: str):
     """Yield (subcmd, target, effective_cwd) for each branch-changing switch/checkout.
 
-    `-C <path>` is resolved per invocation so the main-worktree/default-branch
-    check runs against the directory git would actually operate on, not the
-    process cwd. Without this, `git -C <other-repo> switch ...` would either
-    bypass detection (cwd outside the main worktree) or false-positive block
-    a legitimate linked-worktree operation (cwd is the main worktree but -C
-    points elsewhere).
+    Segments are walked left to right with a `running_cwd` that mimics what a
+    real shell's cwd would be at that point, so `cd <dir> && git switch ...`
+    (no `-C` at all) is tracked instead of silently using the hook's original
+    process cwd. `-C <path>` only affects that single git invocation's
+    effective cwd (resolved against `running_cwd`, matching git's own
+    behavior) and never mutates `running_cwd` itself, since -C is not a shell
+    builtin.
+
+    Without this, either of these would go undetected:
+      - `cd <main worktree> && git switch <branch>` (bypass: no -C involved)
+      - `cd <dir> && git -C <relative path> switch <branch>` (bypass: -C
+        resolved against the hook's original cwd instead of the post-cd one)
+    And this would false-positive block a legitimate linked-worktree op:
+      - `git -C <linked worktree> switch <branch>` run from the main worktree
     """
+    running_cwd = cwd
+
     for segment in _split_on_shell_separators(command):
         segment = segment.strip()
         if not segment:
@@ -109,16 +149,24 @@ def extract_git_switch_invocations(command: str, cwd: str):
             words = shlex.split(segment)
         except ValueError:
             continue
-        if not words or words[0] != "git":
+        if not words:
             continue
 
-        effective_cwd = cwd
+        if words[0] == "cd":
+            target = words[1] if len(words) > 1 else "~"
+            running_cwd = _resolve_path(target, running_cwd)
+            continue
+
+        if words[0] != "git":
+            continue
+
+        effective_cwd = running_cwd
         i = 1
         while i < len(words) and words[i].startswith("-"):
             if words[i] == "-C":
                 if i + 1 >= len(words):
                     break
-                effective_cwd = _resolve_dash_c(words[i + 1], effective_cwd)
+                effective_cwd = _resolve_path(words[i + 1], effective_cwd)
                 i += 2
                 continue
             if words[i] in ("-c", "--git-dir", "--work-tree"):
@@ -132,9 +180,9 @@ def extract_git_switch_invocations(command: str, cwd: str):
         if subcmd not in ("switch", "checkout"):
             continue
 
-        target = _switch_target(subcmd, words[i + 1 :], effective_cwd)
-        if target:
-            yield subcmd, target, effective_cwd
+        target_branch = _switch_target(subcmd, words[i + 1 :], effective_cwd)
+        if target_branch:
+            yield subcmd, target_branch, effective_cwd
 
 
 def main():
@@ -149,7 +197,9 @@ def main():
         if not command:
             sys.exit(0)
 
-        cwd = os.getcwd()
+        # hook_input の cwd（Claude Code が追跡する実際のセッション cwd）を優先し、
+        # 無ければ hook プロセス自身の cwd にフォールバックする
+        cwd = hook_input.get("cwd") or os.getcwd()
 
         for subcmd, target, effective_cwd in extract_git_switch_invocations(command, cwd):
             if not is_main_worktree(effective_cwd):
