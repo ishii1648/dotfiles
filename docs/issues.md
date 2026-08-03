@@ -1266,5 +1266,5 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `configs/fish/launchd/com.user.worktree-auto-cleanup.plist` が1日1回スクリプトを起動する launchd agent として定義されている（`StartCalendarInterval` Hour=4/Minute=0。`plutil -lint` で XML 妥当性を確認）
 - [x] `configs/fish/setup.sh` が `configs/claude/setup.sh` と同じパターン（`~/Library/LaunchAgents` へコピー、`launchctl load`、`--dry-run` での存在チェック）で launchd agent を導入する
 - [x] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する（未インストール状態で `✗ MISSING` と正しい Fix ヒントを実機で確認）
-- [ ] 実機: `configs/fish/setup.sh`（非 dry-run）を実行して launchd agent を実際にインストールし、`launchctl list | grep com.user.worktree-auto-cleanup` でロードされていることを確認する（ユーザーの ghq 管理下に 72h 超の worktree が 927 件存在することが判明したため、実際に有効化する前にユーザーの確認を取る）
-- [ ] 実機: 初回の実運用実行（launchd 起動または手動実行）で実際に対象が削除されることを確認する
+- [x] 実機: ユーザーに 927 件の削除候補が存在することを確認したうえで `scripts/setup.sh --profile full` を実行して launchd agent を実際にインストールし、`launchctl list | grep com.user.worktree-auto-cleanup` でロードされていることを確認した（インストール時に `configs/fish/scripts/worktree-auto-cleanup.sh` に実行属性が付いていない不具合を発見・修正。`~/.local/bin/worktree-auto-cleanup` 経由で plist と同じ `bash -lc` 呼び出しが正常動作することも確認）
+- [ ] 実機: 初回の実運用実行（launchd の `StartCalendarInterval` による起動）で実際に対象が削除されることを確認する（隔離テストリポジトリでの `--force` 削除・`branch -D` 動作は確認済みだが、launchd 経由の実運用実行はまだ発生していない）
