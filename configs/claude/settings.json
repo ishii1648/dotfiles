@@ -41,6 +41,16 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/scripts/block-main-worktree-branch-switch.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
         "hooks": [
           {
             "type": "command",

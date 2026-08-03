@@ -69,6 +69,7 @@
 | ✔ | ○ | claude | statusline のコンテキスト使用率表示が model.id の "[1m]" サフィックスに依存し新モデルで誤動作する — Claude Code 本体が stdin で渡す context_window フィールドを優先する必要がある | [ADR-073](adr/073-statusline-context-window-over-model-id-suffix.md) |
 | ✔ | ○ | claude | statusline の org 名表示が `<email>'s Organization` で冗長かつ Fable 専用の週間利用率が確認できない — org 表示を廃止し、`oauth/usage` API の `limits[]` から Fable のスコープ制限を抽出して表示する | [ADR-074](adr/074-statusline-org-shorten-and-fable-usage.md) |
 | ✔ | ○ | tmux / claude | `tmux-sidebar new` の popup 起動(`prefix+S`)は tmux popup 内で入力補完まわりが不便 — bind を `new-window` に変更する | [ADR-075](adr/075-picker-launch-popup-to-new-window.md) |
+| ✔ | ○ | claude | main worktree が意図せず非 default branch のまま放置され `git switch <default>` が別 worktree との衝突で失敗する — main worktree での `git switch`/`checkout` を PreToolUse hook でブロックし EnterWorktree 経由の分離を強制する | [ADR-081](adr/081-block-main-worktree-branch-switch.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1194,3 +1195,22 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] 行を削除する方式は採らない（ghostty 組み込みの `super+g=navigate_search:next` が復活することを `ghostty +list-keybinds --default` で確認したため、`ignore` を明示する）
 - [x] herdr 側の `goto = "prefix+g"` は残っており、物理 Ctrl+Space → g で navigate mode を開ける（`configs/herdr/config.toml` は変更なし）
 - [ ] 実機: ghostty の設定リロード（Cmd+R）後、Cmd+G を押しても何も起きない（navigate mode も ghostty の検索も発火しない）
+
+---
+
+### ADR-081: main worktree での git switch/checkout を PreToolUse hook でブロックする
+
+**コンポーネント**: claude | **ADR**: [ADR-081](adr/081-block-main-worktree-branch-switch.md)
+
+**受け入れ条件**:
+
+- [x] main worktree（`git rev-parse --git-dir` == `--git-common-dir`）で `git switch <default 以外>` / `git checkout <default 以外>` を実行しようとすると `permissionDecision: "deny"` で拒否される（実 git リポジトリ + 実 worktree を使った統合テストで確認）
+- [x] リンク worktree（main worktree ではない）では同じコマンドがブロックされない（統合テストで確認）
+- [x] default branch（`git switch <default>` 自身）への切替はブロックされない
+- [x] `git checkout <ref> -- <path>` / 既存パスに一致する `git checkout <path>` はファイル復元とみなしブロック対象外になる
+- [x] `git switch -c <newbranch>` / `git checkout -b <newbranch>` のような新規ブランチ作成も同様にブロックされる
+- [x] `&&`/`||`/`;`/`|` で連結されたコマンド内の `git switch`/`checkout` も検出される
+- [x] git 以外のコマンド・読み取り専用 git コマンド（`status` 等）・`switch -`（直前ブランチ復帰）は誤検知しない
+- [x] パース不能・非 git リポジトリ・git 実行失敗時は常に許可する（fail-open）
+- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（16/16、文字列パース 12 件 + 実 git worktree 統合テスト 4 件）
+- [ ] 実機: sre-hub の main worktree で `git switch <feature-branch>` を実行し、拒否メッセージとともに EnterWorktree の利用を促されることを確認する
