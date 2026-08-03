@@ -2,6 +2,9 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# symlink_points_to / is_nix_managed_link（ADR-084: home-manager の二段リンク対応）
+source "$SCRIPT_DIR/../../scripts/lib/path.sh"
+
 # オプション解析
 DRY_RUN=false
 while [[ $# -gt 0 ]]; do
@@ -36,9 +39,15 @@ check_or_link() {
     if [[ -L "$target" ]]; then
         local actual
         actual=$(readlink "$target")
-        if [[ "${actual%/}" == "${source%/}" ]]; then
+        # home-manager が張った二段リンク（/nix/store 経由）も最終解決先が一致すれば OK
+        # とみなす（ADR-084 Phase A の共存条件。scripts/lib/path.sh 参照）
+        if symlink_points_to "$target" "$source"; then
             if $DRY_RUN; then
-                echo -e "  ${GREEN}${display_name}${NC}\t✓ OK"
+                if is_nix_managed_link "$target"; then
+                    echo -e "  ${GREEN}${display_name}${NC}\t✓ OK (nix)"
+                else
+                    echo -e "  ${GREEN}${display_name}${NC}\t✓ OK"
+                fi
             fi
             ok_count=$((ok_count + 1))
             return

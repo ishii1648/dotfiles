@@ -114,6 +114,43 @@ fish 本体を Phase A に含めないのは、Homebrew 版と Nix 版が PATH �
 | `README.md` | dotfiles | Nix レイヤの導入手順と責務分担 |
 | `docs/reference.md` | dotfiles | ツールスタック表に Nix を追加、setup.sh との責務分担を記載 |
 
+## Spike の知見（Phase A 実施時に判明したこと）
+
+検証環境: Determinate Nix 3.21.9 (Nix 2.34.8) / nixpkgs 104240a (2026-08-03) / home-manager bf9ce9f (2026-07-31) / aarch64-darwin。
+
+**1. eval とビルドは通る**
+
+`nix eval` および `nix build .#homeConfigurations."sho@darwin".activationPackage` が成功し、`ghostty-bin` も含めて解決できた。生成物を検査した結果、意図通り以下が確認できた。
+
+- `mkOutOfStoreSymlink` の指す先が dotfiles clone の実体になっている
+- `fish_variables` / `settings.json` / `hooks.json` / `.gitconfig` は生成物に含まれない
+- `.claude/skills/` 配下は `codex-sync` のみ
+
+**2. `mkOutOfStoreSymlink` は二段リンクになる（要注意）**
+
+生成されるリンクは一段ではなく二段である。
+
+```
+~/.claude/CLAUDE.md -> /nix/store/<hash>-hm_CLAUDE.md -> <dotfiles>/configs/claude/CLAUDE.md
+```
+
+`setup.sh` の `ensure_symlink`（および `configs/fish/setup.sh` の `check_or_link`、`configs/claude/setup.sh` の skills 判定）は `readlink` の**一段目だけ**を文字列比較していたため、これを `WRONG TARGET` と誤判定する。dry-run では失敗として数え、**非 dry-run では `rm` して張り替えるため Nix 側の symlink を破壊する**。共存の前提が成立しない。
+
+対処として `scripts/lib/path.sh` を追加し、`symlink_points_to`（一段目の文字列一致に加え、最終解決先の一致も許容する）で判定するよう 3 箇所を変更した。`realpath` は macOS (`/bin/realpath`) と Docker の Linux 双方に存在し、無い場合は python3 にフォールバックする。
+
+**3. home-manager は「同じ実体を指す既存ファイル」をスキップする（Phase A の限界）**
+
+`activate` の dry-run では、対象 53 本すべてが以下のように報告された。
+
+```
+Existing file '/Users/sho/.config/nvim' is in the way of '.../home-manager-files/.config/nvim',
+will be skipped since they are the same
+```
+
+home-manager の `checkLinkTargets` は、既存ファイルが同じ実体に解決される場合、**張り替えずにスキップする**。したがって Phase A の状態で `switch` しても既存の symlink は一切変化せず、**Nix 側の宣言は実効を持たない**。
+
+この帰結は Phase A の位置づけを変える。Phase A で検証できるのは「Nix と `setup.sh` が相互に破壊しないこと」までであり、**Nix レイヤが実際に symlink を張る経路の検証は、`setup-manifest.yml` 側の該当エントリを削除する Phase B とセットでなければ行えない**。裏を返せば、Phase A の switch は symlink に関して無害（変更ゼロ）であり、リスクは `home.packages` が PATH に入ることだけに限定される。
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-084 セクション）
