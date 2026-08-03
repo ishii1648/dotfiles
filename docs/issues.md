@@ -1343,7 +1343,7 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと。ローカルに bats 未インストールのため、同テストが行う `bash -n` / `fish -n` と `nix/check-parity.py --quiet` を直接実行して確認済み。bats 自体は CI の Docker e2e で実行される）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
-- [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）→ ADR-085 完了後に評価する
+- [x] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）→ **実測の結果、総行数は 1,612 → 2,092 行（+480 行 / +30%）に増加し、この基準は満たさなかった**。remote/linux profile が Nix 非対象のため `setup.sh` の symlink コードを一行も削除できず、profile 分岐（+約 60 行）と多段リンク判定（`scripts/lib/path.sh` 49 行）が上乗せされた。詳細と判断材料は [ADR-085 の「移行後の評価」](adr/085-nix-phase-b-manifest-migration.md) を参照
 
 ---
 
@@ -1369,14 +1369,24 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 
 **受け入れ条件**:
 
-- [ ] `setup-manifest.yml` の `symlinks` が `nix_managed: true` を受け付け、full profile ではスキップされる
-- [ ] remote / linux profile では `nix_managed: true` のエントリも従来どおり symlink が張られる（Nix はこれらの profile を対象にしないため）
-- [ ] `scripts/setup.sh` が component setup スクリプトに `SETUP_PROFILE` を渡し、`configs/fish/setup.sh` / `configs/claude/setup.sh` がそれを読んで挙動を切り替える
-- [ ] `configs/fish/setup.sh` の functions ループが `git ls-files` で tracked/untracked を判定し、**tracked（dotfiles 管理）は full でスキップ・untracked（端末固有）は profile を問わず張る**
-- [ ] 実機（main worktree, full profile）で `~/.config/fish/functions/claude.fish` / `fable.fish` が引き続き symlink として存在する（ADR-084 知見 7 の課題 2 が解消されていること）
-- [ ] `nix/check-parity.py` が `nix_managed: true` を正として突合する（`MIGRATED_TO_NIX` のハードコードを廃止し、manifest とコードの整合を機械的に保つ）
-- [ ] full profile で `bash scripts/setup.sh --dry-run` が `All OK` になる（Nix が張ったリンクを setup.sh が二重に主張しない）
-- [ ] full profile で `bash scripts/setup.sh`（非 dry-run）を実行しても Nix 管理の symlink が張り替えられない
-- [ ] `--profile linux` の Docker e2e が PASS する（remote/linux では従来どおり全 symlink が張られること）
-- [ ] `tests/static-analysis.bats` 相当の構文チェック（`bash -n` / `fish -n`）が PASS する
-- [ ] 撤退可能性: home-manager を削除しても、`--profile remote` 相当の経路で全 symlink を復元できる手段が残っている
+- [x] `setup-manifest.yml` の `symlinks` が `nix_managed: true` を受け付け、full profile ではスキップされる
+- [x] remote / linux profile では `nix_managed: true` のエントリも従来どおり symlink が張られる（Nix はこれらの profile を対象にしないため）
+- [x] `scripts/setup.sh` が component setup スクリプトに `SETUP_PROFILE` を渡し、`configs/fish/setup.sh` / `configs/claude/setup.sh` がそれを読んで挙動を切り替える
+- [x] `configs/fish/setup.sh` の functions ループが `git ls-files` で tracked/untracked を判定し、**tracked（dotfiles 管理）は full でスキップ・untracked（端末固有）は profile を問わず張る**
+- [x] 実機（main worktree, full profile）で `~/.config/fish/functions/claude.fish` / `fable.fish` が引き続き symlink として存在する（ADR-084 知見 7 の課題 2 が解消されていること）
+- [x] `nix/check-parity.py` が `nix_managed: true` を正として突合する（`MIGRATED_TO_NIX` のハードコードを廃止し、manifest とコードの整合を機械的に保つ）
+- [x] full profile で `bash scripts/setup.sh --dry-run` が `All OK` になる（Nix が張ったリンクを setup.sh が二重に主張しない）
+- [x] full profile で `bash scripts/setup.sh`（非 dry-run）を実行しても Nix 管理の symlink が張り替えられない
+- [x] `--profile linux` の Docker e2e が PASS する（remote/linux では従来どおり全 symlink が張られること）
+- [x] `tests/static-analysis.bats` 相当の構文チェック（`bash -n` / `fish -n`）が PASS する
+- [x] 撤退可能性: home-manager を削除しても、`--profile remote` 相当の経路で全 symlink を復元できる手段が残っている（Docker e2e がクリーンな Linux 環境で `--profile linux` から全 symlink を新規作成（`created/fixed: 14`）していることをもって証明とする。`nix_managed: true` は Nix 非対象 profile では無視されるため、home-manager を失っても remote/linux 経路で復元できる）
+
+**検証サマリ（実機 macOS + Docker）**:
+
+| 検証 | 結果 |
+|---|---|
+| full profile `--dry-run`（main worktree） | `All OK (2 checked)` — symlink 13 件はスキップ、copies のみ検査 |
+| full profile 非 dry-run（main worktree） | `All OK (created/fixed: 0)` — Nix 管理 **57 本すべて readlink 差分なし** |
+| 端末固有 fish 関数 | `claude.fish` / `fable.fish` が dotfiles 実体への symlink として存続 |
+| Docker e2e（linux profile） | setup 完走 `created/fixed: 14` → dry-run `All OK (14 checked)` → bats **12/12 ok** |
+| `nix/check-parity.py` | 53/53 整合、端末固有 2 件は local only として報告 |
