@@ -26,8 +26,11 @@
 
 ## 並列セッションの衝突回避（worktree isolation）
 同一リポジトリで複数の Claude Code セッションが同時に走る前提で動くこと。ファイルの上書き合戦・`git` index lock の競合・自動コミットによる他セッション変更の巻き込みを防ぐ。
+
+**不変条件（worktree と branch は 1:1）**: default worktree（main worktree、`git rev-parse --git-dir` と `--git-common-dir` が一致するディレクトリ）は常に default branch のままにする。linked worktree もそれぞれ作成時の branch に固定し、途中で別 branch へ switch/checkout しない（PreToolUse hook `block-worktree-branch-switch.py` が両方を機械的に強制する。ADR-081/082 参照）。branch を変えたくなったら既存 worktree 内で切り替えるのではなく、必ず新しい worktree を作る。
+
 - **ファイルを編集するタスクは、最初の Edit/Write の前に `EnterWorktree` で専用 worktree に移る。** 読み取り・調査のみのタスクは分離不要。
-- ただし **main worktree の未コミット変更を引き継ぐ場合は分離しない**。`EnterWorktree` は既定で `origin/<default-branch>` から新ブランチを切るため（`worktree.baseRef: head` で HEAD 基点に変更可）、未コミット変更は持ち込まれず取り残される。引き継ぎたいなら先に commit / stash する。
+- **main worktree の未コミット変更を新しい worktree に持ち込みたい場合は、先に `git stash push` してから `EnterWorktree` し、新 worktree 内で `git stash pop` する**（stash はリポジトリ共有でどの worktree からも参照できる）。「持ち込みたいから分離しない」という判断はしない — 上記の 1:1 不変条件を壊すため。
 - 既に worktree 内にいる場合（`git rev-parse --git-dir` と `--git-common-dir` が一致しない）は再分離しない。
 - サブエージェントに並列でファイルを書かせる場合は `Agent(isolation: "worktree")` を使う。
 - main worktree で作業せざるを得ない場合、**ステージはパスを明示する**。`git add -A` / `git commit -a` は他セッションの編集中ファイルを巻き込む。

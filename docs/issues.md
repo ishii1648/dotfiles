@@ -70,6 +70,7 @@
 | ✔ | ○ | claude | statusline の org 名表示が `<email>'s Organization` で冗長かつ Fable 専用の週間利用率が確認できない — org 表示を廃止し、`oauth/usage` API の `limits[]` から Fable のスコープ制限を抽出して表示する | [ADR-074](adr/074-statusline-org-shorten-and-fable-usage.md) |
 | ✔ | ○ | tmux / claude | `tmux-sidebar new` の popup 起動(`prefix+S`)は tmux popup 内で入力補完まわりが不便 — bind を `new-window` に変更する | [ADR-075](adr/075-picker-launch-popup-to-new-window.md) |
 | ✔ | ○ | claude | main worktree が意図せず非 default branch のまま放置され `git switch <default>` が別 worktree との衝突で失敗する — main worktree での `git switch`/`checkout` を PreToolUse hook でブロックし EnterWorktree 経由の分離を強制する | [ADR-081](adr/081-block-main-worktree-branch-switch.md) |
+| ✔ | ○ | claude | default worktree が非 default branch のまま放置される事故が別リポジトリでも再発し、linked worktree は自由に branch を切替できるため worktree:branch の 1:1 対応が保証されていなかった — hook を全 worktree に拡張し、CLAUDE.md の「main worktree に居座る」例外を stash ベースの手順に置き換える | [ADR-082](adr/082-pin-every-worktree-to-single-branch.md) |
 | - | ○ | fish | worktree の削除が手動ルーティン（`gw_rm`）任せで放置され際限なく溜まる（ADR-081 で実測 224 個） — 作成から72時間超の worktree をマージ状態問わず launchd で無条件自動削除する | [ADR-083](adr/083-worktree-launchd-auto-cleanup.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
@@ -1207,7 +1208,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 **受け入れ条件**:
 
 - [x] main worktree（`git rev-parse --git-dir` == `--git-common-dir`）で `git switch <default 以外>` / `git checkout <default 以外>` を実行しようとすると `permissionDecision: "deny"` で拒否される（実 git リポジトリ + 実 worktree を使った統合テストで確認）
-- [x] リンク worktree（main worktree ではない）では同じコマンドがブロックされない（統合テストで確認）
+- [x] ~~リンク worktree（main worktree ではない）では同じコマンドがブロックされない~~ → ADR-082 でリンク worktree も自身の branch に固定する方向に反転（統合テストで確認。旧挙動は本 ADR 時点でのもの）
 - [x] default branch（`git switch <default>` 自身）への切替はブロックされない
 - [x] `git checkout <ref> -- <path>` / 既存パスに一致する `git checkout <path>` はファイル復元とみなしブロック対象外になる
 - [x] `git switch -c <newbranch>` / `git checkout -b <newbranch>` のような新規ブランチ作成も同様にブロックされる
@@ -1219,13 +1220,31 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `-C` が複数回指定された場合も直前の実効ディレクトリに対して相対解決される
 - [x] `cd <main worktree> && git switch <branch>`（-C を使わない cd 単独の回避）で回避できない（Codex stop-review 指摘 2。統合テストで確認）
 - [x] `cd <dir> && git -C <相対パス> switch <branch>`（cd 後の相対 -C 基点ズレを突く回避）で回避できない（同上）
-- [x] `cd <linked worktree> && git switch <branch>` は誤ってブロックしない
+- [x] ~~`cd <linked worktree> && git switch <branch>` は誤ってブロックしない~~ → ADR-082 で同上反転（自身の branch への no-op switch のみ誤ブロックしない）
 - [x] `-C` は git 本来の挙動どおり単発の呼び出しにしか効かず、`cd` のように後続コマンドの実効 cwd を書き換えない
 - [x] `hook_input.cwd`（Claude Code が追跡するセッション cwd）があれば優先し、無ければ `os.getcwd()` にフォールバックする
 - [x] `git commit -m "$(cat <<'EOF' ... EOF)"` の heredoc 本文に `cd`/`git switch` という**説明文字列**が含まれても実コマンドとして誤検知しない（自己回帰: 本 ADR 自身の commit で誤検知して発覚。統合テストで確認）
 - [x] heredoc 終了後に続く本物の `git switch` は引き続き検出される
-- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（34/34）
+- [x] `configs/claude/scripts/tests/test_block_worktree_branch_switch.py`（ADR-082 でリネーム。旧名 `test_block_main_worktree_branch_switch.py`）の全テストが PASS する（34/34）
 - [ ] 実機: sre-hub の main worktree で `git switch <feature-branch>` を実行し、拒否メッセージとともに EnterWorktree の利用を促されることを確認する
+
+### ADR-082: worktree と branch を 1:1 に固定し、linked worktree でも branch 切替をブロックする
+
+**コンポーネント**: claude | **ADR**: [ADR-082](adr/082-pin-every-worktree-to-single-branch.md)
+
+**受け入れ条件**:
+
+- [x] main worktree は引き続き default branch に固定され、default 以外への `git switch`/`checkout` は deny される（既存 ADR-081 の挙動を維持。統合テストで確認）
+- [x] linked worktree も「現在チェックアウトしている branch」に固定され、別 branch への `git switch`/`checkout`（default branch も含む）は deny される
+- [x] linked worktree で自身の現在 branch への switch（no-op）はブロックされない
+- [x] linked worktree での新規ブランチ作成（`git switch -c` / `git checkout -b`）も他 branch への逸脱としてブロックされる
+- [x] linked worktree が detached HEAD で現在ブランチを判定できない場合は fail-open で許可する
+- [x] `git -C <linked worktree> switch <branch>` / `cd <linked worktree> && git switch <branch>` など、main worktree 判定と同様の `-C`/`cd` 追跡経路でも linked worktree の固定 branch 判定が正しく適用される
+- [x] `configs/claude/scripts/block-worktree-branch-switch.py`（`block-main-worktree-branch-switch.py` からリネーム）・`configs/claude/settings.json` の hook パス・`configs/claude/scripts/tests/test_block_worktree_branch_switch.py` が一致して更新されている
+- [x] `configs/claude/scripts/tests/test_block_worktree_branch_switch.py` の全テストが PASS する（39/39）
+- [x] グローバル CLAUDE.md「並列セッションの衝突回避（worktree isolation）」に worktree:branch 1:1 の不変条件を明記する
+- [x] グローバル CLAUDE.md の「main worktree の未コミット変更を引き継ぐ場合は分離しない」という例外を削除し、`git stash push` → `EnterWorktree` → `git stash pop` の手順に置き換える（1:1 不変条件と矛盾する例外を残さない）
+- [ ] 実機: 既に branch がずれてしまっている worktree（例: sre-docs の default worktree）は本 hook では自動修復されないため、手動で default branch に戻す必要があることをユーザに確認済み
 
 ---
 

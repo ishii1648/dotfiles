@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for block-main-worktree-branch-switch.py (stdlib unittest, no external deps)."""
+"""Tests for block-worktree-branch-switch.py (stdlib unittest, no external deps)."""
 
 import importlib.util
 import os
@@ -9,17 +9,18 @@ import unittest
 
 # Load the module without triggering main()
 _spec = importlib.util.spec_from_file_location(
-    "block_main_worktree_branch_switch",
+    "block_worktree_branch_switch",
     os.path.join(
-        os.path.dirname(__file__), "..", "block-main-worktree-branch-switch.py"
+        os.path.dirname(__file__), "..", "block-worktree-branch-switch.py"
     ),
 )
 _mod = importlib.util.module_from_spec(_spec)
-_mod.__name__ = "block_main_worktree_branch_switch"
+_mod.__name__ = "block_worktree_branch_switch"
 _spec.loader.exec_module(_mod)
 
 is_main_worktree = _mod.is_main_worktree
 default_branch = _mod.default_branch
+current_branch = _mod.current_branch
 extract_git_switch_invocations = _mod.extract_git_switch_invocations
 
 
@@ -30,9 +31,13 @@ def _git(args, cwd):
 def _would_be_blocked(command, cwd):
     """Mirror main()'s decision logic for a given command/cwd, without stdin/stdout."""
     for subcmd, target, effective_cwd in extract_git_switch_invocations(command, cwd):
-        if not is_main_worktree(effective_cwd):
-            continue
-        if target != default_branch(effective_cwd):
+        if is_main_worktree(effective_cwd):
+            pinned = default_branch(effective_cwd)
+        else:
+            pinned = current_branch(effective_cwd)
+            if not pinned:
+                continue
+        if target != pinned:
             return True
     return False
 
@@ -220,23 +225,53 @@ class TestGitWorktreeIntegration(unittest.TestCase):
         cmd = f"git -C {self.repo} switch feature/x"
         self.assertTrue(_would_be_blocked(cmd, unrelated))
 
-    def test_dash_c_to_linked_worktree_is_not_falsely_blocked(self):
-        # cwd が main worktree でも、-C でリンク worktree を明示的に指定した
-        # switch は誤ってブロックされてはならない。
-        cmd = f"git -C {self.linked} switch main"
+    def test_dash_c_to_linked_worktree_own_branch_is_not_falsely_blocked(self):
+        # cwd が main worktree でも、-C でリンク worktree を明示的に指定して
+        # そのリンク worktree 自身の branch へ switch する（no-op）のは
+        # 誤ってブロックされてはならない。
+        cmd = f"git -C {self.linked} switch feature/x"
         self.assertFalse(_would_be_blocked(cmd, self.repo))
 
     def test_plain_switch_in_main_worktree_is_blocked(self):
         cmd = "git switch feature/x"
         self.assertTrue(_would_be_blocked(cmd, self.repo))
 
-    def test_plain_switch_in_linked_worktree_is_not_blocked(self):
-        cmd = "git switch main"
-        self.assertFalse(_would_be_blocked(cmd, self.linked))
-
     def test_switch_to_default_branch_in_main_worktree_is_not_blocked(self):
         cmd = "git switch main"
         self.assertFalse(_would_be_blocked(cmd, self.repo))
+
+    def test_switch_away_from_default_branch_in_linked_worktree_is_blocked(self):
+        # worktree:branch は 1:1 — linked worktree（feature/x 固定）から default branch へ
+        # 逃げる switch も、他の branch へ逃げる switch と同様にブロックされなければならない。
+        cmd = "git switch main"
+        self.assertTrue(_would_be_blocked(cmd, self.linked))
+
+    def test_switch_to_another_branch_in_linked_worktree_is_blocked(self):
+        _git(["branch", "feature/y"], self.repo)
+        cmd = "git switch feature/y"
+        self.assertTrue(_would_be_blocked(cmd, self.linked))
+
+    def test_switch_to_own_current_branch_in_linked_worktree_is_not_blocked(self):
+        # 自分自身の branch への no-op switch はブロック対象外。
+        cmd = "git switch feature/x"
+        self.assertFalse(_would_be_blocked(cmd, self.linked))
+
+    def test_checkout_new_branch_in_linked_worktree_is_blocked(self):
+        # linked worktree 内での新規ブランチ作成 (-b) も 1:1 を壊すためブロック対象。
+        cmd = "git checkout -b feature/new"
+        self.assertTrue(_would_be_blocked(cmd, self.linked))
+
+    def test_detached_head_in_linked_worktree_fails_open(self):
+        # 現在の branch を判定できない（detached HEAD）場合は fail-open で許可する。
+        _git(["checkout", "--detach", "HEAD"], self.linked)
+        cmd = "git switch main"
+        self.assertFalse(_would_be_blocked(cmd, self.linked))
+
+    def test_dash_c_to_linked_worktree_switching_branch_is_blocked(self):
+        # main worktree から -C でリンク worktree を指しても、リンク worktree 側の
+        # 固定 branch とは異なる switch はブロックされなければならない。
+        cmd = f"git -C {self.linked} switch main"
+        self.assertTrue(_would_be_blocked(cmd, self.repo))
 
     def test_cd_to_main_worktree_without_dash_c_cannot_bypass_block(self):
         # -C を使わず cd だけで main worktree に移動して switch しても検知されなければならない。
@@ -252,8 +287,8 @@ class TestGitWorktreeIntegration(unittest.TestCase):
         cmd = f"cd {self.tmp.name} && git -C repo switch feature/x"
         self.assertTrue(_would_be_blocked(cmd, unrelated))
 
-    def test_cd_to_linked_worktree_is_not_falsely_blocked(self):
-        cmd = f"cd {self.linked} && git switch main"
+    def test_cd_to_linked_worktree_own_branch_is_not_falsely_blocked(self):
+        cmd = f"cd {self.linked} && git switch feature/x"
         self.assertFalse(_would_be_blocked(cmd, self.repo))
 
 

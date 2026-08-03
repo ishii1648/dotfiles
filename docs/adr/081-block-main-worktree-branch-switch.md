@@ -1,7 +1,9 @@
 # ADR-081: main worktree での git switch/checkout を PreToolUse hook でブロックする
 
 ## ステータス
-採用済み
+採用済み（一部 ADR-082 で拡張）
+
+> 追記（ADR-082）: 本 ADR は main worktree のみを対象にしていたが、linked worktree では branch を自由に切替できてしまう（下記「受け入れ条件」2 項目目・issues.md 参照）ギャップが見つかり、ADR-082 で hook のスコープを全 worktree に拡張した。`block-main-worktree-branch-switch.py` は `block-worktree-branch-switch.py` にリネームされている。本 ADR が記録する main worktree 側の設計判断・懸念はそのまま有効。
 
 ## 関連 ADR
 - 依存: グローバル `~/.claude/CLAUDE.md`「並列セッションの衝突回避（worktree isolation）」— main worktree は常に default branch であるべき、というルールの拠り所

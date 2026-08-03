@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
-# ADR: 081
-# Purpose: main worktree での git switch/checkout による default branch からの離脱を PreToolUse でブロックし EnterWorktree 経由の分離を強制する
-"""PreToolUse hook: block branch-changing git switch/checkout in the main worktree.
+# ADR: 082
+# Purpose: worktree と branch の 1:1 対応を守るため、main worktree の default branch からの離脱と、linked worktree の branch 切替を PreToolUse でブロックする
+"""PreToolUse hook: keep every worktree pinned to a single branch.
 
 The main worktree (where `git rev-parse --git-dir` and `--git-common-dir`
 resolve to the same path) is expected to always stay on the repository's
-default branch; feature work should move to a linked worktree via
-EnterWorktree instead. This hook blocks the `git switch`/`git checkout`
-footgun that leaves the main worktree stranded on a non-default branch,
-so the rule doesn't rely on the model remembering to call EnterWorktree
-first.
+default branch. Every linked worktree is expected to stay on whatever
+branch it currently has checked out — branch changes always happen by
+creating a new worktree (EnterWorktree), never by switching branches
+inside an existing one. This hook blocks the `git switch`/`git checkout`
+footgun that would otherwise let either kind of worktree drift onto a
+different branch, so the rule doesn't rely on the model remembering to
+call EnterWorktree first.
 
 Fail-open design: any exception (not a git repo, git not found, ambiguous
 parse, etc.) results in sys.exit(0) to fall back to normal behavior.
@@ -52,6 +54,11 @@ def default_branch(cwd: str) -> str:
         return ref.rsplit("/", 1)[-1]
     configured = _run_git(["config", "init.defaultBranch"], cwd)
     return configured or "main"
+
+
+def current_branch(cwd: str) -> str:
+    """Currently checked-out branch, or "" if detached/undeterminable (fail-open)."""
+    return _run_git(["branch", "--show-current"], cwd) or ""
 
 
 _HEREDOC_START_RE = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
@@ -202,25 +209,34 @@ def main():
         cwd = hook_input.get("cwd") or os.getcwd()
 
         for subcmd, target, effective_cwd in extract_git_switch_invocations(command, cwd):
-            if not is_main_worktree(effective_cwd):
+            if is_main_worktree(effective_cwd):
+                pinned = default_branch(effective_cwd)
+                kind = "main worktree"
+            else:
+                pinned = current_branch(effective_cwd)
+                if not pinned:
+                    # detached HEAD 等、現在の branch を判定できない場合は fail-open
+                    continue
+                kind = "linked worktree"
+
+            if target == pinned:
                 continue
 
-            default = default_branch(effective_cwd)
-            if target != default:
-                reason = (
-                    f"main worktree（{effective_cwd}）は {default} に固定してください。"
-                    "作業ブランチへの切替は EnterWorktree で専用 worktree を作ってから行ってください"
-                    f"（`git {subcmd} {target}` を main worktree で実行しようとしました）。"
-                )
-                output = {
-                    "hookSpecificOutput": {
-                        "hookEventName": "PreToolUse",
-                        "permissionDecision": "deny",
-                        "permissionDecisionReason": reason,
-                    }
+            reason = (
+                f"{kind}（{effective_cwd}）は {pinned} に固定してください。"
+                "別ブランチの作業は既存 worktree 内で切り替えず、"
+                "EnterWorktree で新しい worktree を作ってから行ってください"
+                f"（`git {subcmd} {target}` をこの worktree で実行しようとしました）。"
+            )
+            output = {
+                "hookSpecificOutput": {
+                    "hookEventName": "PreToolUse",
+                    "permissionDecision": "deny",
+                    "permissionDecisionReason": reason,
                 }
-                print(json.dumps(output, ensure_ascii=False))
-                sys.exit(0)
+            }
+            print(json.dumps(output, ensure_ascii=False))
+            sys.exit(0)
 
         sys.exit(0)
 
