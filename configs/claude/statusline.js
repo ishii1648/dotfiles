@@ -57,6 +57,20 @@ process.stdin.on('end', async () => {
       } else if (fs.existsSync(prCacheFile)) {
         fs.unlinkSync(prCacheFile);
       }
+      // herdr の prefix+u（herdr-open-pr）用: cwd 非依存の相関キー。
+      // herdr pane current --current の foreground_cwd は pane 内の foreground 子プロセスの
+      // cwd を返すため、Claude Code が spawn した MCP サーバー等の無関係な cwd を拾うことが
+      // 実測で確認された（例: aws-api-mcp の一時 workdir）。session_id はこのセッションが
+      // 存在する限り不変で pane 登録時の agent_session.value と一致するため、cwd 推定より
+      // 確実な相関キーになる。
+      if (data.session_id) {
+        const sessionCacheFile = `/tmp/gh-pr-session-${data.session_id}`;
+        if (prInfo) {
+          fs.writeFileSync(sessionCacheFile, `${prInfo.number} ${prInfo.url}`);
+        } else if (fs.existsSync(sessionCacheFile)) {
+          fs.unlinkSync(sessionCacheFile);
+        }
+      }
     } catch (e) {}
     const stdinRateLimits = parseStdinRateLimits(data.rate_limits);
     // Fable の週間利用率は stdin の rate_limits に含まれず oauth/usage API の

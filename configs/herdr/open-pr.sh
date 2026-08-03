@@ -60,14 +60,21 @@ md5_hex() {
     fi
 }
 
-# --- 起動元ペインの cwd を特定 ---
+# --- 起動元ペインの cwd / session_id を特定 ---
 # HERDR_ACTIVE_PANE_CWD は pane 登録時の cwd（workspace 作成時のベースディレクトリ）
 # であり、pane 内でシェルが worktree 等へ cd した後の実際の作業先（foreground_cwd）を
 # 反映しない。cwd と foreground_cwd が食い違うと、無関係なブランチ／PR を開いてしまう
 # （例: workspace 作成時は sre-hub 本体、その後 worktree に cd して作業した場合）。
-# そのため常に API を叩いて foreground_cwd を優先し、HERDR_ACTIVE_PANE_CWD は API が
+# そのため cwd 自体は API を叩いて foreground_cwd を優先し、HERDR_ACTIVE_PANE_CWD は API が
 # 失敗した場合のみのフォールバックとする。
+# ただし foreground_cwd も万能ではない: 実測で「pane 内の何らかの foreground 子プロセスの
+# cwd」を返すだけと判明しており、Claude Code が spawn した MCP サーバー等の無関係な cwd
+# （例: aws-api-mcp の一時 workdir）を拾うことがある。この場合 statusline 側のキャッシュ
+# キー（実際の作業ディレクトリの md5）と一致せず PR が見つからない。そのため session_id
+# （agent_session.value、Claude Code の session_id と一致する不変な相関キー）を優先して
+# 使い、cwd ベースの照合は次点のフォールバックにする。
 cwd=""
+session_id=""
 if pane_json=$(herdr pane current --current 2>/dev/null); then
     cwd=$(
         printf '%s' "$pane_json" | python3 -c '
@@ -79,35 +86,55 @@ except Exception:
 print(pane.get("foreground_cwd") or pane.get("cwd") or "")
 ' 2>/dev/null || true
     )
+    session_id=$(
+        printf '%s' "$pane_json" | python3 -c '
+import json, sys
+try:
+    pane = json.load(sys.stdin)["result"]["pane"]
+except Exception:
+    sys.exit(0)
+print((pane.get("agent_session") or {}).get("value") or "")
+' 2>/dev/null || true
+    )
 fi
 fallback_cwd="${HERDR_ACTIVE_PANE_CWD:-}"
 [[ -z "$cwd" ]] && cwd="$fallback_cwd"
 
-if [[ -z "$cwd" ]]; then
-    notify 'herdr-open-pr' 'ペインの cwd を特定できませんでした'
+if [[ -z "$cwd" && -z "$session_id" ]]; then
+    notify 'herdr-open-pr' 'ペインの cwd / session を特定できませんでした'
     exit 1
 fi
 
 # --- PR URL を解決 ---
-# 1) statusline のキャッシュ（表示中の PR と完全一致・ネットワーク不要）
-# 2) worktree 等で statusline 側の cwd がズレている場合に備えたもう一方の cwd
-# 3) 最後に gh へ直接問い合わせ
+# 1) session_id ベースのキャッシュ（cwd 推定の誤りに影響されない一次情報）
+# 2) statusline の cwd ベースのキャッシュ（表示中の PR と完全一致・ネットワーク不要）
+# 3) worktree 等で statusline 側の cwd がズレている場合に備えたもう一方の cwd
+# 4) 最後に gh へ直接問い合わせ
 pr_url=""
-for candidate in "$cwd" "$fallback_cwd"; do
-    [[ -z "$candidate" ]] && continue
-    cache_file="/tmp/gh-pr-$(md5_hex "$candidate")"
-    if [[ -f "$cache_file" ]]; then
-        pr_url=$(cut -d' ' -f2 <"$cache_file")
-        [[ -n "$pr_url" ]] && break
+if [[ -n "$session_id" ]]; then
+    session_cache_file="/tmp/gh-pr-session-${session_id}"
+    if [[ -f "$session_cache_file" ]]; then
+        pr_url=$(cut -d' ' -f2 <"$session_cache_file")
     fi
-done
+fi
 
 if [[ -z "$pr_url" ]]; then
+    for candidate in "$cwd" "$fallback_cwd"; do
+        [[ -z "$candidate" ]] && continue
+        cache_file="/tmp/gh-pr-$(md5_hex "$candidate")"
+        if [[ -f "$cache_file" ]]; then
+            pr_url=$(cut -d' ' -f2 <"$cache_file")
+            [[ -n "$pr_url" ]] && break
+        fi
+    done
+fi
+
+if [[ -z "$pr_url" && -n "$cwd" ]]; then
     pr_url=$(cd "$cwd" && gh pr view --json url -q .url 2>/dev/null || true)
 fi
 
 if [[ -z "$pr_url" ]]; then
-    notify 'herdr-open-pr' "PR が見つかりません: $cwd"
+    notify 'herdr-open-pr' "PR が見つかりません: cwd=$cwd session_id=${session_id:-<unset>}"
     exit 0
 fi
 
@@ -121,5 +148,5 @@ else
     exit 1
 fi
 
-log "open: $pr_url (cwd=$cwd, HERDR_ACTIVE_PANE_CWD=${HERDR_ACTIVE_PANE_CWD:-<unset>})"
+log "open: $pr_url (cwd=$cwd, session_id=${session_id:-<unset>}, HERDR_ACTIVE_PANE_CWD=${HERDR_ACTIVE_PANE_CWD:-<unset>})"
 "$opener" "$pr_url"
