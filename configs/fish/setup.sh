@@ -151,6 +151,43 @@ if [[ -n "$FISH_PATH" ]]; then
     fi
 fi
 
+# --- launchd agent（ADR-083: 72h 超 worktree の自動削除） ---
+PLIST_NAME="com.user.worktree-auto-cleanup.plist"
+PLIST_SRC="$SCRIPT_DIR/launchd/$PLIST_NAME"
+LAUNCH_AGENTS_DIR="$HOME/Library/LaunchAgents"
+PLIST_DEST="$LAUNCH_AGENTS_DIR/$PLIST_NAME"
+
+if [[ ! -f "$PLIST_SRC" ]]; then
+    if $DRY_RUN; then
+        echo -e "  ${YELLOW}launchd agent (worktree-auto-cleanup)${NC}\tSKIP (source not found: $PLIST_SRC)"
+    fi
+elif [[ "$(uname)" != "Darwin" ]]; then
+    if $DRY_RUN; then
+        echo -e "  ${YELLOW}launchd agent (worktree-auto-cleanup)${NC}\tSKIP (not macOS)"
+    fi
+else
+    if $DRY_RUN; then
+        if [[ -f "$PLIST_DEST" ]]; then
+            echo -e "  ${GREEN}launchd agent (worktree-auto-cleanup)${NC}\t✓ OK"
+            ok_count=$((ok_count + 1))
+        else
+            echo -e "  ${RED}launchd agent (worktree-auto-cleanup)${NC}\t✗ MISSING"
+            echo "    Fix: cp $PLIST_SRC $PLIST_DEST && launchctl load $PLIST_DEST"
+            fail_count=$((fail_count + 1))
+        fi
+    else
+        mkdir -p "$LAUNCH_AGENTS_DIR"
+        if [[ -f "$PLIST_DEST" ]]; then
+            cp "$PLIST_DEST" "${PLIST_DEST}.bk"
+        fi
+        cp "$PLIST_SRC" "$PLIST_DEST"
+        launchctl unload "$PLIST_DEST" >/dev/null 2>&1 || true
+        launchctl load "$PLIST_DEST"
+        echo "  launchd agent (worktree-auto-cleanup): installed ($PLIST_DEST)"
+        fix_count=$((fix_count + 1))
+    fi
+fi
+
 if $DRY_RUN; then
     total=$((ok_count + fail_count))
     if [[ $fail_count -eq 0 ]]; then

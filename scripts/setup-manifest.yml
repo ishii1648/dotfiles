@@ -40,6 +40,12 @@ profiles:
 components:
   fish:
     setup: configs/fish/setup.sh
+    symlinks:
+      # launchd agent（com.user.worktree-auto-cleanup）から呼ばれる（ADR-083）。
+      # plist に dotfiles clone の絶対パスを直書きすると端末ごとに壊れるため、
+      # herdr の *.sh 群（ADR-077/079）と同じく ~/.local/bin 経由の間接参照にする
+      - link: ~/.local/bin/worktree-auto-cleanup
+        target: configs/fish/scripts/worktree-auto-cleanup.sh
 
   nvim:
     symlinks:
