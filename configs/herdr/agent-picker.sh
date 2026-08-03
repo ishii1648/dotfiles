@@ -18,6 +18,12 @@ export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/b
 # [terminal] new_cwd = "follow" で呼び出し元ペインを継承するため、明示しないと dotfiles 以外の
 # repo で押したときにその repo の aqua.yaml を探して `command is not found` で落ちる（ADR-077）。
 export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
+# AQUA_GLOBAL_CONFIG だけでは cwd 非依存にならない: aqua は cwd から辿ったローカル aqua.yaml も
+# 探索してマージするため、呼び出し元 repo（例: sre-hub）が同名パッケージを別バージョンで固定して
+# いると、そちらが優先解決される（sre-hub の fzf@v0.56.3 は --no-input 未対応で
+# unknown option: --no-input → exit=2 で popup が落ちた）。AQUA_CONFIG で dotfiles の
+# aqua.yaml 1 本に固定し、cwd 方向の探索自体を無効化する。
+export AQUA_CONFIG="${AQUA_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
 
 HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/agent-picker.log"

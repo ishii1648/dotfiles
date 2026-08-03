@@ -18,6 +18,12 @@ export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/b
 # 押すと aqua がその repo の aqua.yaml を探し、fzf が `command is not found` で落ちる。
 # fish の conf.d と同じグローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
 export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
+# AQUA_GLOBAL_CONFIG だけでは cwd 非依存にならない: aqua は cwd から辿ったローカル aqua.yaml も
+# 探索してマージするため、呼び出し元 repo が同名パッケージ（fzf 等）を別バージョンで固定して
+# いると、そちらが優先解決されてしまう（agent-picker.sh で sre-hub の fzf@v0.56.3 が優先され
+# unknown option エラーになる実害を確認）。AQUA_CONFIG で dotfiles の aqua.yaml 1 本に固定し、
+# cwd 方向の探索自体を無効化する。
+export AQUA_CONFIG="${AQUA_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
 
 HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/new-workspace.log"

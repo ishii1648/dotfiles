@@ -1177,6 +1177,13 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [ ] 実機: 別 workspace のエージェントを選んでも workspace を跨いでフォーカスが移る
 - [ ] 実機: herdr 以外の ghostty ウィンドウで Cmd+A が全選択でなくなることを許容できるか確認する（ghostty にアプリ別バインドが無いため上書きは全ウィンドウに及ぶ）
 
+**追加の受け入れ条件（sre-hub 等ローカル aqua.yaml のバージョンに引っ張られて fzf が落ちる不具合の修正）**:
+
+実機で「`prefix+a` のたびに `unknown option: --no-input` で fzf が exit=2 になる」が sre-hub の cwd で頻発。`AQUA_GLOBAL_CONFIG` を明示していても、aqua は cwd から辿ったローカル `aqua.yaml` を探索してグローバル設定にマージするため、呼び出し元 repo（sre-hub）が同名パッケージ（`fzf@v0.56.3`。dotfiles 側は `fzf@v0.68.0`）を別バージョンで固定していると、そちらが優先解決される。v0.56.3 には `--no-input`（fzf 0.65 系で追加）が無く unknown option になる。ADR-077/079 の「`AQUA_GLOBAL_CONFIG` を明示すれば cwd 非依存になる」という前提はローカル aqua.yaml に同名パッケージが無い場合にしか成り立たなかった。
+
+- [x] `AQUA_CONFIG` で dotfiles の aqua.yaml 1 本を明示し、aqua のカレントディレクトリ探索（ローカル `aqua.yaml` のマージ）自体を無効化する（`agent-picker.sh` / `new-workspace.sh` / `open-pr.sh` の 3 スクリプトに適用。ADR-077/079 型は全て同じ脆弱性を持つため横展開）
+- [ ] 実機: sre-hub を cwd とするペインから Cmd+A を押しても fzf が `--no-input` を認識して popup が開く
+
 ### ADR-080: Cmd+G を空けて将来の割り当て用に確保する
 
 **コンポーネント**: ghostty / herdr | **ADR**: [ADR-080](adr/080-free-cmd-g-keybind.md)
