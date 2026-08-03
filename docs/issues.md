@@ -1331,9 +1331,12 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [x] `~/.config/fish/fish_variables` が Nix の管理対象に**含まれない**（fish の `set -U` が実行時に書き換えるため）。activate 後に `set -U` が成功することを確認した
 - [x] `~/.claude/settings.json` / `~/.codex/hooks.json` / `~/.gitconfig` が Nix の管理対象に**含まれない**（activate 後も settings.json / gitconfig は通常ファイル、hooks.json は dotfiles への一段 symlink のまま）
 - [x] `~/.claude/skills/` はディレクトリごとではなく dotfiles 由来の skill（codex-sync）のみが個別 symlink として張られ、Claude Code / プラグインが置いた他の skill が消えない（activate 後も 15 件すべて残存）
-- [ ] neovim / jq / ghostty-bin が `home.packages` 経由で入り、起動する（eval / build は成功済み。Homebrew 版との二重化を避けるため `home.packages` は一旦空にしてあり、PATH 投入は未実施）
-- [ ] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない（パッケージ未投入のため未検証）
-- [ ] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない（同上）
+- [x] `jq` が `home.packages` 経由で入り、PATH 上で解決される（macOS 標準 1.7.1-apple → Nix 1.8.2。`setup.sh --dry-run` は `All OK` のままでマニフェスト解析の互換性に問題なし）
+- [x] Nix profile の PATH 順位を実測した（`~/.nix-profile/bin` が **1 位**、aqua が 7 位、Homebrew が 19 位。Nix に入れたパッケージは aqua / Homebrew を無条件に上書きする。ADR-084 知見 8）
+- [x] `nix/check-parity.py` が Nix profile と aqua の同名コマンド衝突を検査する（両ディレクトリが揃っていない環境では自動スキップ。現状 `jq` は aqua 側に無く衝突なし）
+- [x] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない（Nix profile に GNU tools が入っていないことを確認）
+- [x] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない（PATH 衝突検査で機械的に担保）
+- [ ] neovim / ghostty-bin を `home.packages` に投入する（eval / build は成功済み。Homebrew 版・手動 .dmg との二重化の影響を評価してから）
 - [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと。ローカルに bats 未インストールのため、同テストが行う `bash -n` / `fish -n` と `nix/check-parity.py --quiet` を直接実行して確認済み。bats 自体は CI の Docker e2e で実行される）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する

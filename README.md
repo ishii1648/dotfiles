@@ -59,12 +59,17 @@ bash <端末固有リポジトリ>/setup.sh
 ```bash
 # 前提: Nix 本体のインストール（https://nixos.org/download / Determinate Systems installer）
 
-# 適用（-b hmbk: 既存 symlink をバックアップして退避）
-home-manager switch --flake .#sho@darwin -b hmbk
+# 初回（home-manager コマンドがまだ無い場合）
+nix run home-manager/master -- switch --flake .#sho@darwin -b hmbk
 
-# symlink 定義が setup.sh 側と一致しているかの検証
+# 2 回目以降（programs.home-manager.enable により ~/.nix-profile/bin に入る）
+home-manager switch --flake .#sho@darwin
+
+# symlink 定義が setup.sh 側と一致しているか、Nix と aqua でコマンド名が衝突していないかの検証
 python3 nix/check-parity.py
 ```
+
+> **注意**: Determinate Nix は `~/.nix-profile/bin` を **PATH の最先頭**に置く（aqua は 7 位、Homebrew は 19 位）。`home.packages` に入れたパッケージは aqua と Homebrew を無条件に上書きするため、**aqua が提供するコマンド名と衝突させないこと**。`nix/check-parity.py` が実機で検査する。
 
 責務分担:
 

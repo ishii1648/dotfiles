@@ -82,6 +82,8 @@ home-manager の既定（store へコピーして read-only symlink を張る）
 
 両者の責務が重ならないため、これは二重管理ではなく分業である。**Nix 導入は aqua 廃止を意味しない。**
 
+ただし責務の分離は宣言だけでは守れない。知見 8 の通り Nix の profile は PATH 上で aqua より前に入るため、**`home.packages` に入れるパッケージは aqua が提供するコマンド名と衝突させない**ことを併せて原則とし、`nix/check-parity.py` で機械的に検査する。
+
 **6. 段階導入と撤退可能性**
 
 | Phase | 内容 | 本 ADR のスコープ |
@@ -172,6 +174,27 @@ activate 後も `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fis
 Nix は darwin の full profile のみを対象とするため、`setup-manifest.yml` の `components` を消すと remote / linux profile で symlink が張られなくなる。`.vimrc` の先行移管では `profiles.full` から `vim` を外し、`components.vim` は remote / linux 用に残すことで回避した。`copies` には既に `profile:` フィールドがあるが `symlinks` には無いため、Phase B で全体を移管する際は **`symlinks` にも profile 出し分けを導入するか、full profile 用の manifest を分離する**必要がある。
 
 同じ問題が fish の関数にもある。`configs/fish/setup.sh` は実ディレクトリを glob するため `.gitignore` 済みの端末固有関数（`claude.fish` / `fable.fish` / `__*`）も symlink するが、flake source は git tracked のみを含むので Nix 側はこれらを張らない。**Phase B で `configs/fish/setup.sh` の symlink ループを削ると端末固有関数が張られなくなる**ため、ローカル関数だけを張るループを残す必要がある。`nix/check-parity.py` はこれらを「local only」として報告し、parity の比較対象からは両側とも除外する。
+
+**8. Nix の profile は PATH の最先頭に入る（棲み分け原則の前提が変わる）**
+
+`jq` を 1 つだけ `home.packages` に入れて activate し、fish のログインシェルで PATH を実測した結果は以下だった。
+
+| 順位 | パス |
+|---:|---|
+| 1 | `~/.nix-profile/bin` |
+| 2 | `/nix/var/nix/profiles/default/bin` |
+| 7 | `~/.local/share/aquaproj-aqua/bin`（aqua） |
+| 19 | `/opt/homebrew/bin`（Homebrew） |
+
+Determinate Nix のインストーラが PATH の**最先頭**に profile を差し込むため、**Nix に入れたパッケージは aqua と Homebrew の両方を無条件に上書きする**。実際 `jq` は macOS 標準の 1.7.1-apple から Nix の 1.8.2 に切り替わった（`setup.sh --dry-run` は `All OK` のままで、マニフェスト解析の互換性に問題はなかった）。
+
+これは設計案 A-5 の棲み分けにとって前提の変更である。「aqua がバージョンを固定する」という原則は、**同名のパッケージを Nix 側に入れた瞬間に破られる**（aqua で terraform 1.10.3 に固定していても、Nix に terraform を入れれば Nix 版が使われる）。棲み分けは宣言だけでは守れないため、次の制約を原則に加える。
+
+> **`home.packages` に入れるパッケージは、aqua が提供するコマンド名と衝突させない。**
+
+`nix/check-parity.py` に実機での衝突検査を追加し、`~/.nix-profile/bin` と `~/.local/share/aquaproj-aqua/bin` に同名のコマンドが存在する場合は失敗させる（両ディレクトリが揃っていない環境では自動的にスキップする）。
+
+なお Homebrew が 19 番目という順位は、Phase B で fish 本体を Nix に移す際には有利に働く（PATH 上は自動的に Nix 版が優先される）。ただし `chsh` に登録するパスは別途切り替えが必要である。
 
 ## 受け入れ条件
 
