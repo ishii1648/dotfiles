@@ -70,15 +70,37 @@ is_current() {
     grep -qE "^${1}: current" <<<"$2"
 }
 
+# status は hook スクリプト自体（herdr-agent-state.sh）のバージョンしか見ない。
+# install がエージェント設定ファイルへ書き込む配線（hook エントリ）は、dotfiles の
+# configs/claude/settings.json を ~/.claude/settings.json へ同期し直す等で消えることが
+# あり、その場合も status は current を返し続ける。配線が無いと agent_session が herdr に
+# 報告されず prefix+u（herdr-open-pr）の session_id 照合が壊れるため、独立に検証する。
+wiring_file() {
+    case "$1" in
+        claude) printf '%s' "$HOME/.claude/settings.json" ;;
+        codex)  printf '%s' "$HOME/.codex/hooks.json" ;;
+        *)      printf '' ;;
+    esac
+}
+
+has_wiring() {
+    local f
+    f="$(wiring_file "$1")"
+    [[ -n "$f" && -f "$f" ]] && grep -q 'herdr-agent-state' "$f"
+}
+
 if [[ "$DRY_RUN" == "true" ]]; then
     status_out="$(herdr integration status 2>/dev/null || true)"
     rc=0
     for agent in "${AGENTS[@]}"; do
-        if is_current "$agent" "$status_out"; then
-            echo "  herdr integration ${agent}: ✓ OK"
-        else
+        if ! is_current "$agent" "$status_out"; then
             echo "  herdr integration ${agent}: ✗ MISSING"
             rc=1
+        elif ! has_wiring "$agent"; then
+            echo "  herdr integration ${agent}: ✗ WIRING MISSING ($(wiring_file "$agent"))"
+            rc=1
+        else
+            echo "  herdr integration ${agent}: ✓ OK"
         fi
     done
     if [[ -L "$HOME/.config/herdr/config.toml" ]]; then
@@ -89,13 +111,16 @@ if [[ "$DRY_RUN" == "true" ]]; then
     exit "$rc"
 fi
 
-# current なら何もしない（install は毎回 JSON を書き直すため、symlink 経由で
+# current かつ配線あり なら何もしない（install は毎回 JSON を書き直すため、symlink 経由で
 # dotfiles の configs/codex/hooks.json に無用な差分が出る）
 status_out="$(herdr integration status 2>/dev/null || true)"
 for agent in "${AGENTS[@]}"; do
-    if is_current "$agent" "$status_out"; then
+    if is_current "$agent" "$status_out" && has_wiring "$agent"; then
         echo "  herdr integration ${agent}: ✓ already current"
         continue
+    fi
+    if is_current "$agent" "$status_out"; then
+        echo "  herdr integration ${agent}: wiring missing in $(wiring_file "$agent"), re-installing..."
     fi
     if herdr integration install "$agent" >/dev/null 2>&1; then
         echo "  herdr integration ${agent}: installed"
