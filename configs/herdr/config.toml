@@ -119,17 +119,18 @@ detach = "prefix+q"
 # tmux: bind r source-file ~/.tmux.conf（reload）に対応
 reload_config = "prefix+r"
 
-# PR を開く（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup" の後継）
-# 旧 tmux 版は capture-pane した画面から URL を総なめして fzf で選ばせていたが、
-# herdr の pane read は OSC 8 ハイパーリンクの URL を復元できない（実測: アンカー
-# テキストのみ残り URL は消える。CSI/SGR は保持される）。
-# statusline.js が表示中の PR を /tmp/gh-pr-<md5(cwd)> に書き出しているので、
-# 「statusline に出ている PR へ飛ぶ」用途は画面スクレイプ不要でそちらが一次情報。
-# fzf の選択 UI が要らなくなったので type = "popup" ではなく "shell"（背景実行）。
+# PR/URL 一覧を開く（tmux: bind u display-popup -E "$HOME/.local/bin/tmux-fzf-pr-popup" の後継）
+# 旧 tmux 版は capture-pane した画面から URL を総なめして fzf で選ばせていた。herdr の
+# pane read は OSC 8 ハイパーリンクの URL を復元できない（実測: アンカーテキストのみ残り
+# URL は消える）が、gh はプレーンテキストで URL を出すため無関係。statusline.js が
+# 書く現在の PR（/tmp/gh-pr-pane-<pane_id>）を先頭に、herdr pane read によるスクロール
+# バックの URL スクレイプを続けて fzf multi-select に渡す（herdr-open-pr）。
 [[keys.command]]
 key = "prefix+u"
-type = "shell"
+type = "popup"
 command = "~/.local/bin/herdr-open-pr"
+width = "80%"
+height = "60%"
 
 # Cmd+Shift+S: ghq リポジトリを選んで workspace を作る（ADR-077）
 # 組み込みの new_workspace は cwd を継承するだけで repo を選べないため、tmux 時代の
