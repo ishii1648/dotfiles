@@ -48,27 +48,20 @@ process.stdin.on('end', async () => {
     const isWorktree = isGitWorktree(cwd);
     const dirtyCount = getDirtyFileCount(cwd);
     const prInfo = getPrInfo(cwd);
-    // tmux-fzf-url フィルター用キャッシュ（gh pr view のネットワーク遅延を回避）
+    // herdr の prefix+u（herdr-open-pr）用キャッシュ。Cmd+U 側が知っているのは
+    // 「フォーカス中の pane」だけなので、pane と表示中 PR の対応をここで作る。
+    // キーは herdr が pane のシェルに与える HERDR_PANE_ID（Claude Code 経由で継承）。
+    // pane_id は herdr pane current が常に返すフィールドなので、agent_session
+    // （SessionStart hook の配線が必要）や cwd 推測（foreground_cwd が MCP サーバー等の
+    // 無関係な cwd を拾う）と違い、追加の配線・ヒューリスティクスなしで照合できる。
     try {
-      const hash = crypto.createHash('md5').update(cwd).digest('hex');
-      const prCacheFile = `/tmp/gh-pr-${hash}`;
-      if (prInfo) {
-        fs.writeFileSync(prCacheFile, `${prInfo.number} ${prInfo.url}`);
-      } else if (fs.existsSync(prCacheFile)) {
-        fs.unlinkSync(prCacheFile);
-      }
-      // herdr の prefix+u（herdr-open-pr）用: cwd 非依存の相関キー。
-      // herdr pane current --current の foreground_cwd は pane 内の foreground 子プロセスの
-      // cwd を返すため、Claude Code が spawn した MCP サーバー等の無関係な cwd を拾うことが
-      // 実測で確認された（例: aws-api-mcp の一時 workdir）。session_id はこのセッションが
-      // 存在する限り不変で pane 登録時の agent_session.value と一致するため、cwd 推定より
-      // 確実な相関キーになる。
-      if (data.session_id) {
-        const sessionCacheFile = `/tmp/gh-pr-session-${data.session_id}`;
+      const paneId = process.env.HERDR_PANE_ID;
+      if (paneId) {
+        const paneCacheFile = `/tmp/gh-pr-pane-${paneId.replace(/[^A-Za-z0-9_-]/g, '_')}`;
         if (prInfo) {
-          fs.writeFileSync(sessionCacheFile, `${prInfo.number} ${prInfo.url}`);
-        } else if (fs.existsSync(sessionCacheFile)) {
-          fs.unlinkSync(sessionCacheFile);
+          fs.writeFileSync(paneCacheFile, `${prInfo.number} ${prInfo.url}`);
+        } else if (fs.existsSync(paneCacheFile)) {
+          fs.unlinkSync(paneCacheFile);
         }
       }
     } catch (e) {}
