@@ -70,6 +70,7 @@
 | ✔ | ○ | claude | statusline の org 名表示が `<email>'s Organization` で冗長かつ Fable 専用の週間利用率が確認できない — org 表示を廃止し、`oauth/usage` API の `limits[]` から Fable のスコープ制限を抽出して表示する | [ADR-074](adr/074-statusline-org-shorten-and-fable-usage.md) |
 | ✔ | ○ | tmux / claude | `tmux-sidebar new` の popup 起動(`prefix+S`)は tmux popup 内で入力補完まわりが不便 — bind を `new-window` に変更する | [ADR-075](adr/075-picker-launch-popup-to-new-window.md) |
 | ✔ | ○ | claude | main worktree が意図せず非 default branch のまま放置され `git switch <default>` が別 worktree との衝突で失敗する — main worktree での `git switch`/`checkout` を PreToolUse hook でブロックし EnterWorktree 経由の分離を強制する | [ADR-081](adr/081-block-main-worktree-branch-switch.md) |
+| - | ○ | fish | worktree の削除が手動ルーティン（`gw_rm`）任せで放置され際限なく溜まる（ADR-081 で実測 224 個） — 作成から72時間超の worktree をマージ状態問わず launchd で無条件自動削除する | [ADR-083](adr/083-worktree-launchd-auto-cleanup.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1225,3 +1226,25 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] heredoc 終了後に続く本物の `git switch` は引き続き検出される
 - [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（34/34）
 - [ ] 実機: sre-hub の main worktree で `git switch <feature-branch>` を実行し、拒否メッセージとともに EnterWorktree の利用を促されることを確認する
+
+---
+
+### ADR-083: 作成から72時間超の worktree を launchd で無条件自動削除する
+
+**コンポーネント**: fish | **ADR**: [ADR-083](adr/083-worktree-launchd-auto-cleanup.md)
+
+**受け入れ条件**:
+
+- [ ] `configs/fish/scripts/worktree-auto-cleanup.sh` が `ghq list --full-path` で列挙した全リポジトリを横断し、各リポジトリの `git worktree list --porcelain` から worktree を取得する
+- [ ] main worktree（`git rev-parse --git-dir` == `--git-common-dir` のディレクトリ）は判定・削除の対象から常に除外される
+- [ ] worktree ディレクトリの `stat -f %B`（birthtime）から経過時間を算出し、72 時間を超えたものだけを削除対象とする
+- [ ] 削除対象の判定にマージ状態・ブランチ名は一切使わない（`gw_rm.fish` のマージ判定ロジックとは独立している）
+- [ ] 72 時間以内の worktree（未マージ・作業中を含む）は削除されない（実 git worktree を使ったテストで確認）
+- [ ] `--dry-run` オプションで実際には削除せず削除対象一覧のみを標準出力・ログに出せる
+- [ ] `git worktree remove --force` で未コミット変更が残っていても対象を強制削除し、対応するローカルブランチも `git branch -D` で削除する
+- [ ] 削除対象パス・経過時間・成功/失敗が `~/.local/state/worktree-cleanup/cleanup.log` に記録される
+- [ ] `configs/fish/launchd/com.user.worktree-auto-cleanup.plist` が1日1回スクリプトを起動する launchd agent として定義されている
+- [ ] `configs/fish/setup.sh` が `configs/claude/setup.sh` と同じパターン（`~/Library/LaunchAgents` へコピー、`launchctl load`、`--dry-run` での存在チェック）で launchd agent を導入する
+- [ ] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する
+- [ ] 実機: `launchctl list | grep com.user.worktree-auto-cleanup` で agent がロードされていることを確認する
+- [ ] 実機: 意図的に 72 時間超の worktree（`touch -t` 等で birthtime は変更できないため、実際に古い worktree か `SetFile`/ファイルシステム操作で代替検証する）を用意し、launchd 起動または手動実行で削除されることを確認する
