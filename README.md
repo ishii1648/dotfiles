@@ -52,6 +52,30 @@ bash <端末固有リポジトリ>/setup.sh
 
 プロファイル別のコンポーネントは `scripts/setup-manifest.yml` の `profiles:` を参照。
 
+### Nix (home-manager) レイヤ — Spike 中
+
+[ADR-084](docs/adr/084-nix-home-manager-package-symlink-layer.md) により、**静的 symlink の配置とパッケージ導入**を home-manager に移行中。Phase A では既存 `setup.sh` を削らずに**共存**させており、Nix を入れなくても `setup.sh` 単独で従来通りセットアップできる。
+
+```bash
+# 前提: Nix 本体のインストール（https://nixos.org/download / Determinate Systems installer）
+
+# 適用（-b hmbk: 既存 symlink をバックアップして退避）
+home-manager switch --flake .#sho@darwin -b hmbk
+
+# symlink 定義が setup.sh 側と一致しているかの検証
+python3 nix/check-parity.py
+```
+
+責務分担:
+
+| レイヤ | 担当 | 対象 |
+|---|---|---|
+| Nix (`flake.nix` / `nix/`) | 宣言 | 静的 symlink の配置、OS レベルのパッケージ（Phase A では neovim / jq / ghostty-bin） |
+| `scripts/setup.sh` | 手続き | mutable な設定ファイル（`~/.claude/settings.json` の managed-keys sync、`~/.gitconfig` の copies）、外部インストーラ（herdr / codex / aqua）、マシン固有 state（SSH 鍵・`chsh`） |
+| aqua (`aqua.yaml`) | 宣言 | バージョンが外部要件で決まる CLI（terraform / kubectl / helm 等） |
+
+Nix が管理する symlink は `mkOutOfStoreSymlink` で dotfiles clone の実体を指すため、`configs/` を編集した内容は `home-manager switch` なしで即反映される。その代わり config 内容の store による再現性は得られない（ADR-084 設計案 A-2）。
+
 ### e2e テスト
 
 Docker でクリーンな Linux 環境でのセットアップ完走を検証できる。

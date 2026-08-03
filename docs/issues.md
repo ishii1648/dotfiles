@@ -73,6 +73,7 @@
 | ✔ | ○ | claude | default worktree が非 default branch のまま放置される事故が別リポジトリでも再発し、linked worktree は自由に branch を切替できるため worktree:branch の 1:1 対応が保証されていなかった — hook を全 worktree に拡張し、CLAUDE.md の「main worktree に居座る」例外を stash ベースの手順に置き換える | [ADR-082](adr/082-pin-every-worktree-to-single-branch.md) |
 | - | ○ | fish | worktree の削除が手動ルーティン（`gw_rm`）任せで放置され際限なく溜まる（ADR-081 で実測 224 個） — 作成から72時間超の worktree をマージ状態問わず launchd で無条件自動削除する | [ADR-083](adr/083-worktree-launchd-auto-cleanup.md) |
 | - | ○ | git | `setup-github-ssh.sh` の SSH 接続テストが認証成功時も常に WARN になる — `set -o pipefail` 下で `ssh -T git@github.com` が終了コード 1 を返すため `grep -q` の一致がパイプ全体の非0で打ち消される | — |
+| - | ○ | 複合 | `setup.sh` の symlink 配置・パッケージ導入層が Nix の機能縮小版になっている — 静的 symlink とパッケージ導入は home-manager に譲り、`setup.sh` は mutable 設定と外部インストーラの層に縮退させる（aqua はバージョン固定用途で残す） | [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1295,3 +1296,31 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `set -o pipefail` を無効化せず（他ステップの失敗検出を弱めず）に修正する（14行目の `set -uo pipefail` は変更せず、コマンド置換 + `|| true` で ssh の終了コードだけを局所的に無害化）
 - [x] 接続テストの失敗がスクリプトの終了コードに影響しない（ssh スタブでの失敗ケース実行時も終了コード 0 を確認）
 - [x] `tests/static-analysis.bats` 相当の構文チェックが PASS する（ローカルに bats 未インストールのため、同テストが行う `bash -n`（`scripts` / `configs` 配下の全 .sh）と `fish -n`（`configs/fish` 配下の全 .fish）を直接実行して 0 failure を確認。bats 自体は CI の e2e で実行される）
+
+---
+
+### ADR-084: Nix (home-manager) をパッケージ導入と静的 symlink 配置の層として限定導入する
+
+**コンポーネント**: 複合 | **ADR**: [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md)
+
+Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Phase B（`setup-manifest.yml` からの移管済みエントリ削除・fish 本体の移行）と Phase C（docker/colima・remote/linux profile）は別 ADR で扱う。
+
+**受け入れ条件**:
+
+- [ ] `flake.nix` / `nix/home.nix` / `nix/symlinks.nix` が追加され、`nix flake check` が PASS する
+- [ ] `home-manager switch --flake .#sho@darwin -b hmbk` が macOS (aarch64-darwin) で成功する
+- [x] `nix/check-parity.py` が `nix/symlinks.nix` と既存 setup 定義（`setup-manifest.yml` full profile + `configs/fish/setup.sh` + `configs/claude/setup.sh`）の symlink を突合し、意図的除外（`fish_variables`）を除いて一致することを検証する（worktree 内で実行し 53/54 一致・exit 0 を確認。ターゲットの実在チェックも全て PASS）
+- [ ] `nix/check-parity.py` を main worktree で実行して一致する（.gitignore 済みの端末固有 fish 関数は git worktree 内に存在しないため、実機の差分は main worktree でしか出ない）
+- [ ] Nix が管理する symlink が `setup.sh` の張るものと同一パス・同一ターゲットになり、`home-manager switch` 後に `bash scripts/setup.sh --dry-run` が新たな失敗を出さない（**共存の判定条件**）
+- [ ] symlink のターゲットが `mkOutOfStoreSymlink` により dotfiles clone の実体を指しており、`configs/claude/CLAUDE.md` を編集した内容が `home-manager switch` なしで `~/.claude/CLAUDE.md` 経由で読める
+- [ ] `~/.local/bin/` 配下に張られるスクリプト（herdr-open-pr / herdr-new-workspace / herdr-agent-picker / worktree-auto-cleanup）が実行可能である（ADR-083 で実行属性の欠落が問題になったため実際に起動して確認する）
+- [ ] `~/.config/fish/fish_variables` が Nix の管理対象に**含まれない**（fish の `set -U` が実行時に書き換えるため）。`home-manager switch` 後に `set -U` が成功することを確認する
+- [ ] `~/.claude/settings.json` / `~/.codex/hooks.json` / `~/.gitconfig` が Nix の管理対象に**含まれない**（`setup.sh` の copies / managed-keys sync が引き続き担当する）
+- [ ] `~/.claude/skills/` はディレクトリごとではなく dotfiles 由来の skill（codex-sync）のみが個別 symlink として張られ、Claude Code / プラグインが置いた他の skill が消えない
+- [ ] neovim / jq / ghostty-bin が `home.packages` 経由で入り、起動する
+- [ ] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない
+- [ ] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない
+- [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと）
+- [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
+- [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
+- [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）

@@ -17,6 +17,13 @@
   fi
 }
 
+# ADR-084 Phase A では nix/symlinks.nix と setup-manifest.yml が同じ symlink を二重に
+# 定義するため、片方だけ変更すると共存が壊れる（ADR-034 の追加基準 2「チェーン依存」）。
+@test "nix/symlinks.nix and setup.sh define the same symlinks" {
+  run python3 nix/check-parity.py --quiet
+  [ "$status" -eq 0 ]
+}
+
 @test "all .sh scripts pass bash -n syntax check" {
   local failed=()
   while IFS= read -r f; do

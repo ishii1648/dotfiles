@@ -22,5 +22,9 @@ configs/fish/functions/fable.fish
 # Git worktree
 .worktree/
 
+# Nix (ADR-084)
+result
+result-*
+
 __pycache__/
 
