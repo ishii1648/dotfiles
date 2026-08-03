@@ -170,7 +170,10 @@ else
     if [[ "$SETUP_INTERACTIVE" == "false" ]]; then
         SSH_OPTS+=(-o "StrictHostKeyChecking=accept-new")
     fi
-    if ssh "${SSH_OPTS[@]}" -T git@github.com 2>&1 | grep -q "successfully authenticated"; then
+    # ssh -T git@github.com は認証成功時も終了コード 1 を返す（GitHub が shell を提供しないため）。
+    # `set -o pipefail` 下でパイプに直結すると grep の一致が非0で打ち消されるため、出力を変数で受ける。
+    SSH_TEST_OUTPUT=$(ssh "${SSH_OPTS[@]}" -T git@github.com 2>&1 || true)
+    if echo "$SSH_TEST_OUTPUT" | grep -q "successfully authenticated"; then
         echo -e "    ${GREEN}✓${NC} SSH connection to GitHub OK"
     else
         echo -e "    ${YELLOW}WARN${NC} SSH connection test failed (key may not be registered on GitHub yet)"

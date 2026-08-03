@@ -72,6 +72,7 @@
 | ✔ | ○ | claude | main worktree が意図せず非 default branch のまま放置され `git switch <default>` が別 worktree との衝突で失敗する — main worktree での `git switch`/`checkout` を PreToolUse hook でブロックし EnterWorktree 経由の分離を強制する | [ADR-081](adr/081-block-main-worktree-branch-switch.md) |
 | ✔ | ○ | claude | default worktree が非 default branch のまま放置される事故が別リポジトリでも再発し、linked worktree は自由に branch を切替できるため worktree:branch の 1:1 対応が保証されていなかった — hook を全 worktree に拡張し、CLAUDE.md の「main worktree に居座る」例外を stash ベースの手順に置き換える | [ADR-082](adr/082-pin-every-worktree-to-single-branch.md) |
 | - | ○ | fish | worktree の削除が手動ルーティン（`gw_rm`）任せで放置され際限なく溜まる（ADR-081 で実測 224 個） — 作成から72時間超の worktree をマージ状態問わず launchd で無条件自動削除する | [ADR-083](adr/083-worktree-launchd-auto-cleanup.md) |
+| - | ○ | git | `setup-github-ssh.sh` の SSH 接続テストが認証成功時も常に WARN になる — `set -o pipefail` 下で `ssh -T git@github.com` が終了コード 1 を返すため `grep -q` の一致がパイプ全体の非0で打ち消される | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1278,3 +1279,19 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する（未インストール状態で `✗ MISSING` と正しい Fix ヒントを実機で確認）
 - [x] 実機: ユーザーに 927 件の削除候補が存在することを確認したうえで `scripts/setup.sh --profile full` を実行して launchd agent を実際にインストールし、`launchctl list | grep com.user.worktree-auto-cleanup` でロードされていることを確認した（インストール時に `configs/fish/scripts/worktree-auto-cleanup.sh` に実行属性が付いていない不具合を発見・修正。`~/.local/bin/worktree-auto-cleanup` 経由で plist と同じ `bash -lc` 呼び出しが正常動作することも確認）
 - [x] 実機: ユーザーの許可を得て初回の実運用実行を行った。plist と同じ呼び出し形式（`bash -lc '$HOME/.local/bin/worktree-auto-cleanup'`、既定 72h）で手動起動し、`checked=931, removed=924, skipped_locked=1` で失敗ログなしに完了。実行前後で空き容量が増加したことを `df` で確認（計測開始が実行途中だったため正確な総回収量は不明だが、チェックポイント以降だけで 128Gi→149Gi の +21Gi を確認）。launchd の `StartCalendarInterval` による自動起動そのもの（次回は翌4:00）はまだ未検証
+
+---
+
+### git: setup-github-ssh.sh の SSH 接続テストが常に WARN になる
+
+**コンポーネント**: git | **ADR**: —
+
+`configs/git/setup-github-ssh.sh` は `set -uo pipefail`（14行目）配下で `ssh ... -T git@github.com 2>&1 | grep -q "successfully authenticated"` を条件式に使っている。`ssh -T git@github.com` は GitHub が shell を提供しないため**認証成功時も終了コード 1** を返し、`pipefail` によってパイプ全体が非0になる。結果として `grep` が一致しても常に else 側の WARN が表示される。
+
+**受け入れ条件**:
+
+- [x] 認証が通っている環境で Step 6 が `✓ SSH connection to GitHub OK` を表示する（実機: `SETUP_*` 環境変数を与えて `configs/git/setup-github-ssh.sh` を直接実行し確認。`scripts/setup.sh` 経由の確認は worktree 内で実行すると symlink 先が worktree に張り替わるため、master 取り込み後に main worktree で行う）
+- [x] 認証が通らない環境（鍵未登録・鍵なし）では従来どおり WARN を表示する（`git@github.com: Permission denied (publickey).` を吐いて exit 255 する ssh スタブを PATH 先頭に置いて確認）
+- [x] `set -o pipefail` を無効化せず（他ステップの失敗検出を弱めず）に修正する（14行目の `set -uo pipefail` は変更せず、コマンド置換 + `|| true` で ssh の終了コードだけを局所的に無害化）
+- [x] 接続テストの失敗がスクリプトの終了コードに影響しない（ssh スタブでの失敗ケース実行時も終了コード 0 を確認）
+- [x] `tests/static-analysis.bats` 相当の構文チェックが PASS する（ローカルに bats 未インストールのため、同テストが行う `bash -n`（`scripts` / `configs` 配下の全 .sh）と `fish -n`（`configs/fish` 配下の全 .fish）を直接実行して 0 failure を確認。bats 自体は CI の e2e で実行される）
