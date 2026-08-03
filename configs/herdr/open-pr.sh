@@ -46,11 +46,15 @@ md5_hex() {
 }
 
 # --- 起動元ペインの cwd を特定 ---
-# herdr は custom command に HERDR_ACTIVE_PANE_CWD を渡す。取れない場合のみ API を叩く。
-cwd="${HERDR_ACTIVE_PANE_CWD:-}"
-fallback_cwd=""
+# HERDR_ACTIVE_PANE_CWD は pane 登録時の cwd（workspace 作成時のベースディレクトリ）
+# であり、pane 内でシェルが worktree 等へ cd した後の実際の作業先（foreground_cwd）を
+# 反映しない。cwd と foreground_cwd が食い違うと、無関係なブランチ／PR を開いてしまう
+# （例: workspace 作成時は sre-hub 本体、その後 worktree に cd して作業した場合）。
+# そのため常に API を叩いて foreground_cwd を優先し、HERDR_ACTIVE_PANE_CWD は API が
+# 失敗した場合のみのフォールバックとする。
+cwd=""
 if pane_json=$(herdr pane current --current 2>/dev/null); then
-    fallback_cwd=$(
+    cwd=$(
         printf '%s' "$pane_json" | python3 -c '
 import json, sys
 try:
@@ -61,6 +65,7 @@ print(pane.get("foreground_cwd") or pane.get("cwd") or "")
 ' 2>/dev/null || true
     )
 fi
+fallback_cwd="${HERDR_ACTIVE_PANE_CWD:-}"
 [[ -z "$cwd" ]] && cwd="$fallback_cwd"
 
 if [[ -z "$cwd" ]]; then
