@@ -56,11 +56,18 @@ die() {
 
 command -v fzf >/dev/null 2>&1 || die "fzf が見つかりません (PATH=$PATH)"
 
-# --- フォーカス中 pane を特定 ---
-pane_id=""
+# --- 呼び出し元 pane を特定 ---
+# popup 自身も一つの pane なので、`herdr pane current --current` は「ポップアップ
+# 自身」を解決しようとして失敗する（実測: "no focused pane" 相当のエラー）。
+# herdr は [[keys.command]] 実行時に呼び出し元 pane を HERDR_ACTIVE_PANE_ID 等の
+# 環境変数で渡す仕組みを持つ（旧実装が HERDR_ACTIVE_PANE_CWD をフォールバックの
+# 最終候補として使っていたのと同じ経路）ので、これを一次情報として使う。
+pane_id="${HERDR_ACTIVE_PANE_ID:-}"
+[[ -n "$pane_id" ]] || die "呼び出し元 pane を特定できませんでした（HERDR_ACTIVE_PANE_ID 未設定）"
+
 foreground_cwd=""
 pane_cwd=""
-if pane_json=$(herdr pane current --current 2>/dev/null); then
+if pane_json=$(herdr pane get "$pane_id" 2>/dev/null); then
     pane_fields=$(
         printf '%s' "$pane_json" | python3 -c '
 import json, sys
@@ -68,18 +75,15 @@ try:
     pane = json.load(sys.stdin)["result"]["pane"]
 except Exception:
     sys.exit(0)
-print(pane.get("pane_id") or "")
 print(pane.get("foreground_cwd") or "")
 print(pane.get("cwd") or "")
 ' 2>/dev/null || true
     )
     {
-        read -r pane_id || true
         read -r foreground_cwd || true
         read -r pane_cwd || true
     } <<<"$pane_fields"
 fi
-[[ -n "$pane_id" ]] || die "フォーカス中の pane を特定できませんでした"
 
 # --- 候補 URL を集める（先着優先で重複除去。表示順が優先度） ---
 # 1) statusline が書いた pane_id キャッシュ（表示中の PR。ネットワーク不要・最優先）
