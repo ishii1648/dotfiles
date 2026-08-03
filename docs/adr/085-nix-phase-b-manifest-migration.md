@@ -68,6 +68,52 @@ Nix は darwin の full profile のみを対象とする。`setup-manifest.yml` 
 | `nix/check-parity.py` | dotfiles | `nix_managed: true` を正とする突合に変更 |
 | `docs/reference.md` / `README.md` | dotfiles | 責務分担の更新 |
 
+## 移行後の評価
+
+ADR-084 の受け入れ条件に置いた判定基準は「**移行後の総行数が減っている見込みが立つ。増えるなら Spike は却下**」だった。Phase A + B 完了時点で実測した結果は以下である（基準点は本作業の着手前 `7580dac`）。
+
+| 対象 | Before | After | 差 |
+|---|---:|---:|---:|
+| `setup.sh` 系（`scripts/setup.sh`, `scripts/lib/*.sh`, `setup-manifest.yml`, `configs/*/setup*.sh`） | 1,612 | 1,748 | **+136** |
+| Nix レイヤ（`flake.nix`, `nix/`） | 0 | 344 | **+344** |
+| 合計 | 1,612 | 2,092 | **+480（+30%）** |
+
+**総行数は減るどころか 3 割増えた。当初の判定基準に照らせば却下である。**
+
+### なぜ減らなかったか
+
+`setup.sh` 側の symlink コードを**一行も削除できなかった**ことに尽きる。Nix は darwin の full profile のみを対象とするため、remote / linux profile 用に同じコードが必要であり、`nix_managed: true` による分岐（+13 行）と profile 判定（+約 60 行）が**上乗せ**されただけになった。
+
+ADR-084 のコンテキストで見積もった「Nix に載る 600〜700 行」は、**remote / linux profile を切り捨てる前提でしか成立しない**。この見積もりは誤りだった。マルチプラットフォーム対応を維持する限り、symlink 配置のコードは Nix の有無にかかわらず残り続ける。
+
+増加分の内訳:
+
+- `scripts/lib/path.sh`（49 行）: home-manager の多段リンクを `setup.sh` が誤判定しないための判定ロジック。**Nix を入れたことによって新たに必要になったコスト**
+- `nix/check-parity.py`（178 行）: Nix 側と `setup.sh` 側の定義がずれていないことを検査するツール。**二重定義が存在する限り必要**であり、二重定義が解消されない以上なくならない
+- 実質的な Nix 定義は `flake.nix` 33 + `home.nix` 34 + `symlinks.nix` 99 = 166 行
+
+なお `configs/herdr/setup.sh` の +12 行と `configs/git/setup-github-ssh.sh` の +4 行は Nix と無関係の既存バグ修正（Docker e2e が恒常的に落ちていた問題）であり、上記の増加分から除いて考えてよい。
+
+### 行数以外に得たもの・失ったもの
+
+**得たもの**
+
+- Homebrew の命令的インストール（`brew install` の羅列 + 存在チェック）が宣言に置き換わった
+- generation によるロールバックが可能になった
+- 存在しないパスを指す symlink 定義が `nix eval` の時点で落ちるようになった（`setup.sh` の Phase 1 検証が担っていた役割の一部）
+- 副次的に、full profile では symlink 検査が走らなくなったため、**git worktree 内から `setup.sh` を実行しても symlink が worktree を指すよう張り替えられなくなった**（従来は worktree 内での実行が事故のもとだった）
+
+**失ったもの**
+
+- レイヤが 2 つになった。symlink が張られない原因を追うとき、`setup-manifest.yml` の `nix_managed`、`nix/symlinks.nix`、`configs/*/setup.sh` の profile 分岐の 3 箇所を見る必要がある
+- `mkOutOfStoreSymlink` を採ったため、config 内容の store による再現性は得られていない（ADR-084 設計案 A-2 で意図的に選んだ trade-off）
+
+### 判断
+
+**総行数の観点では当初の基準を満たさない。** 行数を減らすには Phase C で remote / linux profile も Nix に載せ、`setup.sh` の symlink コードを実際に削除する必要がある。ただし Phase C は Docker e2e への Nix 導入（イメージ肥大とビルド時間増）と、リモートマシンへの `/nix` 導入コストを伴う。
+
+継続・撤退・現状維持のいずれを選ぶかは、この実測を踏まえて判断する。撤退する場合、`home-manager` を削除して `setup.sh --profile remote` 相当の経路で全 symlink を復元できることは Docker e2e で確認済みである。
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-085 セクション）
