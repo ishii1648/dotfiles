@@ -171,6 +171,8 @@ activate 後も `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fis
 
 Nix は darwin の full profile のみを対象とするため、`setup-manifest.yml` の `components` を消すと remote / linux profile で symlink が張られなくなる。`.vimrc` の先行移管では `profiles.full` から `vim` を外し、`components.vim` は remote / linux 用に残すことで回避した。`copies` には既に `profile:` フィールドがあるが `symlinks` には無いため、Phase B で全体を移管する際は **`symlinks` にも profile 出し分けを導入するか、full profile 用の manifest を分離する**必要がある。
 
+同じ問題が fish の関数にもある。`configs/fish/setup.sh` は実ディレクトリを glob するため `.gitignore` 済みの端末固有関数（`claude.fish` / `fable.fish` / `__*`）も symlink するが、flake source は git tracked のみを含むので Nix 側はこれらを張らない。**Phase B で `configs/fish/setup.sh` の symlink ループを削ると端末固有関数が張られなくなる**ため、ローカル関数だけを張るループを残す必要がある。`nix/check-parity.py` はこれらを「local only」として報告し、parity の比較対象からは両側とも除外する。
+
 ## 受け入れ条件
 
 → [issues.md](../issues.md)（ADR-084 セクション）

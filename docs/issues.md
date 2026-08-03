@@ -1320,17 +1320,17 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [x] launchd agent（`com.user.worktree-auto-cleanup`）が生存し、fish 4.6.0 の起動と関数読み込みが正常であることを確認した
 - [x] `configs/fish/setup.sh` の symlink 対象から `fish_variables` を外す（実機で 2026-07-05 以降 symlink が剥がれて通常ファイルになっており、`setup.sh --dry-run` が `NOT A SYMLINK` で失敗し続けていた。fish が `set -U` のたびに rename で書き換えるため symlink 管理自体が成立しない。ADR-084 知見 6）
 - [x] `nix/check-parity.py` が `nix/symlinks.nix` と既存 setup 定義（`setup-manifest.yml` full profile + `configs/fish/setup.sh` + `configs/claude/setup.sh`）の symlink を突合し、意図的除外（`fish_variables`）を除いて一致することを検証する（worktree 内で実行し 53/54 一致・exit 0 を確認。ターゲットの実在チェックも全て PASS）
-- [ ] `nix/check-parity.py` を main worktree で実行して一致する（.gitignore 済みの端末固有 fish 関数は git worktree 内に存在しないため、実機の差分は main worktree でしか出ない）
-- [ ] Nix が管理する symlink が `setup.sh` の張るものと同一パス・同一ターゲットになり、`home-manager switch` 後に `bash scripts/setup.sh --dry-run` が新たな失敗を出さない（**共存の判定条件**）
-- [ ] symlink のターゲットが `mkOutOfStoreSymlink` により dotfiles clone の実体を指しており、`configs/claude/CLAUDE.md` を編集した内容が `home-manager switch` なしで `~/.claude/CLAUDE.md` 経由で読める
-- [ ] `~/.local/bin/` 配下に張られるスクリプト（herdr-open-pr / herdr-new-workspace / herdr-agent-picker / worktree-auto-cleanup）が実行可能である（ADR-083 で実行属性の欠落が問題になったため実際に起動して確認する）
-- [ ] `~/.config/fish/fish_variables` が Nix の管理対象に**含まれない**（fish の `set -U` が実行時に書き換えるため）。`home-manager switch` 後に `set -U` が成功することを確認する
-- [ ] `~/.claude/settings.json` / `~/.codex/hooks.json` / `~/.gitconfig` が Nix の管理対象に**含まれない**（`setup.sh` の copies / managed-keys sync が引き続き担当する）
-- [ ] `~/.claude/skills/` はディレクトリごとではなく dotfiles 由来の skill（codex-sync）のみが個別 symlink として張られ、Claude Code / プラグインが置いた他の skill が消えない
-- [ ] neovim / jq / ghostty-bin が `home.packages` 経由で入り、起動する
-- [ ] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない
-- [ ] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない
-- [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと）
+- [x] `nix/check-parity.py` を main worktree で実行して一致する（.gitignore 済みの端末固有 fish 関数 `claude.fish` / `fable.fish` は setup.sh のみが張るため、両側の比較対象から外して「local only」として報告する実装に修正。worktree / main worktree の双方で exit 0）
+- [x] Nix が管理する symlink が `setup.sh` の張るものと同一パス・同一ターゲットになり、activate 後に `bash scripts/setup.sh --dry-run` が新たな失敗を出さない（**共存の判定条件**。master で `Result: All OK (14 checked)`、うち 52 本が `✓ OK (nix)` と判定）
+- [x] symlink のターゲットが `mkOutOfStoreSymlink` により dotfiles clone の実体を指しており、`configs/claude/CLAUDE.md` を編集した内容が `home-manager switch` なしで `~/.claude/CLAUDE.md` 経由で読める（管理下 53 本すべてで `realpath` が dotfiles clone 内に解決）
+- [x] `~/.local/bin/` 配下に張られるスクリプト（herdr-open-pr / herdr-new-workspace / herdr-agent-picker / worktree-auto-cleanup）が実行可能である（4 本すべて実行属性あり。`worktree-auto-cleanup --dry-run` が `checked=162` で正常完走）
+- [x] `~/.config/fish/fish_variables` が Nix の管理対象に**含まれない**（fish の `set -U` が実行時に書き換えるため）。activate 後に `set -U` が成功することを確認した
+- [x] `~/.claude/settings.json` / `~/.codex/hooks.json` / `~/.gitconfig` が Nix の管理対象に**含まれない**（activate 後も settings.json / gitconfig は通常ファイル、hooks.json は dotfiles への一段 symlink のまま）
+- [x] `~/.claude/skills/` はディレクトリごとではなく dotfiles 由来の skill（codex-sync）のみが個別 symlink として張られ、Claude Code / プラグインが置いた他の skill が消えない（activate 後も 15 件すべて残存）
+- [ ] neovim / jq / ghostty-bin が `home.packages` 経由で入り、起動する（eval / build は成功済み。Homebrew 版との二重化を避けるため `home.packages` は一旦空にしてあり、PATH 投入は未実施）
+- [ ] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない（パッケージ未投入のため未検証）
+- [ ] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない（同上）
+- [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと。ローカルに bats 未インストールのため、同テストが行う `bash -n` / `fish -n` と `nix/check-parity.py --quiet` を直接実行して確認済み。bats 自体は CI の Docker e2e で実行される）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
 - [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）
