@@ -121,7 +121,11 @@ for f in "$SCRIPT_DIR/functions"/*.fish; do
 done
 
 # ルートファイル
-for f in config.fish fish_plugins fish_variables; do
+# fish_variables は対象外（ADR-084）。fish は `set -U` のたびに一時ファイルを作って
+# rename するため symlink が実ファイルに置き換わり、symlink 管理が維持できない。
+# 実機では 2026-07-05 以降 symlink が剥がれたまま dotfiles 側（空ファイル）と乖離し、
+# setup.sh --dry-run が NOT A SYMLINK で失敗し続けていた。
+for f in config.fish fish_plugins; do
     check_or_link "$HOME/.config/fish/$f" "$SCRIPT_DIR/$f" "$f"
 done
 

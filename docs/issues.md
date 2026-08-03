@@ -1318,6 +1318,7 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [x] activate 後、Nix 管理下の 53 本すべてで最終解決先が dotfiles clone 内であることを確認した
 - [x] `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fish_variables` が通常ファイルのまま、`~/.codex/hooks.json` が dotfiles への一段 symlink のまま維持されている（Nix に奪われていない）
 - [x] launchd agent（`com.user.worktree-auto-cleanup`）が生存し、fish 4.6.0 の起動と関数読み込みが正常であることを確認した
+- [x] `configs/fish/setup.sh` の symlink 対象から `fish_variables` を外す（実機で 2026-07-05 以降 symlink が剥がれて通常ファイルになっており、`setup.sh --dry-run` が `NOT A SYMLINK` で失敗し続けていた。fish が `set -U` のたびに rename で書き換えるため symlink 管理自体が成立しない。ADR-084 知見 6）
 - [x] `nix/check-parity.py` が `nix/symlinks.nix` と既存 setup 定義（`setup-manifest.yml` full profile + `configs/fish/setup.sh` + `configs/claude/setup.sh`）の symlink を突合し、意図的除外（`fish_variables`）を除いて一致することを検証する（worktree 内で実行し 53/54 一致・exit 0 を確認。ターゲットの実在チェックも全て PASS）
 - [ ] `nix/check-parity.py` を main worktree で実行して一致する（.gitignore 済みの端末固有 fish 関数は git worktree 内に存在しないため、実機の差分は main worktree でしか出ない）
 - [ ] Nix が管理する symlink が `setup.sh` の張るものと同一パス・同一ターゲットになり、`home-manager switch` 後に `bash scripts/setup.sh --dry-run` が新たな失敗を出さない（**共存の判定条件**）

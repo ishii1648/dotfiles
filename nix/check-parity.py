@@ -24,9 +24,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUIET = "--quiet" in sys.argv
 
 # nix 側が意図的に管理しない link → 理由
-INTENTIONAL_NIX_EXCLUDES = {
-    ".config/fish/fish_variables": "fish が set -U で実行時に書き換える（ADR-084 設計案 A-3）",
-}
+# fish_variables はここではなく setup.sh 側からも外した（ADR-084 知見 6）。fish が
+# set -U のたびに rename で書き換えるため、どちらのレイヤでも symlink を維持できない。
+INTENTIONAL_NIX_EXCLUDES = {}
 
 # full profile の manifest から外して home-manager に移管済みの link → 理由
 # remote / linux profile は Nix の対象外なので manifest 側に定義が残っている点に注意。
@@ -79,7 +79,7 @@ def setup_symlinks():
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/fish/functions/*.fish"))):
         name = os.path.basename(path)
         pairs[f".config/fish/functions/{name}"] = f"configs/fish/functions/{name}"
-    for name in ["config.fish", "fish_plugins", "fish_variables"]:
+    for name in ["config.fish", "fish_plugins"]:
         pairs[f".config/fish/{name}"] = f"configs/fish/{name}"
     pairs[".config/fish/completions"] = "configs/fish/completions"
 

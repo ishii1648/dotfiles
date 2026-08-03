@@ -161,7 +161,13 @@ activate 後も `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fis
 
 `setup-manifest.yml` の full profile から `vim` を外し、`~/.vimrc` を削除してから activate したところ、Nix が三段リンクを張り、`realpath` が dotfiles clone の実体に解決することを確認した。この状態で修正後の `symlink_points_to` は「同一」と判定し、修正前の一段比較は `WRONG TARGET` と誤判定する（知見 2 の対処が実際に必要だったことの裏付け）。管理下 53 本すべてについて最終解決先が dotfiles clone 内であることも確認済み。
 
-**6. Phase B では manifest から単純削除できない（profile 出し分けが必要）**
+**6. `fish_variables` は setup.sh 側でも symlink 管理できていなかった**
+
+移管後に master で `setup.sh --dry-run` を実行したところ、`fish_variables` だけが `NOT A SYMLINK` で失敗した。調査の結果、実機の `~/.config/fish/fish_variables` は **2026-07-05 以降 通常ファイル**（305 bytes）で、dotfiles 側の実体は空ファイルのまま乖離していた。fish は `set -U` のたびに一時ファイルを作って rename するため、symlink が実ファイルに置き換わる。
+
+設計案 A-3 で「`fish_variables` を Nix の管理外に置く」と判断した根拠がそのまま実証された形であり、同じ理由が `setup.sh` にも当てはまる。`configs/fish/setup.sh` の symlink 対象からも外した（Nix 導入以前から存在した不具合で、本 ADR の作業が引き金ではない）。
+
+**7. Phase B では manifest から単純削除できない（profile 出し分けが必要）**
 
 Nix は darwin の full profile のみを対象とするため、`setup-manifest.yml` の `components` を消すと remote / linux profile で symlink が張られなくなる。`.vimrc` の先行移管では `profiles.full` から `vim` を外し、`components.vim` は remote / linux 用に残すことで回避した。`copies` には既に `profile:` フィールドがあるが `symlinks` には無いため、Phase B で全体を移管する際は **`symlinks` にも profile 出し分けを導入するか、full profile 用の manifest を分離する**必要がある。
 
