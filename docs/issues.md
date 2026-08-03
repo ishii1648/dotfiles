@@ -1102,6 +1102,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `prefix+u` を tmux-sidebar 時代の `tmux-fzf-pr-popup` 相当の一覧 popup に統一する: `type = "shell"`（即時 1 件 open）から `type = "popup"` へ変更し、フォーカス中 pane の `herdr pane read --source recent-unwrapped --format text` でスクロールバックをスクレイプして URL を正規表現抽出、statusline の pane キャッシュが持つ現在の PR を先頭に固定した上で fzf multi-select（`--ansi --multi`）に渡し、選択した URL を開く。旧 tmux 版と異なり OSC 8 ハイパーリンクの復元は不要（`gh` は URL をプレーンテキストで出力するため）だが、`herdr pane read` はスクロールバックが約 1000 行でクランプされる制約があり、長いセッションでは古い PR が窓の外に出て拾えないことを許容する（screen scrape 方式を選択、hook 方式は不採用）
 - [x] 一覧に URL が 1 件も無い場合、popup は即座に閉じずメッセージを表示してキー入力を待つ（`herdr-agent-picker.sh` の `notice()` と同型）
 - [x] fzf を Esc / Ctrl+C でキャンセルすると何も開かずに popup が閉じる
+- [x] popup 内で `herdr pane current --current` を使わない。popup 自身も一つの pane として登録されるため、popup コマンドの中から `--current` を呼ぶと popup 自身を解決しようとして失敗する（実機で `error: フォーカス中の pane を特定できませんでした` を確認）。herdr は `[[keys.command]]` 実行時に呼び出し元 pane を `HERDR_ACTIVE_PANE_ID` 環境変数で渡す仕組みを持つため（旧実装が `HERDR_ACTIVE_PANE_CWD` を最終フォールバックとして使っていたのと同じ経路）、これを一次情報として使い、詳細（foreground_cwd/cwd）が要る場合は `herdr pane get "$HERDR_ACTIVE_PANE_ID"` で明示 ID 指定して引く
 - [ ] 実機: Cmd+U（`prefix+u`）で popup が開き、一覧から選んだ PR/URL がブラウザで開く（`herdr server reload-config` で config 反映後に確認）
 - [x] herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（`\x00D` は `prefix+shift+d` ではなく `prefix+d` として処理される）。ghostty から到達させるアクションは `prefix+<小文字>` のみを使う
 - [x] Cmd+D（ghostty から `\x00d` = `prefix+d`）で `close_workspace` が起動し、フォーカス中の space（サイドバーで選択中の space）だけを閉じる
