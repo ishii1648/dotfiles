@@ -107,9 +107,24 @@ def setup_symlinks():
     return pairs, local_only
 
 
+def path_collisions():
+    """Nix profile と aqua が同名コマンドを提供していないか検査する（ADR-084 知見 8）。
+
+    Determinate Nix は ~/.nix-profile/bin を PATH の最先頭に置くため、同名のコマンドが
+    あると aqua のバージョン固定が黙って無効になる。実機でしか検査できないので、
+    両ディレクトリが揃っていない環境（CI 等）では空リストを返してスキップする。
+    """
+    nix_bin = os.path.expanduser("~/.nix-profile/bin")
+    aqua_bin = os.path.expanduser("~/.local/share/aquaproj-aqua/bin")
+    if not (os.path.isdir(nix_bin) and os.path.isdir(aqua_bin)):
+        return None
+    return sorted(set(os.listdir(nix_bin)) & set(os.listdir(aqua_bin)))
+
+
 def main():
     nix = nix_symlinks()
     sh, local_only = setup_symlinks()
+    collisions = path_collisions()
 
     mismatch = {k: (sh[k], nix[k]) for k in sh if k in nix and sh[k] != nix[k]}
     only_sh = {k: v for k, v in sh.items() if k not in nix}
@@ -117,7 +132,7 @@ def main():
     missing = {k: v for k, v in nix.items() if not os.path.exists(os.path.join(ROOT, v))}
     unexpected_sh = {k: v for k, v in only_sh.items() if k not in INTENTIONAL_NIX_EXCLUDES}
 
-    failed = bool(mismatch or only_nix or missing or unexpected_sh)
+    failed = bool(mismatch or only_nix or missing or unexpected_sh or collisions)
 
     if not QUIET or failed:
         print(f"nix: {len(nix)} links / setup.sh(full): {len(sh)} links")
@@ -135,6 +150,11 @@ def main():
             print(f"  migrated to nix: {k}  # {MIGRATED_TO_NIX[k]}")
         for name in sorted(local_only):
             print(f"  local only (setup.sh のみが張る): configs/fish/functions/{name}")
+        for name in collisions or []:
+            print(f"  PATH COLLISION: {name} が Nix profile と aqua の両方にある"
+                  f"（Nix が PATH 上で優先され aqua のバージョン固定が無効化される）")
+        if collisions is None and not QUIET:
+            print("  （PATH 衝突検査: skip — Nix profile / aqua のどちらかが未導入）")
 
     if failed:
         return 1
