@@ -1212,5 +1212,8 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] `&&`/`||`/`;`/`|` で連結されたコマンド内の `git switch`/`checkout` も検出される
 - [x] git 以外のコマンド・読み取り専用 git コマンド（`status` 等）・`switch -`（直前ブランチ復帰）は誤検知しない
 - [x] パース不能・非 git リポジトリ・git 実行失敗時は常に許可する（fail-open）
-- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（16/16、文字列パース 12 件 + 実 git worktree 統合テスト 4 件）
+- [x] `git -C <main worktree> switch <branch>`（cwd が main worktree の外）で回避できない（Codex stop-review 指摘。統合テストで確認）
+- [x] `git -C <linked worktree> switch <branch>`（cwd が main worktree）を誤ってブロックしない（Codex stop-review 指摘。統合テストで確認）
+- [x] `-C` が複数回指定された場合も直前の実効ディレクトリに対して相対解決される
+- [x] `configs/claude/scripts/tests/test_block_main_worktree_branch_switch.py` の全テストが PASS する（23/23、文字列パース 15 件 + 実 git worktree 統合テスト 8 件）
 - [ ] 実機: sre-hub の main worktree で `git switch <feature-branch>` を実行し、拒否メッセージとともに EnterWorktree の利用を促されることを確認する

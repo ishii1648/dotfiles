@@ -28,6 +28,7 @@ sre-hub リポジトリで作業中、main worktree（`/Users/sho-ishii/ghq/gith
 - **default branch 解決**: `git symbolic-ref refs/remotes/origin/HEAD` → 失敗時 `git config init.defaultBranch` → 最終フォールバック `main`
 - **検出**: コマンド文字列を `&&`/`||`/`;`/`|` で分割し、各セグメントで `git switch`/`git checkout` の呼び出しを検出。ターゲットのブランチ名を抽出し、default branch と不一致なら `hookSpecificOutput.permissionDecision: "deny"` を返す
 - **誤検知対策**: `git checkout <ref> -- <path>` のようなファイル復元系は `--` 検出で除外。`git checkout <path>`（曖昧系）は対象パスが cwd 上に実在すればファイル復元とみなし除外する
+- **`-C <path>` の解決**（Codex stop-review 指摘を受けて追加。初版は cwd 固定で判定していた）: セグメントごとに `-C` を解析し、そのセグメントの「実効ディレクトリ」を求めたうえで main worktree 判定・default branch 解決を行う。`-C` は git 本来の挙動どおり直前の実効ディレクトリに対して相対解決し、複数回指定にも対応する。これにより (a) main worktree の外から `git -C <main worktree> switch ...` を打つ回避経路と (b) main worktree の中から `git -C <linked worktree> switch ...` を打つ正当な操作の誤ブロックの両方を防ぐ
 - **fail-open**: パース不能・git 実行失敗・非 git リポジトリなど例外時は常に許可（既存 hook スクリプト群と同じ設計思想）
 - `permission_mode` による skip は行わない。`defaultMode: "auto"` では通常の permission プロンプトが出ないため、まさにこの hook の deny が唯一の歯止めになる
 
@@ -43,7 +44,8 @@ sre-hub リポジトリで作業中、main worktree（`/Users/sho-ishii/ghq/gith
 
 - shell 構文の完全パースはしていないため、複雑な引用符入れ子コマンドでは検出漏れ／誤検知の可能性がある（fail-open なので検出漏れ側に倒す）
 - `git switch -`（直前ブランチへの復帰）は現状検出対象外
-- `git -C <path> switch <branch>` のように `-C` で別ディレクトリを明示された場合、「main worktree かどうか」の判定は Bash プロセスの `cwd` で行っており `-C` の指定先までは辿らない（今回の実インシデントである「cwd 上で直接 switch する」ケースをカバーすることを優先した）
+- `git config alias.sw switch` のような git alias 経由の呼び出しは `switch`/`checkout` という subcommand 名の一致でしか検出しないため素通りする（fail-open の許容範囲として受容）
+- `--git-dir`/`--work-tree` は個別の実効ディレクトリ解決は行わず global flag としてスキップのみ行う（`-C` ほど一般的な用法ではないため優先度を下げた）
 
 ### 変更が必要なファイル
 

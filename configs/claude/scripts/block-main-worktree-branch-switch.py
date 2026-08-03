@@ -82,8 +82,25 @@ def _switch_target(subcmd: str, rest: list, cwd: str) -> str:
     return target
 
 
-def extract_switch_targets(command: str, cwd: str):
-    """Yield (subcmd, target) for each branch-changing switch/checkout in command."""
+def _resolve_dash_c(path: str, cwd: str) -> str:
+    """Resolve a single `-C <path>` value against the current effective cwd.
+
+    git resolves repeated -C flags relative to the previous one, so callers
+    should thread the returned value back in as `cwd` for the next -C.
+    """
+    return path if os.path.isabs(path) else os.path.join(cwd, path)
+
+
+def extract_git_switch_invocations(command: str, cwd: str):
+    """Yield (subcmd, target, effective_cwd) for each branch-changing switch/checkout.
+
+    `-C <path>` is resolved per invocation so the main-worktree/default-branch
+    check runs against the directory git would actually operate on, not the
+    process cwd. Without this, `git -C <other-repo> switch ...` would either
+    bypass detection (cwd outside the main worktree) or false-positive block
+    a legitimate linked-worktree operation (cwd is the main worktree but -C
+    points elsewhere).
+    """
     for segment in _split_on_shell_separators(command):
         segment = segment.strip()
         if not segment:
@@ -95,12 +112,19 @@ def extract_switch_targets(command: str, cwd: str):
         if not words or words[0] != "git":
             continue
 
+        effective_cwd = cwd
         i = 1
         while i < len(words) and words[i].startswith("-"):
-            if words[i] in ("-C", "-c", "--git-dir", "--work-tree"):
+            if words[i] == "-C":
+                if i + 1 >= len(words):
+                    break
+                effective_cwd = _resolve_dash_c(words[i + 1], effective_cwd)
                 i += 2
-            else:
-                i += 1
+                continue
+            if words[i] in ("-c", "--git-dir", "--work-tree"):
+                i += 2
+                continue
+            i += 1
         if i >= len(words):
             continue
 
@@ -108,9 +132,9 @@ def extract_switch_targets(command: str, cwd: str):
         if subcmd not in ("switch", "checkout"):
             continue
 
-        target = _switch_target(subcmd, words[i + 1 :], cwd)
+        target = _switch_target(subcmd, words[i + 1 :], effective_cwd)
         if target:
-            yield subcmd, target
+            yield subcmd, target, effective_cwd
 
 
 def main():
@@ -126,15 +150,15 @@ def main():
             sys.exit(0)
 
         cwd = os.getcwd()
-        if not is_main_worktree(cwd):
-            sys.exit(0)
 
-        default = default_branch(cwd)
+        for subcmd, target, effective_cwd in extract_git_switch_invocations(command, cwd):
+            if not is_main_worktree(effective_cwd):
+                continue
 
-        for subcmd, target in extract_switch_targets(command, cwd):
+            default = default_branch(effective_cwd)
             if target != default:
                 reason = (
-                    f"main worktree は {default} に固定してください。"
+                    f"main worktree（{effective_cwd}）は {default} に固定してください。"
                     "作業ブランチへの切替は EnterWorktree で専用 worktree を作ってから行ってください"
                     f"（`git {subcmd} {target}` を main worktree で実行しようとしました）。"
                 )
