@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
-# herdr custom command (prefix+u): このセッションで読み込み・作成した PR/URL を
-# 一覧表示して選んで開く（tmux-sidebar 時代の tmux-fzf-pr-popup 後継）
+# herdr custom command (prefix+u): このセッションで読み込み・作成した GitHub の
+# PR/Issue を一覧表示して選んで開く（tmux-sidebar 時代の tmux-fzf-pr-popup 後継）
+#
+# 拾うのは `https://github.com/<owner>/<repo>/(pull|issues)/<n>` だけ。用途が
+# 「PR/Issue に飛ぶ」ことに尽きるため、ドキュメントや CI ログの URL まで並べると
+# 目的の 1 件を探す手間が増える。マッチした部分だけを取り出すので `#issuecomment-...`
+# や `/files` は落ち、同じ PR への別リンクは 1 行に畳まれる。
 #
 # 旧 tmux 版は capture-pane したスクロールバック全域を正規表現で URL スクレイプ
 # していた。herdr でも同じ方式が使える: `gh pr create`/`gh pr view` は URL を
@@ -83,11 +88,40 @@ done
 pane_id="${HERDR_ACTIVE_PANE_ID:-}"
 [[ -n "$pane_id" ]] || die "呼び出し元 pane を特定できませんでした（HERDR_ACTIVE_PANE_ID 未設定）"
 
-foreground_cwd=""
-pane_cwd=""
-if pane_json=$("$HERDR_BIN" pane get "$pane_id" 2>/dev/null); then
-    pane_fields=$(
-        printf '%s' "$pane_json" | python3 -c '
+# --- 候補 URL を集める（先着優先で重複除去。表示順が優先度） ---
+# 1) statusline が書いた pane_id キャッシュ（表示中の PR。ネットワーク不要・最優先）
+# 2) スクロールバックのスクレイプ（ローカル完結。実測 25ms）
+# 3) gh pr view フォールバック（1/2 が両方空振りしたときだけ。実測 578ms のネットワーク
+#    往復で popup の表示ラグの主因なので最後に回す。Claude Code が動いていない pane 向け）
+featured=() # ★ 現在のPR（先頭固定）
+scraped=()  # スクロールバック由来
+
+pane_cache="/tmp/gh-pr-pane-${pane_id//[!A-Za-z0-9_-]/_}"
+if [[ -f "$pane_cache" ]]; then
+    cache_url=$(cut -d' ' -f2 <"$pane_cache")
+    [[ -n "$cache_url" ]] && featured+=("\033[32m★ 現在のPR\033[0m  $cache_url")
+fi
+
+scrollback=$("$HERDR_BIN" pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
+if [[ -n "$scrollback" ]]; then
+    # GitHub の issue/PR URL だけを拾う。マッチした部分だけを取り出すので
+    # `#issuecomment-...` や `/files` は自然に落ち、同じ PR への別リンクが 1 行に畳まれる。
+    while IFS= read -r url; do
+        [[ -n "$url" ]] && scraped+=("  $url")
+    done < <(
+        printf '%s' "$scrollback" \
+            | grep -oE 'https://github\.com/[A-Za-z0-9._-]+/[A-Za-z0-9._-]+/(pull|issues)/[0-9]+' \
+            | sort -u || true
+    )
+fi
+
+if [[ ${#featured[@]} -eq 0 && ${#scraped[@]} -eq 0 ]]; then
+    # pane get（python3 の起動を伴う）も gh を叩くときだけに遅延させる。
+    foreground_cwd=""
+    pane_cwd=""
+    if pane_json=$("$HERDR_BIN" pane get "$pane_id" 2>/dev/null); then
+        pane_fields=$(
+            printf '%s' "$pane_json" | python3 -c '
 import json, sys
 try:
     pane = json.load(sys.stdin)["result"]["pane"]
@@ -96,49 +130,33 @@ except Exception:
 print(pane.get("foreground_cwd") or "")
 print(pane.get("cwd") or "")
 ' 2>/dev/null || true
-    )
-    {
-        read -r foreground_cwd || true
-        read -r pane_cwd || true
-    } <<<"$pane_fields"
-fi
+        )
+        {
+            read -r foreground_cwd || true
+            read -r pane_cwd || true
+        } <<<"$pane_fields"
+    fi
 
-# --- 候補 URL を集める（先着優先で重複除去。表示順が優先度） ---
-# 1) statusline が書いた pane_id キャッシュ（表示中の PR。ネットワーク不要・最優先）
-# 2) gh pr view フォールバック（Claude Code が動いていない pane 向け）
-# 3) スクロールバックのスクレイプ（このセッションで読み込み・作成した PR/URL 全般）
-candidates=()
-
-pane_cache="/tmp/gh-pr-pane-${pane_id//[!A-Za-z0-9_-]/_}"
-if [[ -f "$pane_cache" ]]; then
-    cache_url=$(cut -d' ' -f2 <"$pane_cache")
-    [[ -n "$cache_url" ]] && candidates+=("\033[32m★ 現在のPR\033[0m  $cache_url")
-fi
-
-if [[ ${#candidates[@]} -eq 0 ]]; then
+    tried=""
     for candidate in "$foreground_cwd" "$pane_cwd" "${HERDR_ACTIVE_PANE_CWD:-}"; do
         [[ -z "$candidate" || ! -d "$candidate" ]] && continue
+        # 3 候補が同一パスなのはよくある。1 回 ≒ 0.6s なので同じ cwd は 2 度叩かない。
+        case ":$tried:" in *":$candidate:"*) continue ;; esac
+        tried="$tried:$candidate"
         gh_url=$(cd "$candidate" && gh pr view --json url -q .url 2>/dev/null || true)
         if [[ -n "$gh_url" ]]; then
-            candidates+=("\033[32m★ 現在のPR\033[0m  $gh_url")
+            featured+=("\033[32m★ 現在のPR\033[0m  $gh_url")
             break
         fi
     done
 fi
 
-scrollback=$("$HERDR_BIN" pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
-if [[ -n "$scrollback" ]]; then
-    while IFS= read -r url; do
-        [[ -n "$url" ]] && candidates+=("  $url")
-    done < <(
-        printf '%s' "$scrollback" \
-            | grep -oE 'https?://[^[:space:]<>"'"'"'(){}]+' \
-            | sort -u || true
-    )
-fi
+# bash 3.2（macOS 標準）は set -u 下で空配列の展開を unbound variable にするため
+# ${arr[@]+...} で守る。
+candidates=(${featured[@]+"${featured[@]}"} ${scraped[@]+"${scraped[@]}"})
 
 log "candidates=${#candidates[@]} (pane_id=$pane_id)"
-[[ ${#candidates[@]} -gt 0 ]] || notice "PR/URL が見つかりません（pane_id=$pane_id）"
+[[ ${#candidates[@]} -gt 0 ]] || notice "GitHub の PR/Issue が見つかりません（pane_id=$pane_id）"
 
 # 表示行の末尾フィールド（URL）で重複除去。先に追加したもの（pane キャッシュ由来）を優先する。
 items=$(
