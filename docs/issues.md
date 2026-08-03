@@ -1305,13 +1305,19 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 
 Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Phase B（`setup-manifest.yml` からの移管済みエントリ削除・fish 本体の移行）と Phase C（docker/colima・remote/linux profile）は別 ADR で扱う。
 
+> **⚠ 実機の現状（master 取り込み前）**: 検証のため実機で activate 済みで、`~/` 配下の 53 本は既に Nix 管理の三段リンクになっている。`scripts/lib/path.sh` の判定修正がまだ master に無いため、**master の `scripts/setup.sh` を非 dry-run で実行すると 53 本すべてを `WRONG TARGET` と誤判定して一段リンクに張り替える**（実害は無いが Nix 側の管理が外れる）。master 取り込みまでは master 側 `setup.sh` の非 dry-run 実行を避ける。
+
 **受け入れ条件**:
 
 - [x] `flake.nix` / `nix/home.nix` / `nix/symlinks.nix` が追加され、eval が通る（`nix eval .#homeConfigurations."sho@darwin".activationPackage.drvPath` が derivation を返すことを確認。Determinate Nix 3.21.9 / nixpkgs 104240a / home-manager bf9ce9f）
 - [x] `nix build .#homeConfigurations."sho@darwin".activationPackage` が成功する（`ghostty-bin` を含めて解決・ビルド完了）
 - [x] 生成物 `home-files` を検査し、`mkOutOfStoreSymlink` の最終解決先が dotfiles clone の実体になっていることを確認した（`~/.claude/CLAUDE.md` → `/nix/store/<hash>-hm_CLAUDE.md` → `<dotfiles>/configs/claude/CLAUDE.md` の二段リンク）
 - [x] `setup.sh` 側が二段リンクを `WRONG TARGET` と誤判定して張り替える問題を修正した（`scripts/lib/path.sh` の `symlink_points_to` を追加し、`scripts/lib/symlink.sh` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の 3 箇所を最終解決先ベースの判定に変更。ADR-084「Spike の知見」2 を参照）
-- [ ] `home-manager switch --flake .#sho@darwin` が macOS (aarch64-darwin) で成功する（activate の dry-run は完走済み。symlink は全 53 本が "skipped since they are the same" となり変更ゼロで、実効的な変更は `home.packages` の PATH 追加のみであることを確認済み）
+- [x] home-manager の activate が macOS (aarch64-darwin) で成功する（`activationPackage` を直接 activate。generation 作成・`linkGeneration`・`setupLaunchAgents` まで完走）
+- [x] Nix レイヤが実際に symlink を張る経路を先行検証した（`profiles.full` から `vim` を外し `~/.vimrc` を削除して activate → Nix が三段リンクを張り、`realpath` が dotfiles 実体に解決。修正後の `symlink_points_to` は同一と判定、修正前の一段比較は `WRONG TARGET` と誤判定することを実測）
+- [x] activate 後、Nix 管理下の 53 本すべてで最終解決先が dotfiles clone 内であることを確認した
+- [x] `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fish_variables` が通常ファイルのまま、`~/.codex/hooks.json` が dotfiles への一段 symlink のまま維持されている（Nix に奪われていない）
+- [x] launchd agent（`com.user.worktree-auto-cleanup`）が生存し、fish 4.6.0 の起動と関数読み込みが正常であることを確認した
 - [x] `nix/check-parity.py` が `nix/symlinks.nix` と既存 setup 定義（`setup-manifest.yml` full profile + `configs/fish/setup.sh` + `configs/claude/setup.sh`）の symlink を突合し、意図的除外（`fish_variables`）を除いて一致することを検証する（worktree 内で実行し 53/54 一致・exit 0 を確認。ターゲットの実在チェックも全て PASS）
 - [ ] `nix/check-parity.py` を main worktree で実行して一致する（.gitignore 済みの端末固有 fish 関数は git worktree 内に存在しないため、実機の差分は main worktree でしか出ない）
 - [ ] Nix が管理する symlink が `setup.sh` の張るものと同一パス・同一ターゲットになり、`home-manager switch` 後に `bash scripts/setup.sh --dry-run` が新たな失敗を出さない（**共存の判定条件**）
@@ -1326,5 +1332,4 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
-- [ ] Nix レイヤが実際に symlink を張る経路を先行検証する（home-manager は既存リンクが同じ実体を指す場合スキップするため、Phase A のままでは Nix 側が一度も張らない。`setup-manifest.yml` から 1 本だけ外して `switch` し、Nix が二段リンクを張ること・その状態で `setup.sh --dry-run` が pass することを確認してから Phase B に進む）
 - [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）

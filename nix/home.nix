@@ -19,12 +19,15 @@
   #   - GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）: nixpkgs の gnugrep 等は `grep` と
   #     いう名前で PATH に入り BSD 版を上書きしてしまう。g-prefix 共存は Homebrew の方が
   #     素直なので移さない（設計案 A-4）
-  home.packages = with pkgs; [
-    neovim
-    jq
-  ] ++ lib.optionals pkgs.stdenv.isDarwin [
-    # nixpkgs の `ghostty` は Darwin で broken（xcodebuild が Nix 環境で動かないため）。
-    # 公式 .dmg を再パッケージした ghostty-bin を使う。
-    ghostty-bin
-  ];
+  # 現在は空にしている。ADR-084「Spike の知見」3 の通り、Phase A では既存 symlink が
+  # スキップされて Nix レイヤが実効を持たないことが分かったため、まず symlink を張る経路
+  # そのものを検証する。パッケージを PATH に入れるのは Homebrew 版との二重化を伴うので、
+  # symlink 経路の検証が終わってから別途行う。
+  #
+  # 検証済みの定義（eval / build 成功、そのまま復帰できる）:
+  #   home.packages = with pkgs; [ neovim jq ]
+  #     ++ lib.optionals pkgs.stdenv.isDarwin [ ghostty-bin ];
+  #   # nixpkgs の `ghostty` は Darwin で broken（xcodebuild が Nix 環境で動かないため）、
+  #   # 公式 .dmg を再パッケージした ghostty-bin を使う
+  home.packages = [ ];
 }

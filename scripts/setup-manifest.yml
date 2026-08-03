@@ -19,7 +19,9 @@ profiles:
     - herdr
     - aqua
     - git
-    - vim
+    # vim（~/.vimrc）は full profile でのみ home-manager 管理に移した（ADR-084 Phase A の
+    # 先行検証）。Nix は darwin の full profile だけを対象にするため、remote / linux では
+    # 引き続き components.vim を使う。
   remote:
     - fish
     - nvim

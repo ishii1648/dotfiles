@@ -126,30 +126,44 @@ fish 本体を Phase A に含めないのは、Homebrew 版と Nix 版が PATH �
 - `fish_variables` / `settings.json` / `hooks.json` / `.gitconfig` は生成物に含まれない
 - `.claude/skills/` 配下は `codex-sync` のみ
 
-**2. `mkOutOfStoreSymlink` は二段リンクになる（要注意）**
+**2. `mkOutOfStoreSymlink` は多段リンクになる（要注意）**
 
-生成されるリンクは一段ではなく二段である。
+生成されるリンクは一段ではなく、`home-manager-files` を経由する三段である。
 
 ```
-~/.claude/CLAUDE.md -> /nix/store/<hash>-hm_CLAUDE.md -> <dotfiles>/configs/claude/CLAUDE.md
+~/.vimrc -> /nix/store/<hash>-home-manager-files/.vimrc
+         -> /nix/store/<hash>-hm_vimrc
+         -> <dotfiles>/configs/vim/vimrc
 ```
 
 `setup.sh` の `ensure_symlink`（および `configs/fish/setup.sh` の `check_or_link`、`configs/claude/setup.sh` の skills 判定）は `readlink` の**一段目だけ**を文字列比較していたため、これを `WRONG TARGET` と誤判定する。dry-run では失敗として数え、**非 dry-run では `rm` して張り替えるため Nix 側の symlink を破壊する**。共存の前提が成立しない。
 
 対処として `scripts/lib/path.sh` を追加し、`symlink_points_to`（一段目の文字列一致に加え、最終解決先の一致も許容する）で判定するよう 3 箇所を変更した。`realpath` は macOS (`/bin/realpath`) と Docker の Linux 双方に存在し、無い場合は python3 にフォールバックする。
 
-**3. home-manager は「同じ実体を指す既存ファイル」をスキップする（Phase A の限界）**
+**3. dry-run の "skipped" は衝突チェック段階の表示にすぎない（判断を誤りやすい）**
 
-`activate` の dry-run では、対象 53 本すべてが以下のように報告された。
+`activate` の dry-run では、対象 53 本すべてが以下のように報告される。
 
 ```
 Existing file '/Users/sho/.config/nvim' is in the way of '.../home-manager-files/.config/nvim',
 will be skipped since they are the same
 ```
 
-home-manager の `checkLinkTargets` は、既存ファイルが同じ実体に解決される場合、**張り替えずにスキップする**。したがって Phase A の状態で `switch` しても既存の symlink は一切変化せず、**Nix 側の宣言は実効を持たない**。
+これは `checkLinkTargets` フェーズ（衝突するファイルをバックアップ・退避すべきか判定する段階）の出力であり、「既存と同一だからバックアップ不要」という意味でしかない。後続の `linkGeneration` フェーズは、既存リンクを**すべて Nix 管理のリンクに置き換える**。実際に activate したところ、`setup.sh` が張っていた 53 本すべてが `home-manager-files` 経由の三段リンクに変わった。
 
-この帰結は Phase A の位置づけを変える。Phase A で検証できるのは「Nix と `setup.sh` が相互に破壊しないこと」までであり、**Nix レイヤが実際に symlink を張る経路の検証は、`setup-manifest.yml` 側の該当エントリを削除する Phase B とセットでなければ行えない**。裏を返せば、Phase A の switch は symlink に関して無害（変更ゼロ）であり、リスクは `home.packages` が PATH に入ることだけに限定される。
+**dry-run の出力から「symlink は変更されない」と読むのは誤りである。** Phase A の switch は無害ではなく、既存リンクの全面的な張り替えを伴う。
+
+**4. Nix 管理外に置いたファイルは実際に無傷だった**
+
+activate 後も `~/.claude/settings.json` / `~/.gitconfig` / `~/.config/fish/fish_variables` は通常ファイルのまま、`~/.codex/hooks.json` は dotfiles への一段 symlink のままで、いずれも Nix に奪われていない。launchd agent（`com.user.worktree-auto-cleanup`）も生存し、fish 4.6.0 の起動と関数読み込みも正常だった。
+
+**5. Nix が張った経路の実効検証（`.vimrc` 先行移管）**
+
+`setup-manifest.yml` の full profile から `vim` を外し、`~/.vimrc` を削除してから activate したところ、Nix が三段リンクを張り、`realpath` が dotfiles clone の実体に解決することを確認した。この状態で修正後の `symlink_points_to` は「同一」と判定し、修正前の一段比較は `WRONG TARGET` と誤判定する（知見 2 の対処が実際に必要だったことの裏付け）。管理下 53 本すべてについて最終解決先が dotfiles clone 内であることも確認済み。
+
+**6. Phase B では manifest から単純削除できない（profile 出し分けが必要）**
+
+Nix は darwin の full profile のみを対象とするため、`setup-manifest.yml` の `components` を消すと remote / linux profile で symlink が張られなくなる。`.vimrc` の先行移管では `profiles.full` から `vim` を外し、`components.vim` は remote / linux 用に残すことで回避した。`copies` には既に `profile:` フィールドがあるが `symlinks` には無いため、Phase B で全体を移管する際は **`symlinks` にも profile 出し分けを導入するか、full profile 用の manifest を分離する**必要がある。
 
 ## 受け入れ条件
 

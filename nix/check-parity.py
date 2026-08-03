@@ -28,6 +28,12 @@ INTENTIONAL_NIX_EXCLUDES = {
     ".config/fish/fish_variables": "fish が set -U で実行時に書き換える（ADR-084 設計案 A-3）",
 }
 
+# full profile の manifest から外して home-manager に移管済みの link → 理由
+# remote / linux profile は Nix の対象外なので manifest 側に定義が残っている点に注意。
+MIGRATED_TO_NIX = {
+    ".vimrc": "ADR-084 Phase A の先行検証で full profile から移管",
+}
+
 # flake source は git tracked のみを含むため、nix 側に現れない端末固有 fish 関数
 LOCAL_FISH_FUNCTIONS = ("claude.fish", "fable.fish")
 
@@ -90,7 +96,7 @@ def main():
 
     mismatch = {k: (sh[k], nix[k]) for k in sh if k in nix and sh[k] != nix[k]}
     only_sh = {k: v for k, v in sh.items() if k not in nix}
-    only_nix = {k: v for k, v in nix.items() if k not in sh}
+    only_nix = {k: v for k, v in nix.items() if k not in sh and k not in MIGRATED_TO_NIX}
     missing = {k: v for k, v in nix.items() if not os.path.exists(os.path.join(ROOT, v))}
     unexpected_sh = {k: v for k, v in only_sh.items() if k not in INTENTIONAL_NIX_EXCLUDES}
 
@@ -108,6 +114,8 @@ def main():
             print(f"  TARGET MISSING: {v} (link: {k})")
         for k in sorted(set(only_sh) & set(INTENTIONAL_NIX_EXCLUDES)):
             print(f"  excluded by design: {k}  # {INTENTIONAL_NIX_EXCLUDES[k]}")
+        for k in sorted(set(nix) & set(MIGRATED_TO_NIX)):
+            print(f"  migrated to nix: {k}  # {MIGRATED_TO_NIX[k]}")
 
     if failed:
         return 1
