@@ -12,7 +12,9 @@ set -euo pipefail
 
 # herdr サーバから起動されるため、PATH はログインシェル（fish）のものと一致する保証がない。
 # fzf / jq は aqua 管理なので明示的に前置する。
-export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# herdr 本体は $HOME/.local/bin にあるが popup の PATH には含まれない。HERDR_BIN_PATH が
+# 渡らない場合のフォールバックとして前置する（open-pr.sh の実障害を横展開）。
+export PATH="$HOME/.local/bin:$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
 
 # aqua の bin は proxy なので、実体の解決には設定ファイルが要る。popup の cwd は
 # [terminal] new_cwd = "follow" で呼び出し元ペインを継承するため、明示しないと dotfiles 以外の
