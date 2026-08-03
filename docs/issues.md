@@ -1110,6 +1110,8 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] 必須コマンドチェックに `herdr` を含める。herdr が呼べないと候補ゼロの「PR/URL が見つかりません」に化けて原因が見えなくなるため、`fzf` と同様に起動時に die させる
 - [x] popup が無言で閉じても事後に追える: 起動時に `invoked pid/tty/term/cwd` を、候補収集後に `candidates=<件数>` を、`set -e` による中断時に ERR trap で `aborted rc/line/cmd` を `~/.local/state/herdr/open-pr.log` に記録する（旧実装は起動ログが無く、実障害時に `herdr: command not found` の行しか残らなかった）。fzf のキャンセル（130）は正常系なので ERR trap を一時解除して `aborted` を出さない
 - [x] 検証: PATH から `$HOME/.local/bin` を外した popup 相当の環境で `HERDR_ACTIVE_PANE_ID=<pane>` を渡して実行し、`candidates=2` を収集して fzf が起動、Esc で `fzf cancelled (exit=130)` を記録して閉じることを確認（`script(1)` の疑似 tty 経由）
+- [x] 一覧を GitHub の PR/Issue（`https://github.com/<owner>/<repo>/(pull|issues)/<n>`）だけに絞る。用途が「PR/Issue に飛ぶ」ことに尽きるため、ドキュメントや CI ログの URL を並べると目的の 1 件を探す手間が増える。マッチ部分だけを取り出す正規表現にすることで `#issuecomment-...` / `/files` は落ち、同じ PR への別リンクが 1 行に畳まれる（サンプル文字列で除外・正規化・重複畳み込みを確認）
+- [x] popup の表示ラグを削る。原因は `gh pr view` のネットワーク往復（実測 578ms/回）を候補収集の 2 番目に、しかも同一 cwd に対して最大 3 回叩いていたこと。(1) ローカル完結のスクロールバックスクレイプ（実測 25ms）を先に回し、pane キャッシュとスクレイプが両方空振りしたときだけ `gh` を叩く、(2) 同じ cwd は 2 度叩かない、(3) `herdr pane get`（python3 起動を伴う）も `gh` を使うときだけに遅延させる。実測: PR/Issue URL がスクロールバックにある pane で 1413ms → 33ms、URL が無く `gh` に落ちる pane でも 1294ms → 817ms
 - [x] herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（`\x00D` は `prefix+shift+d` ではなく `prefix+d` として処理される）。ghostty から到達させるアクションは `prefix+<小文字>` のみを使う
 - [x] Cmd+D（ghostty から `\x00d` = `prefix+d`）で `close_workspace` が起動し、フォーカス中の space（サイドバーで選択中の space）だけを閉じる
 - [x] `prefix+d` を空けるため `detach` は herdr 既定の `prefix+q` へ退避した
