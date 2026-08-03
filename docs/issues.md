@@ -1235,16 +1235,17 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 
 **受け入れ条件**:
 
-- [ ] `configs/fish/scripts/worktree-auto-cleanup.sh` が `ghq list --full-path` で列挙した全リポジトリを横断し、各リポジトリの `git worktree list --porcelain` から worktree を取得する
-- [ ] main worktree（`git rev-parse --git-dir` == `--git-common-dir` のディレクトリ）は判定・削除の対象から常に除外される
-- [ ] worktree ディレクトリの `stat -f %B`（birthtime）から経過時間を算出し、72 時間を超えたものだけを削除対象とする
-- [ ] 削除対象の判定にマージ状態・ブランチ名は一切使わない（`gw_rm.fish` のマージ判定ロジックとは独立している）
-- [ ] 72 時間以内の worktree（未マージ・作業中を含む）は削除されない（実 git worktree を使ったテストで確認）
-- [ ] `--dry-run` オプションで実際には削除せず削除対象一覧のみを標準出力・ログに出せる
-- [ ] `git worktree remove --force` で未コミット変更が残っていても対象を強制削除し、対応するローカルブランチも `git branch -D` で削除する
-- [ ] 削除対象パス・経過時間・成功/失敗が `~/.local/state/worktree-cleanup/cleanup.log` に記録される
-- [ ] `configs/fish/launchd/com.user.worktree-auto-cleanup.plist` が1日1回スクリプトを起動する launchd agent として定義されている
-- [ ] `configs/fish/setup.sh` が `configs/claude/setup.sh` と同じパターン（`~/Library/LaunchAgents` へコピー、`launchctl load`、`--dry-run` での存在チェック）で launchd agent を導入する
-- [ ] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する
-- [ ] 実機: `launchctl list | grep com.user.worktree-auto-cleanup` で agent がロードされていることを確認する
-- [ ] 実機: 意図的に 72 時間超の worktree（`touch -t` 等で birthtime は変更できないため、実際に古い worktree か `SetFile`/ファイルシステム操作で代替検証する）を用意し、launchd 起動または手動実行で削除されることを確認する
+- [x] `configs/fish/scripts/worktree-auto-cleanup.sh` が `ghq list --full-path` で列挙した全リポジトリを横断し、各リポジトリの `git worktree list --porcelain` から worktree を取得する（実機: ユーザーの ghq 管理下 930 worktree を横断し、実行時間は約24秒。当初 `ghq list` が linked worktree 自身も別 repo として列挙するため repo数×worktree数で重複処理する不具合があったが、`git rev-parse --git-dir`/`--git-common-dir` の一致判定を repo 発見側にも適用し解消）
+- [x] main worktree（`git rev-parse --git-dir` == `--git-common-dir` のディレクトリ）は判定・削除の対象から常に除外される（実機の 2 回の実削除テストで main worktree が無傷なことを確認）
+- [x] worktree ディレクトリの `stat -f %B`（birthtime）から経過時間を算出し、72 時間を超えたものだけを削除対象とする（実機 930 worktree の dry-run で age 79h〜3986h の候補のみが挙がり、72h 以下のものは含まれないことを確認）
+- [x] 削除対象の判定にマージ状態・ブランチ名は一切使わない（`gw_rm.fish` のマージ判定ロジックとは独立している。コード上そのようなロジックが存在しないことを確認）
+- [x] 72 時間以内の worktree（未マージ・作業中を含む）は削除されない（実機 dry-run で 72h 以下の候補が一件も出ないことを確認。境界値は `--hours 0` を使った隔離テスト用リポジトリで `age <= threshold` の判定コードパスを直接確認）
+- [x] `git worktree list --porcelain` の `locked <reason>` 行を持つ worktree（`EnterWorktree` でアクティブに使用中のセッション等）は経過時間を問わず削除対象から除外される（`git worktree remove -f` は locked も dirty も無視して強制削除できてしまうため、`--force` の挙動に頼らずスクリプト側で明示的に skip する。実機: ユーザーの実際の 3 件のアクティブセッション worktree が `skipped_locked=3` として正しく除外されることを確認。隔離テストリポジトリでも `git worktree lock` した worktree が実削除を伴う実行でも無傷なことを確認）
+- [x] `--dry-run` オプションで実際には削除せず削除対象一覧のみを標準出力・ログに出せる（実機 930 worktree で確認。何も削除されていないことを実行後の `git worktree list` 件数不変で確認）
+- [x] `git worktree remove --force` で未コミット変更が残っていても対象を強制削除し、対応するローカルブランチも `git branch -D` で削除する（隔離テストリポジトリで、untracked ファイルを含む dirty worktree が `--force` なしでは `fatal: contains modified or untracked files` で拒否されること、本スクリプト経由では強制削除されブランチも消えることの両方を実 git で確認）
+- [x] 削除対象パス・経過時間・成功/失敗が `~/.local/state/worktree-cleanup/cleanup.log` に記録される（実機で `cleanup.log` に記録されることを確認）
+- [x] `configs/fish/launchd/com.user.worktree-auto-cleanup.plist` が1日1回スクリプトを起動する launchd agent として定義されている（`StartCalendarInterval` Hour=4/Minute=0。`plutil -lint` で XML 妥当性を確認）
+- [x] `configs/fish/setup.sh` が `configs/claude/setup.sh` と同じパターン（`~/Library/LaunchAgents` へコピー、`launchctl load`、`--dry-run` での存在チェック）で launchd agent を導入する
+- [x] `configs/fish/setup.sh --dry-run` が plist の導入状態を正しく OK/MISSING 判定する（未インストール状態で `✗ MISSING` と正しい Fix ヒントを実機で確認）
+- [ ] 実機: `configs/fish/setup.sh`（非 dry-run）を実行して launchd agent を実際にインストールし、`launchctl list | grep com.user.worktree-auto-cleanup` でロードされていることを確認する（ユーザーの ghq 管理下に 72h 超の worktree が 927 件存在することが判明したため、実際に有効化する前にユーザーの確認を取る）
+- [ ] 実機: 初回の実運用実行（launchd 起動または手動実行）で実際に対象が削除されることを確認する
