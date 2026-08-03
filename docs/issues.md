@@ -1338,7 +1338,7 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [x] `nix/check-parity.py` が Nix profile と aqua の同名コマンド衝突を検査する（両ディレクトリが揃っていない環境では自動スキップ。現状 `jq` は aqua 側に無く衝突なし）
 - [x] GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）は Homebrew 管理のまま残り、`grep` 等の BSD 版が Nix によって PATH 上で上書きされていない（Nix profile に GNU tools が入っていないことを確認）
 - [x] aqua 管理下の CLI（terraform/kubectl 等）のバージョンが Nix 導入前後で変化しない（PATH 衝突検査で機械的に担保）
-- [ ] neovim / ghostty-bin を `home.packages` に投入する（eval / build は成功済み。Homebrew 版・手動 .dmg との二重化の影響を評価してから）
+- [x] neovim / ghostty-bin を `home.packages` に投入する（nvim は Homebrew 0.12.2 → Nix 0.12.4 に切り替わり、`--headless` で lazy.nvim 込みの設定読み込みが成功。ghostty は `~/Applications/Home Manager Apps/Ghostty.app` に GUI が置かれ、手動インストール版 `/Applications/Ghostty.app` とは別インスタンスとして共存。aqua との名前衝突なし、master で `setup.sh --dry-run` は `All OK`）
 - [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと。ローカルに bats 未インストールのため、同テストが行う `bash -n` / `fish -n` と `nix/check-parity.py --quiet` を直接実行して確認済み。bats 自体は CI の Docker e2e で実行される）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
