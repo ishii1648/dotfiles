@@ -19,9 +19,7 @@ profiles:
     - herdr
     - aqua
     - git
-    # vim（~/.vimrc）は full profile でのみ home-manager 管理に移した（ADR-084 Phase A の
-    # 先行検証）。Nix は darwin の full profile だけを対象にするため、remote / linux では
-    # 引き続き components.vim を使う。
+    - vim
   remote:
     - fish
     - nvim
@@ -48,16 +46,19 @@ components:
       # herdr の *.sh 群（ADR-077/079）と同じく ~/.local/bin 経由の間接参照にする
       - link: ~/.local/bin/worktree-auto-cleanup
         target: configs/fish/scripts/worktree-auto-cleanup.sh
+        nix_managed: true
 
   nvim:
     symlinks:
       - link: ~/.config/nvim
         target: configs/nvim
+        nix_managed: true
 
   ghostty:
     symlinks:
       - link: ~/.config/ghostty/config
         target: configs/ghostty/config
+        nix_managed: true
 
   # ADR-076: tmux / tmux-sidebar を撤去し herdr に一本化した（Phase 3/4 完了）
   herdr:
@@ -65,27 +66,35 @@ components:
     symlinks:
       - link: ~/.config/herdr/config.toml
         target: configs/herdr/config.toml
+        nix_managed: true
       # config.toml の [[keys.command]] key = "prefix+u" から呼ばれる
       - link: ~/.local/bin/herdr-open-pr
         target: configs/herdr/open-pr.sh
+        nix_managed: true
       # config.toml の [[keys.command]] key = "prefix+shift+s" から呼ばれる（ADR-077）
       - link: ~/.local/bin/herdr-new-workspace
         target: configs/herdr/new-workspace.sh
+        nix_managed: true
       # config.toml の [[keys.command]] key = "prefix+a" から呼ばれる（ADR-079）
       - link: ~/.local/bin/herdr-agent-picker
         target: configs/herdr/agent-picker.sh
+        nix_managed: true
 
   claude:
     setup: configs/claude/setup.sh
     symlinks:
       - link: ~/.claude/CLAUDE.md
         target: configs/claude/CLAUDE.md
+        nix_managed: true
       - link: ~/.claude/scripts
         target: configs/claude/scripts
+        nix_managed: true
       - link: ~/.claude/statusline.js
         target: configs/claude/statusline.js
+        nix_managed: true
       - link: ~/.claude/skills/codex-sync
         target: configs/claude/skills/codex-sync
+        nix_managed: true
     copies:
       - src: configs/claude/settings.json
         dest: ~/.claude/settings.json
@@ -103,11 +112,13 @@ components:
     symlinks:
       - link: ~/.config/aquaproj-aqua/aqua.yaml
         target: aqua.yaml
+        nix_managed: true
 
   vim:
     symlinks:
       - link: ~/.vimrc
         target: configs/vim/vimrc
+        nix_managed: true
 
   git:
     setup: configs/git/setup-github-ssh.sh

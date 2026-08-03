@@ -2,7 +2,9 @@
 
 ## ステータス
 
-Spike中
+採用済み
+
+Spike（Phase A）が完了し、静的 symlink 53 本とパッケージ 3 種（jq / neovim / ghostty-bin）が home-manager 管理下で稼働している。Phase B 以降の内訳は [ADR-085](085-nix-phase-b-manifest-migration.md) で再定義した。
 
 ## 関連 ADR
 
@@ -91,6 +93,8 @@ home-manager の既定（store へコピーして read-only symlink を張る）
 | A | home-manager standalone 導入。静的 symlink を Nix 側にも定義し、`setup.sh` と共存させる。パッケージは neovim / jq / ghostty-bin から始める | ○ |
 | B | `setup-manifest.yml` / `configs/fish/setup.sh` から移管済み symlink を削除。fish 本体を Nix へ（`chsh` 経路の切替を伴う） | × |
 | C | docker / colima（VM 状態を持つため慎重に）、remote / linux profile への展開 | × |
+
+> Phase B / C の内訳は [ADR-085](085-nix-phase-b-manifest-migration.md) で再定義した。fish 本体の移行は symlink 移管とはリスクの質が異なるため Phase B から外し、Phase C に送っている。
 
 Phase A では既存の symlink 定義を**一切削らない**。同じリンクを両者が主張する状態を作り、`home-manager switch` と `setup.sh --dry-run` の両方が OK になることを確認してから Phase B に進む。Nix 側が壊れても `setup.sh` 単独で従来通り動く状態を保つのが、この段階の設計目標である。
 

@@ -19,15 +19,16 @@
   #   - GNU tools（ggrep/gsed/gtar/gawk/gfind/gdate）: nixpkgs の gnugrep 等は `grep` と
   #     いう名前で PATH に入り BSD 版を上書きしてしまう。g-prefix 共存は Homebrew の方が
   #     素直なので移さない（設計案 A-4）
-  # パッケージは一度に入れず、まず jq 1 つで PATH の並びを実測する。
-  # Homebrew 版・macOS 標準版との二重化が起きたときにどちらが勝つかは、activate の
-  # dry-run では分からない（ADR-084 知見 3: dry-run の出力は実際の適用結果と異なる）。
-  # jq は setup.sh がマニフェスト解析に多用するため、壊れればすぐ分かるという点でも
-  # 先行投入に向く。
-  #
-  # 残りの検証済み定義（eval / build 成功、PATH 順を確認してから戻す）:
-  #   neovim
-  #   ghostty-bin  # nixpkgs の `ghostty` は Darwin で broken（xcodebuild が Nix 環境で
-  #                # 動かない）ため、公式 .dmg を再パッケージした ghostty-bin を使う
-  home.packages = with pkgs; [ jq ];
+  # ADR-084 知見 8: ~/.nix-profile/bin は PATH の最先頭（aqua は 7 位、Homebrew は
+  # 19 位）なので、ここに入れたものは aqua / Homebrew を無条件に上書きする。
+  # aqua が提供するコマンド名と衝突させないこと（nix/check-parity.py が検査する）。
+  home.packages = with pkgs; [
+    jq
+    neovim
+  ] ++ lib.optionals pkgs.stdenv.isDarwin [
+    # nixpkgs の `ghostty` は Darwin で broken（xcodebuild が Nix 環境で動かない）ため、
+    # 公式 .dmg を再パッケージした ghostty-bin を使う。GUI 本体は
+    # ~/Applications/Home Manager Apps/ に置かれ、手動インストール版とは別インスタンスになる。
+    ghostty-bin
+  ];
 }

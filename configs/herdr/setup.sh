@@ -62,7 +62,13 @@ else
 fi
 
 # 対象エージェント。手元で使うものだけに絞る（`herdr integration status` で全一覧）。
-AGENTS=(claude codex)
+# codex は linux profile（Docker e2e 等）では導入されないため、CLI が PATH にある場合
+# だけ対象にする。full profile では manifest 上 codex コンポーネントが herdr より先に
+# 実行されるので、この時点で codex は入っている。
+AGENTS=(claude)
+if command -v codex >/dev/null 2>&1; then
+    AGENTS+=(codex)
+fi
 
 # `herdr integration status` の行頭は "<agent>: current (vN) (<path>)" /
 # "<agent>: not installed (<path>)" 形式。current 以外は install が必要。
@@ -122,7 +128,10 @@ for agent in "${AGENTS[@]}"; do
     if is_current "$agent" "$status_out"; then
         echo "  herdr integration ${agent}: wiring missing in $(wiring_file "$agent"), re-installing..."
     fi
-    if herdr integration install "$agent" >/dev/null 2>&1; then
+    # 失敗時の原因が分かるよう stderr は握りつぶさず残す（CI で "install failed" だけが
+    # 出て原因が追えない状態だったため）
+    install_out=""
+    if install_out="$(herdr integration install "$agent" 2>&1)"; then
         echo "  herdr integration ${agent}: installed"
         # herdr は JSON を書き戻す際に末尾改行を落とすため補う（差分ノイズ抑制）
         for f in "$HOME/.codex/hooks.json" "$HOME/.claude/settings.json"; do
@@ -130,6 +139,7 @@ for agent in "${AGENTS[@]}"; do
         done
     else
         echo "  herdr integration ${agent}: ✗ install failed"
+        [[ -n "$install_out" ]] && echo "$install_out" | sed 's/^/    /'
         exit 1
     fi
 done

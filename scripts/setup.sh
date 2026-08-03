@@ -185,6 +185,14 @@ for component in $COMPONENT_LIST; do
         for i in $(seq 0 $((symlink_count - 1))); do
             link_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].link')
             target_rel=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].target')
+
+            # nix_managed: true のエントリは Nix 対象 profile では home-manager が張るので
+            # setup.sh は触らない（ADR-085）。Nix 非対象の profile では従来どおり張る。
+            nix_managed=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" --argjson i "$i" '.components[$c].symlinks[$i].nix_managed // false')
+            if [[ "$nix_managed" == "true" ]] && is_nix_profile "$PROFILE"; then
+                continue
+            fi
+
             link_path=$(expand_path "$link_rel")
             target_abs="$DOTFILES_DIR/$target_rel"
             display_name=$(basename "$link_rel")
@@ -215,7 +223,9 @@ for component in $COMPONENT_LIST; do
         setup_abs="$DOTFILES_DIR/$setup_script"
         echo -e "  Delegating to $setup_script..."
 
-        setup_env=("SETUP_INTERACTIVE=$INTERACTIVE")
+        # SETUP_PROFILE: component setup は独立起動されるため、profile 判定に使う値を渡す
+        # （ADR-085: full では dotfiles 管理分の symlink を home-manager に委ねる）
+        setup_env=("SETUP_INTERACTIVE=$INTERACTIVE" "SETUP_PROFILE=$PROFILE")
         setup_args_json=$(echo "$MANIFEST_JSON" | jq -r --arg c "$component" '.components[$c].setup_args // empty')
         if [[ -n "$setup_args_json" && "$setup_args_json" != "null" ]]; then
             while IFS='=' read -r key value; do
