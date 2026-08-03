@@ -1305,7 +1305,7 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 
 Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Phase B（`setup-manifest.yml` からの移管済みエントリ削除・fish 本体の移行）と Phase C（docker/colima・remote/linux profile）は別 ADR で扱う。
 
-> **⚠ 実機の現状（master 取り込み前）**: 検証のため実機で activate 済みで、`~/` 配下の 53 本は既に Nix 管理の三段リンクになっている。`scripts/lib/path.sh` の判定修正がまだ master に無いため、**master の `scripts/setup.sh` を非 dry-run で実行すると 53 本すべてを `WRONG TARGET` と誤判定して一段リンクに張り替える**（実害は無いが Nix 側の管理が外れる）。master 取り込みまでは master 側 `setup.sh` の非 dry-run 実行を避ける。
+> **実機の現状**: 検証のため実機で activate 済みで、`~/` 配下の 53 本は Nix 管理の三段リンクになっている。`scripts/lib/path.sh` の判定修正により `setup.sh` はこれを `WRONG TARGET` と誤判定しない（この修正が無い状態で `setup.sh` を非 dry-run 実行すると、53 本すべてが一段リンクに張り替えられて Nix 側の管理が外れる）。`~/.vimrc` のみ `profiles.full` から外して Nix 単独管理にしてある。
 
 **受け入れ条件**:
 
