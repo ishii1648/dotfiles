@@ -105,18 +105,38 @@ if ! $DRY_RUN; then
     mkdir -p "$HOME/.config/fish/conf.d" "$HOME/.config/fish/functions"
 fi
 
-# completions はディレクトリ symlink のまま（dotfiles 管理のみ）
-check_or_link "$HOME/.config/fish/completions" "$SCRIPT_DIR/completions" "completions"
+# ADR-085: Nix 対象 profile（現状 full のみ）では dotfiles 管理分の symlink を
+# home-manager が張るため setup.sh は触らない。Nix 非対象の profile（remote / linux）は
+# 従来どおりここで全て張る。
+NIX_MANAGED=false
+if is_nix_profile "${SETUP_PROFILE:-full}"; then
+    NIX_MANAGED=true
+fi
 
-# conf.d 個別 symlink（共通ファイルのみ）
-for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish \
-          herdr-ssh-tab.fish path.fish ssh-agent.fish; do
-    check_or_link "$HOME/.config/fish/conf.d/$f" "$SCRIPT_DIR/conf.d/$f" "conf.d/$f"
-done
+if ! $NIX_MANAGED; then
+    # completions はディレクトリ symlink のまま（dotfiles 管理のみ）
+    check_or_link "$HOME/.config/fish/completions" "$SCRIPT_DIR/completions" "completions"
 
-# functions 個別 symlink（tracked ファイルのみ）
+    # conf.d 個別 symlink（共通ファイルのみ）
+    for f in aliases.fish completions.fish env.fish fzf-fish-config.fish fzf.fish \
+              herdr-ssh-tab.fish path.fish ssh-agent.fish; do
+        check_or_link "$HOME/.config/fish/conf.d/$f" "$SCRIPT_DIR/conf.d/$f" "conf.d/$f"
+    done
+fi
+
+# functions 個別 symlink
+# tracked（dotfiles が管理する共通関数）は full では home-manager が張る。
+# untracked（.gitignore 済みの端末固有関数: __* / claude.fish / fable.fish）は flake
+# source に含まれず Nix 側に現れないため、profile を問わずここで張る（ADR-085）。
+tracked_functions=""
+if $NIX_MANAGED; then
+    tracked_functions=$(git -C "$SCRIPT_DIR/functions" ls-files 2>/dev/null || true)
+fi
 for f in "$SCRIPT_DIR/functions"/*.fish; do
     name=$(basename "$f")
+    if $NIX_MANAGED && grep -qxF "$name" <<<"$tracked_functions"; then
+        continue
+    fi
     check_or_link "$HOME/.config/fish/functions/$name" "$f" "functions/$name"
 done
 
@@ -125,9 +145,11 @@ done
 # rename するため symlink が実ファイルに置き換わり、symlink 管理が維持できない。
 # 実機では 2026-07-05 以降 symlink が剥がれたまま dotfiles 側（空ファイル）と乖離し、
 # setup.sh --dry-run が NOT A SYMLINK で失敗し続けていた。
-for f in config.fish fish_plugins; do
-    check_or_link "$HOME/.config/fish/$f" "$SCRIPT_DIR/$f" "$f"
-done
+if ! $NIX_MANAGED; then
+    for f in config.fish fish_plugins; do
+        check_or_link "$HOME/.config/fish/$f" "$SCRIPT_DIR/$f" "$f"
+    done
+fi
 
 # デフォルトシェルを fish に設定
 FISH_PATH=$(command -v fish 2>/dev/null || true)

@@ -1,21 +1,22 @@
 #!/usr/bin/env python3
-# ADR: ADR-084
-# Purpose: nix/symlinks.nix と既存 setup 定義（setup-manifest.yml / configs/*/setup.sh）の
-#          symlink が同一パス・同一ターゲットであることを検証する。
+# ADR: ADR-084, ADR-085
+# Purpose: nix/symlinks.nix と setup.sh 側の symlink 定義の整合を検証する。
 #
-# ADR-084 Phase A は「Nix と setup.sh の共存」が前提であり、両者が同じ symlink を主張して
-# いることが正しさの条件になる。Phase B で manifest 側を削除する際も、削除前後でこの
-# スクリプトを実行して差分が意図通りであることを確認する。
+# ADR-085 以降、full profile の symlink は home-manager が張り、setup.sh は
+# setup-manifest.yml の `nix_managed: true` を見てスキップする。両者の定義がずれると
+# full profile でリンクが張られない（Nix 側に無いのに setup.sh もスキップする）ため、
+# 静的に検査する。
 #
 # 使い方: python3 nix/check-parity.py [--quiet]
-# 終了コード: 0 = 一致（意図的除外を除く） / 1 = 差分あり
+# 終了コード: 0 = 整合 / 1 = 差分あり
 #
-# NOTE: .gitignore 済みの端末固有ファイル（configs/fish/functions/__* など）は
-#       git worktree 内には存在しないため、実機の差分を見るには main worktree で実行する。
+# NOTE: .gitignore 済みの端末固有 fish 関数（configs/fish/functions/__* など）は
+#       git worktree 内には存在しないため、実機の差分は main worktree で確認する。
 
 import glob
 import os
 import re
+import subprocess
 import sys
 
 import yaml
@@ -23,23 +24,31 @@ import yaml
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 QUIET = "--quiet" in sys.argv
 
-# nix 側が意図的に管理しない link → 理由
-# fish_variables はここではなく setup.sh 側からも外した（ADR-084 知見 6）。fish が
-# set -U のたびに rename で書き換えるため、どちらのレイヤでも symlink を維持できない。
-INTENTIONAL_NIX_EXCLUDES = {}
+# configs/fish/setup.sh が full profile で home-manager に委ねる conf.d ファイル
+FISH_CONFD = [
+    "aliases.fish", "completions.fish", "env.fish", "fzf-fish-config.fish",
+    "fzf.fish", "herdr-ssh-tab.fish", "path.fish", "ssh-agent.fish",
+]
+# 同じく fish のルートファイル
+# （fish_variables は両レイヤとも管理しない。ADR-084 知見 6）
+FISH_ROOT_FILES = ["config.fish", "fish_plugins"]
 
-# full profile の manifest から外して home-manager に移管済みの link → 理由
-# remote / linux profile は Nix の対象外なので manifest 側に定義が残っている点に注意。
-MIGRATED_TO_NIX = {
-    ".vimrc": "ADR-084 Phase A の先行検証で full profile から移管",
-}
 
-# flake source は git tracked のみを含むため、nix 側に現れない端末固有 fish 関数
-LOCAL_FISH_FUNCTIONS = ("claude.fish", "fable.fish")
+def tracked_fish_functions():
+    """git が追跡している fish 関数名の集合。判定不能なら None。"""
+    d = os.path.join(ROOT, "configs/fish/functions")
+    try:
+        out = subprocess.run(
+            ["git", "-C", d, "ls-files"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return None
+    return {line.strip() for line in out.splitlines() if line.strip().endswith(".fish")}
 
 
 def nix_symlinks():
-    """nix/symlinks.nix から (link, target) を抽出する。"""
+    """nix/symlinks.nix が定義する (link, target)。"""
     src = open(os.path.join(ROOT, "nix", "symlinks.nix")).read()
     pairs = {
         m.group(1): m.group(2)
@@ -52,67 +61,65 @@ def nix_symlinks():
     for name in re.findall(r'"([^"]+)"', confd.group(1)):
         pairs[f".config/fish/conf.d/{name}"] = f"configs/fish/conf.d/{name}"
 
+    tracked = tracked_fish_functions()
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/fish/functions/*.fish"))):
         name = os.path.basename(path)
-        if name.startswith("__") or name in LOCAL_FISH_FUNCTIONS:
+        # flake source は git tracked のみを含むため、端末固有関数は nix 側に現れない
+        if tracked is not None and name not in tracked:
             continue
         pairs[f".config/fish/functions/{name}"] = f"configs/fish/functions/{name}"
     return pairs
 
 
-def is_local_fish_function(name):
-    """.gitignore 済みの端末固有 fish 関数か（ADR-012 / ADR-020）。
-
-    setup.sh は実ディレクトリを glob するのでこれらも symlink するが、flake source は
-    git tracked のみを含むため Nix 側には現れない。dotfiles が管理する共通設定ではない
-    ので、parity の比較対象からは両側とも外す。
-    """
-    return name.startswith("__") or name in LOCAL_FISH_FUNCTIONS
-
-
 def setup_symlinks():
-    """setup-manifest.yml（full profile）と configs/*/setup.sh の symlink を再現する。
+    """setup.sh 側の定義を full profile 視点で 3 つに分類する。
 
-    戻り値は (pairs, local_only) で、local_only は比較対象から外した端末固有 fish 関数。
+    戻り値 (nix_expected, sh_only, local_only):
+      nix_expected: full では home-manager が張るべきもの（manifest の nix_managed: true
+                    と、configs/{fish,claude}/setup.sh が full でスキップする分）
+      sh_only:      full でも setup.sh が張り続けるもの
+      local_only:   端末固有 fish 関数（.gitignore 済み。両レイヤの比較対象外）
     """
     with open(os.path.join(ROOT, "scripts", "setup-manifest.yml")) as f:
         manifest = yaml.safe_load(f)
 
-    pairs = {}
+    nix_expected, sh_only = {}, {}
     for comp in manifest["profiles"]["full"]:
         for s in (manifest["components"].get(comp) or {}).get("symlinks", []) or []:
-            pairs[s["link"].replace("~/", "")] = s["target"]
+            link = s["link"].replace("~/", "")
+            (nix_expected if s.get("nix_managed") else sh_only)[link] = s["target"]
 
-    # configs/fish/setup.sh
-    for name in [
-        "aliases.fish", "completions.fish", "env.fish", "fzf-fish-config.fish",
-        "fzf.fish", "herdr-ssh-tab.fish", "path.fish", "ssh-agent.fish",
-    ]:
-        pairs[f".config/fish/conf.d/{name}"] = f"configs/fish/conf.d/{name}"
+    # configs/fish/setup.sh: full では conf.d / completions / ルートファイル /
+    # tracked な functions を home-manager に委ねる（ADR-085）
+    for name in FISH_CONFD:
+        nix_expected[f".config/fish/conf.d/{name}"] = f"configs/fish/conf.d/{name}"
+    for name in FISH_ROOT_FILES:
+        nix_expected[f".config/fish/{name}"] = f"configs/fish/{name}"
+    nix_expected[".config/fish/completions"] = "configs/fish/completions"
+
+    tracked = tracked_fish_functions()
     local_only = []
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/fish/functions/*.fish"))):
         name = os.path.basename(path)
-        if is_local_fish_function(name):
+        if tracked is not None and name not in tracked:
             local_only.append(name)
             continue
-        pairs[f".config/fish/functions/{name}"] = f"configs/fish/functions/{name}"
-    for name in ["config.fish", "fish_plugins"]:
-        pairs[f".config/fish/{name}"] = f"configs/fish/{name}"
-    pairs[".config/fish/completions"] = "configs/fish/completions"
+        nix_expected[f".config/fish/functions/{name}"] = f"configs/fish/functions/{name}"
 
-    # configs/claude/setup.sh（skills の個別 symlink）
+    # configs/claude/setup.sh: full では dotfiles 由来 skill を home-manager に委ねる
     for path in sorted(glob.glob(os.path.join(ROOT, "configs/claude/skills/*/"))):
         name = os.path.basename(path.rstrip("/"))
-        pairs[f".claude/skills/{name}"] = f"configs/claude/skills/{name}"
-    return pairs, local_only
+        nix_expected[f".claude/skills/{name}"] = f"configs/claude/skills/{name}"
+
+    return nix_expected, sh_only, local_only
 
 
 def path_collisions():
-    """Nix profile と aqua が同名コマンドを提供していないか検査する（ADR-084 知見 8）。
+    """Nix profile と aqua が同名コマンドを提供していないか（ADR-084 知見 8）。
 
     Determinate Nix は ~/.nix-profile/bin を PATH の最先頭に置くため、同名のコマンドが
     あると aqua のバージョン固定が黙って無効になる。実機でしか検査できないので、
-    両ディレクトリが揃っていない環境（CI 等）では空リストを返してスキップする。
+    両ディレクトリが揃っていない環境（CI 等）では None を返してスキップする。
     """
     nix_bin = os.path.expanduser("~/.nix-profile/bin")
     aqua_bin = os.path.expanduser("~/.local/share/aquaproj-aqua/bin")
@@ -123,43 +130,47 @@ def path_collisions():
 
 def main():
     nix = nix_symlinks()
-    sh, local_only = setup_symlinks()
+    nix_expected, sh_only, local_only = setup_symlinks()
     collisions = path_collisions()
 
-    mismatch = {k: (sh[k], nix[k]) for k in sh if k in nix and sh[k] != nix[k]}
-    only_sh = {k: v for k, v in sh.items() if k not in nix}
-    only_nix = {k: v for k, v in nix.items() if k not in sh and k not in MIGRATED_TO_NIX}
-    missing = {k: v for k, v in nix.items() if not os.path.exists(os.path.join(ROOT, v))}
-    unexpected_sh = {k: v for k, v in only_sh.items() if k not in INTENTIONAL_NIX_EXCLUDES}
+    mismatch = {k: (v, nix[k]) for k, v in nix_expected.items()
+                if k in nix and v != nix[k]}
+    missing_in_nix = {k: v for k, v in nix_expected.items() if k not in nix}
+    extra_in_nix = {k: v for k, v in nix.items() if k not in nix_expected}
+    double_defined = {k: v for k, v in sh_only.items() if k in nix}
+    missing_target = {k: v for k, v in nix.items()
+                      if not os.path.exists(os.path.join(ROOT, v))}
 
-    failed = bool(mismatch or only_nix or missing or unexpected_sh or collisions)
+    failed = bool(mismatch or missing_in_nix or extra_in_nix
+                  or double_defined or missing_target or collisions)
 
     if not QUIET or failed:
-        print(f"nix: {len(nix)} links / setup.sh(full): {len(sh)} links")
+        print(f"nix: {len(nix)} links / nix に委ねる想定: {len(nix_expected)}"
+              f" / setup.sh が張り続ける: {len(sh_only)}")
         for k, (a, b) in sorted(mismatch.items()):
-            print(f"  MISMATCH: {k}\n    setup.sh: {a}\n    nix:      {b}")
-        for k, v in sorted(unexpected_sh.items()):
-            print(f"  NOT MIGRATED: {k} -> {v}")
-        for k, v in sorted(only_nix.items()):
-            print(f"  NIX ONLY: {k} -> {v}")
-        for k, v in sorted(missing.items()):
+            print(f"  MISMATCH: {k}\n    setup.sh 側: {a}\n    nix 側:      {b}")
+        for k, v in sorted(missing_in_nix.items()):
+            print(f"  MISSING IN NIX: {k} -> {v}"
+                  "（setup.sh は full でスキップするので誰も張らない）")
+        for k, v in sorted(extra_in_nix.items()):
+            print(f"  EXTRA IN NIX: {k} -> {v}（setup.sh 側に対応する定義がない）")
+        for k, v in sorted(double_defined.items()):
+            print(f"  DOUBLE DEFINED: {k} -> {v}"
+                  "（nix_managed: true を付けるか nix 側から外す）")
+        for k, v in sorted(missing_target.items()):
             print(f"  TARGET MISSING: {v} (link: {k})")
-        for k in sorted(set(only_sh) & set(INTENTIONAL_NIX_EXCLUDES)):
-            print(f"  excluded by design: {k}  # {INTENTIONAL_NIX_EXCLUDES[k]}")
-        for k in sorted(set(nix) & set(MIGRATED_TO_NIX)):
-            print(f"  migrated to nix: {k}  # {MIGRATED_TO_NIX[k]}")
-        for name in sorted(local_only):
-            print(f"  local only (setup.sh のみが張る): configs/fish/functions/{name}")
         for name in collisions or []:
             print(f"  PATH COLLISION: {name} が Nix profile と aqua の両方にある"
-                  f"（Nix が PATH 上で優先され aqua のバージョン固定が無効化される）")
+                  "（Nix が PATH 上で優先され aqua のバージョン固定が無効化される）")
+        for name in sorted(local_only):
+            print(f"  local only (setup.sh のみが張る): configs/fish/functions/{name}")
         if collisions is None and not QUIET:
             print("  （PATH 衝突検査: skip — Nix profile / aqua のどちらかが未導入）")
 
     if failed:
         return 1
     if not QUIET:
-        print("OK: 意図的除外を除いて一致")
+        print("OK: nix と setup.sh の symlink 定義は整合している")
     return 0
 
 

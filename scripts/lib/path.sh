@@ -40,3 +40,10 @@ symlink_points_to() {
 is_nix_managed_link() {
     [[ "$(readlink "$1" 2>/dev/null)" == /nix/store/* ]]
 }
+
+# home-manager が symlink 配置を担当する profile か（ADR-085）。
+# Phase B 時点では darwin の full profile のみが対象。remote / linux は Nix 非対象なので
+# setup.sh が従来どおり全ての symlink を張る（Phase C でこの集合を広げる）。
+is_nix_profile() {
+    [[ "${1:-full}" == "full" ]]
+}

@@ -10,6 +10,13 @@ if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
 fi
 
+# ADR-085: Nix 対象 profile（現状 full のみ）では dotfiles 由来 skill の symlink を
+# home-manager が張るため setup.sh は触らない。
+NIX_MANAGED=false
+if is_nix_profile "${SETUP_PROFILE:-full}"; then
+    NIX_MANAGED=true
+fi
+
 # --- dotfiles 管理キーの同期 ---
 # SYNC_KEYS: source の値で全置換するキー
 SYNC_KEYS=("hooks" "statusLine")
@@ -96,7 +103,9 @@ if [[ -L "$SKILLS_DEST" && -d "$SKILLS_DEST" ]]; then
     fi
 fi
 
-if [[ -d "$SKILLS_SRC" ]]; then
+if $NIX_MANAGED; then
+    echo "  skill symlink: SKIP (home-manager 管理: profile=${SETUP_PROFILE:-full})"
+elif [[ -d "$SKILLS_SRC" ]]; then
     if [[ "$DRY_RUN" == "true" ]]; then
         shopt -s nullglob
         for skill_dir in "$SKILLS_SRC"/*/; do

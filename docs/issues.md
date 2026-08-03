@@ -73,7 +73,8 @@
 | ✔ | ○ | claude | default worktree が非 default branch のまま放置される事故が別リポジトリでも再発し、linked worktree は自由に branch を切替できるため worktree:branch の 1:1 対応が保証されていなかった — hook を全 worktree に拡張し、CLAUDE.md の「main worktree に居座る」例外を stash ベースの手順に置き換える | [ADR-082](adr/082-pin-every-worktree-to-single-branch.md) |
 | - | ○ | fish | worktree の削除が手動ルーティン（`gw_rm`）任せで放置され際限なく溜まる（ADR-081 で実測 224 個） — 作成から72時間超の worktree をマージ状態問わず launchd で無条件自動削除する | [ADR-083](adr/083-worktree-launchd-auto-cleanup.md) |
 | - | ○ | git | `setup-github-ssh.sh` の SSH 接続テストが認証成功時も常に WARN になる — `set -o pipefail` 下で `ssh -T git@github.com` が終了コード 1 を返すため `grep -q` の一致がパイプ全体の非0で打ち消される | — |
-| - | ○ | 複合 | `setup.sh` の symlink 配置・パッケージ導入層が Nix の機能縮小版になっている — 静的 symlink とパッケージ導入は home-manager に譲り、`setup.sh` は mutable 設定と外部インストーラの層に縮退させる（aqua はバージョン固定用途で残す） | [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md) |
+| ✔ | ○ | 複合 | `setup.sh` の symlink 配置・パッケージ導入層が Nix の機能縮小版になっている — 静的 symlink とパッケージ導入は home-manager に譲り、`setup.sh` は mutable 設定と外部インストーラの層に縮退させる（aqua はバージョン固定用途で残す） | [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md) |
+| - | ○ | 複合 | Phase A で symlink が home-manager と `setup.sh` の二重定義になっている — full profile に限って `setup.sh` 側の定義を削除する。remote/linux は Nix 非対象なので profile 出し分けと端末固有 fish 関数の保全が必要 | [ADR-085](adr/085-nix-phase-b-manifest-migration.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1342,4 +1343,40 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 - [ ] `tests/static-analysis.bats` が PASS する（Nix 導入で既存スクリプトを壊していないこと。ローカルに bats 未インストールのため、同テストが行う `bash -n` / `fish -n` と `nix/check-parity.py --quiet` を直接実行して確認済み。bats 自体は CI の Docker e2e で実行される）
 - [ ] Docker e2e（`--profile linux`）が引き続き PASS する（Nix はスコープ外なので影響しないこと）
 - [ ] 撤退可能性: `home-manager` を削除した状態でも `bash scripts/setup.sh` 単独で従来通りセットアップが完走する
-- [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）
+- [ ] 移行後の総行数が減っている見込みが立つ（Phase B で削除できる `setup-manifest.yml` / `configs/fish/setup.sh` / `configs/claude/setup.sh` の行数を実測し、Nix 側の増分と比較する。**増えるなら Spike は却下**）→ ADR-085 完了後に評価する
+
+---
+
+### herdr: codex 未導入環境で integration install に失敗し Docker e2e が落ち続けていた
+
+**コンポーネント**: herdr | **ADR**: —
+
+`configs/herdr/setup.sh` は `AGENTS=(claude codex)` を固定で対象にしていたが、codex CLI は `linux` profile に含まれない（`configs/codex/setup.sh` は full/remote のみ）。そのため Docker e2e では `herdr integration install codex` が失敗し、`setup.sh` が exit 1 で終わっていた。エラー出力を `>/dev/null 2>&1` で握りつぶしていたため、CI では `✗ install failed` としか出ず原因が追えなかった。ADR-084/085 の作業以前から CI は全て failure だった。
+
+**受け入れ条件**:
+
+- [x] codex CLI が PATH にある場合のみ `AGENTS` に codex を含める（full profile では manifest 上 codex コンポーネントが herdr より先に実行されるため影響しない）
+- [x] `herdr integration install` の失敗時に stderr の内容を表示する（原因追跡のため握りつぶさない）
+- [x] Docker e2e（`--profile linux`）が PASS する（`setup.sh --non-interactive` が `All OK (created/fixed: 14)`、`--dry-run` が `All OK (14 checked)`、bats 12 件すべて ok）
+
+---
+
+### ADR-085: full profile の symlink 定義を setup.sh から home-manager へ移管する（Phase B）
+
+**コンポーネント**: 複合 | **ADR**: [ADR-085](adr/085-nix-phase-b-manifest-migration.md)
+
+ADR-084 Phase A で生じた symlink の二重定義を、full profile に限って解消する。fish 本体の移行と docker/colima は Phase C（別 ADR）。
+
+**受け入れ条件**:
+
+- [ ] `setup-manifest.yml` の `symlinks` が `nix_managed: true` を受け付け、full profile ではスキップされる
+- [ ] remote / linux profile では `nix_managed: true` のエントリも従来どおり symlink が張られる（Nix はこれらの profile を対象にしないため）
+- [ ] `scripts/setup.sh` が component setup スクリプトに `SETUP_PROFILE` を渡し、`configs/fish/setup.sh` / `configs/claude/setup.sh` がそれを読んで挙動を切り替える
+- [ ] `configs/fish/setup.sh` の functions ループが `git ls-files` で tracked/untracked を判定し、**tracked（dotfiles 管理）は full でスキップ・untracked（端末固有）は profile を問わず張る**
+- [ ] 実機（main worktree, full profile）で `~/.config/fish/functions/claude.fish` / `fable.fish` が引き続き symlink として存在する（ADR-084 知見 7 の課題 2 が解消されていること）
+- [ ] `nix/check-parity.py` が `nix_managed: true` を正として突合する（`MIGRATED_TO_NIX` のハードコードを廃止し、manifest とコードの整合を機械的に保つ）
+- [ ] full profile で `bash scripts/setup.sh --dry-run` が `All OK` になる（Nix が張ったリンクを setup.sh が二重に主張しない）
+- [ ] full profile で `bash scripts/setup.sh`（非 dry-run）を実行しても Nix 管理の symlink が張り替えられない
+- [ ] `--profile linux` の Docker e2e が PASS する（remote/linux では従来どおり全 symlink が張られること）
+- [ ] `tests/static-analysis.bats` 相当の構文チェック（`bash -n` / `fish -n`）が PASS する
+- [ ] 撤退可能性: home-manager を削除しても、`--profile remote` 相当の経路で全 symlink を復元できる手段が残っている
