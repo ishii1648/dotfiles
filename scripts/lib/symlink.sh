@@ -58,11 +58,11 @@ ensure_symlink() {
     fi
 
     # リンク先が正しいかチェック
+    # home-manager が張った二段リンク（/nix/store 経由）も最終解決先が一致すれば OK
+    # とみなす（ADR-084 Phase A の共存条件。scripts/lib/path.sh 参照）
     local actual_target
     actual_target=$(readlink "$link_path")
-    local expected_normalized="${expected_target%/}"
-    local actual_normalized="${actual_target%/}"
-    if [[ "$actual_normalized" != "$expected_normalized" ]]; then
+    if ! symlink_points_to "$link_path" "$expected_target"; then
         if $DRY_RUN; then
             echo -e "  ${YELLOW}$name${NC}\t✗ WRONG TARGET"
             echo "    Current:  $actual_target"
@@ -78,7 +78,11 @@ ensure_symlink() {
         return
     fi
 
-    # OK
-    echo -e "  ${GREEN}$name${NC}\t✓ OK"
+    # OK（どちらのレイヤが張ったリンクか分かるように出し分ける）
+    if is_nix_managed_link "$link_path"; then
+        echo -e "  ${GREEN}$name${NC}\t✓ OK (nix)"
+    else
+        echo -e "  ${GREEN}$name${NC}\t✓ OK"
+    fi
     ok_count=$((ok_count + 1))
 }

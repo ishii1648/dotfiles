@@ -12,6 +12,7 @@
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
 | Claude Code skills | `configs/claude/skills/` | codex-sync（skill を Codex CLI にも展開） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
+| Nix (home-manager) | `flake.nix` / `nix/` | 静的 symlink 配置と OS レベルパッケージの宣言（Spike 中、[ADR-084](adr/084-nix-home-manager-package-symlink-layer.md)） |
 
 ### 管理対象外（別リポジトリ）
 
@@ -29,7 +30,8 @@
 | editor | Neovim (lazy.nvim) | `configs/nvim/` |
 | shell | Fish | `configs/fish/` |
 | coding agent | Claude Code | `configs/claude/` |
-| package manager | aqua | `aqua.yaml` |
+| package manager (バージョン固定 CLI) | aqua | `aqua.yaml` |
+| package manager (OS レベル) | Homebrew → Nix (home-manager) へ移行中 | `nix/home.nix` / `scripts/lib/deps-macos.sh` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
 ## 並列スケール開発アーキテクチャ（廃止）

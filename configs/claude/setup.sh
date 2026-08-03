@@ -2,6 +2,9 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
+# symlink_points_to / is_nix_managed_link（ADR-084: home-manager の二段リンク対応）
+source "$SCRIPT_DIR/../../scripts/lib/path.sh"
+
 DRY_RUN="${DRY_RUN:-false}"
 if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
@@ -99,7 +102,7 @@ if [[ -d "$SKILLS_SRC" ]]; then
         for skill_dir in "$SKILLS_SRC"/*/; do
             skill_name=$(basename "$skill_dir")
             link="$SKILLS_DEST/$skill_name"
-            if [[ -L "$link" && "$(readlink "$link")" == "$skill_dir" ]]; then
+            if [[ -L "$link" ]] && symlink_points_to "$link" "$skill_dir"; then
                 echo "  skill symlink: ✓ OK ($skill_name)"
             elif [[ -L "$link" ]]; then
                 echo "  skill symlink: WARN: $skill_name → wrong target"
@@ -114,7 +117,7 @@ if [[ -d "$SKILLS_SRC" ]]; then
         for skill_dir in "$SKILLS_SRC"/*/; do
             skill_name=$(basename "$skill_dir")
             link="$SKILLS_DEST/$skill_name"
-            if [[ -L "$link" && "$(readlink "$link")" == "$skill_dir" ]]; then
+            if [[ -L "$link" ]] && symlink_points_to "$link" "$skill_dir"; then
                 echo "  skill symlink: ✓ OK ($skill_name)"
             elif [[ -L "$link" ]]; then
                 rm "$link"
