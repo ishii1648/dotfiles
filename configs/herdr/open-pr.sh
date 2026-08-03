@@ -1,32 +1,32 @@
 #!/usr/bin/env bash
-# herdr custom command (prefix+u): statusline に表示中の PR をブラウザで開く
+# herdr custom command (prefix+u): このセッションで読み込み・作成した PR/URL を
+# 一覧表示して選んで開く（tmux-sidebar 時代の tmux-fzf-pr-popup 後継）
 #
-# 照合は pane_id 一本。statusline.js が HERDR_PANE_ID（herdr が pane のシェルに
-# 与え、Claude Code 経由で statusline まで継承される）をキーに表示中 PR を
-# /tmp/gh-pr-pane-<pane_id> へ書き出すので、フォーカス中 pane の pane_id で
-# 直読みする。pane_id は `herdr pane current` が常に返すフィールドであり、
-# 旧実装が使っていた agent_session（SessionStart hook の配線が消えると報告されず
-# 全滅する）や cwd 推測（foreground_cwd が MCP サーバー等の無関係な cwd を拾う）の
-# ような追加配線・ヒューリスティクスを必要としない。
-# キャッシュが無い pane（Claude Code が動いていない素のシェル等）だけ
-# gh pr view へフォールバックする。
+# 旧 tmux 版は capture-pane したスクロールバック全域を正規表現で URL スクレイプ
+# していた。herdr でも同じ方式が使える: `gh pr create`/`gh pr view` は URL を
+# プレーンテキストで出すため、OSC 8 ハイパーリンクの復元不可（ADR-076 spike で
+# 既知）は無関係。`herdr pane read --format text` は ANSI 除去済みのプレーン
+# テキストを返すため、旧版が capture-pane -e の CSI/OSC を perl で剥がしていた
+# 手間も不要になった。
 #
-# type = "shell" でバックグラウンド実行されるため stdout は誰も見ない。
-# フィードバック手段が二重になっているのは意図的:
-#   - notification: 即時に気づける。ただし config.toml の [ui.toast] delivery = "off"
-#     では何も出ないため、これ単独では成否を判別できない。
-#   - ログ: delivery 設定に依存せず必ず残る。失敗時の切り分けはこちらを見る。
+# 制約: `herdr pane read` はスクロールバックが実測で約 1000 行にクランプされる
+# （--lines を増やしても伸びない）。長いセッションでは古い PR がこの窓の外に
+# 出て一覧に現れないことを許容する（hook で gh pr コマンドを追跡する方式は
+# 実装コストに見合わないとして不採用。docs/issues.md 参照）。
+#
+# type = "popup" はコマンドが終わるまで全入力（Esc 含む）を受け取るモーダル端末
+# なので fzf をそのまま動かせる。構成は configs/herdr/agent-picker.sh と同型。
 set -euo pipefail
 
 # herdr サーバから起動されるため、PATH はログインシェル（fish）のものと一致する保証がない。
-# gh は aqua 管理なので明示的に前置する（ADR-077/079 の new-workspace.sh / agent-picker.sh と同型）。
+# fzf / gh は aqua 管理なので明示的に前置する（ADR-077/079 の new-workspace.sh / agent-picker.sh と同型）。
 export PATH="$HOME/.local/share/aquaproj-aqua/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
-# aqua の bin は proxy なので、実体の解決には設定ファイルが要る。フォールバックの
-# gh pr view は呼び出し元ペインの cwd で走るため、dotfiles 以外の repo でも aqua が
-# 解決できるようグローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
+# aqua の bin は proxy なので、実体の解決には設定ファイルが要る。gh pr view フォールバックは
+# 呼び出し元ペインの cwd で走るため、dotfiles 以外の repo でも aqua が解決できるよう
+# グローバル設定を明示して cwd 非依存にする（既に環境にあれば尊重）。
 export AQUA_GLOBAL_CONFIG="${AQUA_GLOBAL_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
 # AQUA_GLOBAL_CONFIG だけでは cwd 非依存にならない: aqua は cwd から辿ったローカル
-# aqua.yaml も探索してマージするため、呼び出し元 repo が同名パッケージ（gh 等）を
+# aqua.yaml も探索してマージするため、呼び出し元 repo が同名パッケージ（gh / fzf 等）を
 # 別バージョンで固定していると、そちらが優先解決されてしまう。AQUA_CONFIG で
 # dotfiles の aqua.yaml 1 本に固定し、cwd 方向の探索自体を無効化する。
 export AQUA_CONFIG="${AQUA_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
@@ -38,17 +38,23 @@ log() {
     printf '%s %s\n' "$(date '+%Y-%m-%dT%H:%M:%S%z')" "$1" >>"$LOG_FILE" 2>/dev/null || true
 }
 
-notify() {
-    local title="$1"
-    shift
-    local body="${1:-}"
-    log "${title}: ${body:-ok}"
-    if [[ -n "$body" ]]; then
-        herdr notification show "$title" --body "$body" --sound none >/dev/null 2>&1 || true
-    else
-        herdr notification show "$title" --sound none >/dev/null 2>&1 || true
-    fi
+# popup はコマンド終了と同時に閉じるため、そのまま exit するとメッセージが一瞬で消える。
+# キー入力があるまで表示を保持する（configs/herdr/agent-picker.sh と同型）。
+notice() {
+    log "notice: $1"
+    printf '\n%s\n\n何かキーを押すと閉じます...' "$1"
+    read -r -n1 -s || true
+    exit 0
 }
+
+die() {
+    log "error: $1"
+    printf '\n\033[31merror:\033[0m %s\n\n何かキーを押すと閉じます...' "$1" >&2
+    read -r -n1 -s || true
+    exit 1
+}
+
+command -v fzf >/dev/null 2>&1 || die "fzf が見つかりません (PATH=$PATH)"
 
 # --- フォーカス中 pane を特定 ---
 pane_id=""
@@ -73,31 +79,78 @@ print(pane.get("cwd") or "")
         read -r pane_cwd || true
     } <<<"$pane_fields"
 fi
+[[ -n "$pane_id" ]] || die "フォーカス中の pane を特定できませんでした"
 
-# --- PR URL を解決 ---
-# 1) statusline が書いた pane_id キャッシュ（表示中の PR と完全一致・ネットワーク不要）
-# 2) gh pr view（Claude Code が動いていない pane 向け。foreground_cwd → cwd →
-#    HERDR_ACTIVE_PANE_CWD の順に試す）
-pr_url=""
-if [[ -n "$pane_id" ]]; then
-    pane_cache="/tmp/gh-pr-pane-${pane_id//[!A-Za-z0-9_-]/_}"
-    if [[ -f "$pane_cache" ]]; then
-        pr_url=$(cut -d' ' -f2 <"$pane_cache")
-    fi
+# --- 候補 URL を集める（先着優先で重複除去。表示順が優先度） ---
+# 1) statusline が書いた pane_id キャッシュ（表示中の PR。ネットワーク不要・最優先）
+# 2) gh pr view フォールバック（Claude Code が動いていない pane 向け）
+# 3) スクロールバックのスクレイプ（このセッションで読み込み・作成した PR/URL 全般）
+candidates=()
+
+pane_cache="/tmp/gh-pr-pane-${pane_id//[!A-Za-z0-9_-]/_}"
+if [[ -f "$pane_cache" ]]; then
+    cache_url=$(cut -d' ' -f2 <"$pane_cache")
+    [[ -n "$cache_url" ]] && candidates+=("\033[32m★ 現在のPR\033[0m  $cache_url")
 fi
 
-if [[ -z "$pr_url" ]]; then
+if [[ ${#candidates[@]} -eq 0 ]]; then
     for candidate in "$foreground_cwd" "$pane_cwd" "${HERDR_ACTIVE_PANE_CWD:-}"; do
         [[ -z "$candidate" || ! -d "$candidate" ]] && continue
-        pr_url=$(cd "$candidate" && gh pr view --json url -q .url 2>/dev/null || true)
-        [[ -n "$pr_url" ]] && break
+        gh_url=$(cd "$candidate" && gh pr view --json url -q .url 2>/dev/null || true)
+        if [[ -n "$gh_url" ]]; then
+            candidates+=("\033[32m★ 現在のPR\033[0m  $gh_url")
+            break
+        fi
     done
 fi
 
-if [[ -z "$pr_url" ]]; then
-    notify 'herdr-open-pr' "PR が見つかりません: pane_id=${pane_id:-<unset>} cwd=${foreground_cwd:-${pane_cwd:-${HERDR_ACTIVE_PANE_CWD:-<unset>}}}"
-    exit 0
+scrollback=$(herdr pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
+if [[ -n "$scrollback" ]]; then
+    while IFS= read -r url; do
+        [[ -n "$url" ]] && candidates+=("  $url")
+    done < <(
+        printf '%s' "$scrollback" \
+            | grep -oE 'https?://[^[:space:]<>"'"'"'(){}]+' \
+            | sort -u || true
+    )
 fi
+
+[[ ${#candidates[@]} -gt 0 ]] || notice "PR/URL が見つかりません（pane_id=$pane_id）"
+
+# 表示行の末尾フィールド（URL）で重複除去。先に追加したもの（pane キャッシュ由来）を優先する。
+items=$(
+    printf '%b\n' "${candidates[@]}" | awk '
+        {
+            stripped = $0
+            gsub(/\033\[[0-9;]*[a-zA-Z]/, "", stripped)
+            n = split(stripped, fields, /[ \t]+/)
+            url = fields[n]
+            if (url != "" && !seen[url]++) print
+        }
+    '
+)
+
+# --- 選択 ---
+# fzf の終了コードは 1（候補なし）/ 130（Esc・Ctrl+C）だけをキャンセルとして扱う。
+# `|| exit 0` で一括に握り潰すと起動失敗まで「キャンセル」になり、popup が無言で閉じる
+# （configs/herdr/new-workspace.sh の教訓、ADR-077）。
+set +e
+selected=$(printf '%s\n' "$items" | fzf \
+    --ansi \
+    --multi \
+    --header='enter: open (複数選択可 tab)  esc/ctrl-c: cancel' \
+    --reverse --height=100% --border=none 2>>"$LOG_FILE")
+fzf_status=$?
+set -e
+case "$fzf_status" in
+    0) ;;
+    1 | 130)
+        log "fzf cancelled (exit=$fzf_status)"
+        exit 0
+        ;;
+    *) die "fzf が異常終了しました (exit=$fzf_status)。詳細は $LOG_FILE" ;;
+esac
+[[ -n "$selected" ]] || exit 0
 
 # --- 開く ---
 if command -v open >/dev/null 2>&1; then
@@ -105,9 +158,13 @@ if command -v open >/dev/null 2>&1; then
 elif command -v xdg-open >/dev/null 2>&1; then
     opener=xdg-open
 else
-    notify 'herdr-open-pr' 'opener (open / xdg-open) がありません'
-    exit 1
+    die 'opener (open / xdg-open) がありません'
 fi
 
-log "open: $pr_url (pane_id=${pane_id:-<unset>})"
-"$opener" "$pr_url"
+while IFS= read -r line; do
+    url=$(printf '%s' "$line" | sed -E 's/\x1b\[[0-9;]*[a-zA-Z]//g' | awk '{print $NF}')
+    if [[ -n "$url" ]]; then
+        log "open: $url (pane_id=$pane_id)"
+        "$opener" "$url"
+    fi
+done <<<"$selected"

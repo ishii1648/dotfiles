@@ -1099,6 +1099,10 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 - [x] Cmd+U を pane_id キャッシュに単純化し、herdr integration（hooks 配線）非依存にする: session_id 照合は「pane → session の対応付け」を SessionStart hook の配線に依存しており、配線が消えると全滅する構造的な弱点が残る。statusline.js は herdr が pane のシェルに与える `HERDR_PANE_ID` を Claude Code 経由で継承しているので、これをキーに `/tmp/gh-pr-pane-<pane_id>` へ表示中 PR を書き出し、`open-pr.sh` は `herdr pane current --current` の `pane_id`（`agent_session` と異なり常に存在するフィールド）で直読みする。session_id キャッシュ（`/tmp/gh-pr-session-*`）と cwd md5 キャッシュ（`/tmp/gh-pr-<md5>`）は廃止し、フォールバックは `gh pr view`（foreground_cwd → cwd → HERDR_ACTIVE_PANE_CWD の順）だけ残す
 - [x] statusline.js: PR 表示なし（ブランチに PR が無い）のとき pane キャッシュを削除し、古い PR を開かない
 - [x] open-pr.sh: pane キャッシュがヒットしない pane（Claude Code が動いていない素のシェル等）でも `gh pr view` フォールバックで PR を解決できる
+- [x] `prefix+u` を tmux-sidebar 時代の `tmux-fzf-pr-popup` 相当の一覧 popup に統一する: `type = "shell"`（即時 1 件 open）から `type = "popup"` へ変更し、フォーカス中 pane の `herdr pane read --source recent-unwrapped --format text` でスクロールバックをスクレイプして URL を正規表現抽出、statusline の pane キャッシュが持つ現在の PR を先頭に固定した上で fzf multi-select（`--ansi --multi`）に渡し、選択した URL を開く。旧 tmux 版と異なり OSC 8 ハイパーリンクの復元は不要（`gh` は URL をプレーンテキストで出力するため）だが、`herdr pane read` はスクロールバックが約 1000 行でクランプされる制約があり、長いセッションでは古い PR が窓の外に出て拾えないことを許容する（screen scrape 方式を選択、hook 方式は不採用）
+- [x] 一覧に URL が 1 件も無い場合、popup は即座に閉じずメッセージを表示してキー入力を待つ（`herdr-agent-picker.sh` の `notice()` と同型）
+- [x] fzf を Esc / Ctrl+C でキャンセルすると何も開かずに popup が閉じる
+- [ ] 実機: Cmd+U（`prefix+u`）で popup が開き、一覧から選んだ PR/URL がブラウザで開く（`herdr server reload-config` で config 反映後に確認）
 - [x] herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（`\x00D` は `prefix+shift+d` ではなく `prefix+d` として処理される）。ghostty から到達させるアクションは `prefix+<小文字>` のみを使う
 - [x] Cmd+D（ghostty から `\x00d` = `prefix+d`）で `close_workspace` が起動し、フォーカス中の space（サイドバーで選択中の space）だけを閉じる
 - [x] `prefix+d` を空けるため `detach` は herdr 既定の `prefix+q` へ退避した
