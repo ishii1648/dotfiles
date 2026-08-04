@@ -107,5 +107,24 @@ if [ -n "$existing" ]; then
 fi
 
 log "create $selected (label=$label)"
-"$HERDR_BIN" workspace create --cwd "$selected" --label "$label" --focus >/dev/null ||
+create_json=$("$HERDR_BIN" workspace create --cwd "$selected" --label "$label" --focus) ||
     die "workspace create --cwd $selected に失敗しました"
+
+# --- 新規 pane に claude を自動起動する（ADR-086） ---
+# workspace create のレスポンス JSON に新規 pane の pane_id がそのまま乗っている
+# （実測確認済み、追加の api snapshot 問い合わせは不要）。agent 名は live agent 間で
+# 一意である必要があり（複数 workspace で同時に claude を起動する運用があるため固定
+# 文字列は使えない）、作成直後の時点で必ず一意な pane_id から組み立てる。claude の
+# 自動起動に失敗しても workspace 自体は既に使える状態なので die() は呼ばず、ログに
+# warn を残すだけにする。
+pane_id=$(printf '%s' "$create_json" | jq -r '.result.root_pane.pane_id // empty')
+if [ -n "$pane_id" ]; then
+    agent_name="claude-$(printf '%s' "$pane_id" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
+    if "$HERDR_BIN" agent start "$agent_name" --kind claude --pane "$pane_id" >>"$LOG_FILE" 2>&1; then
+        log "agent start claude ok (pane=$pane_id name=$agent_name)"
+    else
+        log "warn: agent start claude failed (pane=$pane_id name=$agent_name)"
+    fi
+else
+    log "warn: pane_id not found in workspace create response"
+fi

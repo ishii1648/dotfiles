@@ -75,6 +75,7 @@
 | - | ○ | git | `setup-github-ssh.sh` の SSH 接続テストが認証成功時も常に WARN になる — `set -o pipefail` 下で `ssh -T git@github.com` が終了コード 1 を返すため `grep -q` の一致がパイプ全体の非0で打ち消される | — |
 | ✔ | ○ | 複合 | `setup.sh` の symlink 配置・パッケージ導入層が Nix の機能縮小版になっている — 静的 symlink とパッケージ導入は home-manager に譲り、`setup.sh` は mutable 設定と外部インストーラの層に縮退させる（aqua はバージョン固定用途で残す） | [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md) |
 | - | ○ | 複合 | Phase A で symlink が home-manager と `setup.sh` の二重定義になっている — full profile に限って `setup.sh` 側の定義を削除する。remote/linux は Nix 非対象なので profile 出し分けと端末固有 fish 関数の保全が必要 | [ADR-085](adr/085-nix-phase-b-manifest-migration.md) |
+| - | ○ | herdr | `prefix+p` で herdr space（workspace）を新規作成しても claude session が自動起動されず毎回手動で `claude` を打っている — `workspace create` レスポンスの pane_id を使って `herdr agent start` を呼ぶ | [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1394,3 +1395,18 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 | 端末固有 fish 関数 | `claude.fish` / `fable.fish` が dotfiles 実体への symlink として存続 |
 | Docker e2e（linux profile） | setup 完走 `created/fixed: 14` → dry-run `All OK (14 checked)` → bats **12/12 ok** |
 | `nix/check-parity.py` | 53/53 整合、端末固有 2 件は local only として報告 |
+
+---
+
+### ADR-086: herdr の workspace 新規作成時に claude session を自動起動する
+
+**コンポーネント**: herdr | **ADR**: [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md)
+
+**受け入れ条件**:
+
+- [x] `herdr workspace create` のレスポンス JSON に新規 pane の `pane_id` が含まれることを実機で確認した（`.result.root_pane.pane_id`。テスト用 workspace を作成後 `herdr workspace close` で後片付け済み）
+- [x] `configs/herdr/new-workspace.sh` が新規 workspace 作成時（既存 workspace への focus 分岐は対象外）に `herdr agent start <name> --kind claude --pane <pane_id>` を呼ぶ
+- [x] `<name>` は pane_id から導出され、複数 workspace で同時に claude を起動しても名前が衝突しない
+- [x] `agent start` が失敗しても `die()` は呼ばれず、ログに warn を残した上で popup は通常どおり閉じる（workspace 自体は使える状態のまま残る）
+- [x] `bash -n configs/herdr/new-workspace.sh` が構文エラーなく通過する
+- [ ] 実機: `prefix+p` で未使用の repo を選ぶと、新規 workspace の pane で claude session が自動的に起動する（実際に claude を起動する e2e 確認は、新規 claude session を立ち上げる副作用があるためユーザー確認の上で実施する）
