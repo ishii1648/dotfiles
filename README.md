@@ -60,10 +60,10 @@ bash <端末固有リポジトリ>/setup.sh
 # 前提: Nix 本体のインストール（https://nixos.org/download / Determinate Systems installer）
 
 # 初回（home-manager コマンドがまだ無い場合）
-nix run home-manager/master -- switch --flake .#sho@darwin -b hmbk
+nix run home-manager/master -- switch --flake .#sho-ishii@darwin -b hmbk
 
 # 2 回目以降（programs.home-manager.enable により ~/.nix-profile/bin に入る）
-home-manager switch --flake .#sho@darwin
+home-manager switch --flake .#sho-ishii@darwin
 
 # symlink 定義が setup.sh 側と一致しているか、Nix と aqua でコマンド名が衝突していないかの検証
 python3 nix/check-parity.py

@@ -23,7 +23,6 @@
   # 19 位）なので、ここに入れたものは aqua / Homebrew を無条件に上書きする。
   # aqua が提供するコマンド名と衝突させないこと（nix/check-parity.py が検査する）。
   home.packages = with pkgs; [
-    jq
     neovim
   ] ++ lib.optionals pkgs.stdenv.isDarwin [
     # nixpkgs の `ghostty` は Darwin で broken（xcodebuild が Nix 環境で動かない）ため、

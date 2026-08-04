@@ -1313,6 +1313,10 @@ Phase 2 以降の受け入れ条件は、herdr の運用感を得てから追記
 Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Phase B（`setup-manifest.yml` からの移管済みエントリ削除・fish 本体の移行）と Phase C（docker/colima・remote/linux profile）は別 ADR で扱う。
 
 > **実機の現状**: 検証のため実機で activate 済みで、`~/` 配下の 53 本は Nix 管理の三段リンクになっている。`scripts/lib/path.sh` の判定修正により `setup.sh` はこれを `WRONG TARGET` と誤判定しない（この修正が無い状態で `setup.sh` を非 dry-run 実行すると、53 本すべてが一段リンクに張り替えられて Nix 側の管理が外れる）。`~/.vimrc` のみ `profiles.full` から外して Nix 単独管理にしてある。
+>
+> **実マシン（sho-ishii@darwin）への初回ロールアウトで判明した差分**（Phase A スパイクの検証環境では顕在化しなかった）:
+> - `flake.nix` の `username` がスパイク環境の値 `"sho"` のままハードコードされており、実際の macOS ユーザー名 `sho-ishii` と不一致だった（`home-manager switch` が `USER is "sho-ishii", expected "sho"` で activation 前に失敗）。`username = "sho-ishii"` に修正し、flake output 名 `homeConfigurations."sho-ishii@darwin"` および README.md のコマンド例を合わせて更新した
+> - `jq` を `home.packages` に入れた状態で `nix/check-parity.py` を実行すると、この実マシンでは `~/.local/share/aquaproj-aqua/bin` 側にも `jq` が存在し PATH 衝突（ADR-084 知見 8 が警告していたケース）が実際に発生した。line 1339 の「現状 jq は aqua 側に無く衝突なし」はスパイク環境限定の観測であり、本番機では成立しなかった。aqua 側のバージョン固定を優先するため `jq` を `home.packages` から除外した（`neovim` / `ghostty-bin` のみ Nix 管理を継続）
 
 **受け入れ条件**:
 
