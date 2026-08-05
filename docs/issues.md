@@ -1467,5 +1467,6 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] `nix/symlinks.nix` と `scripts/setup-manifest.yml` の双方に `~/.local/bin/herdr-pull-default-branch` が定義され、`nix/check-parity.py` が整合を報告する（55 links）
 - [x] `bash -n` が両スクリプトで構文エラーなく通過する
 - [x] ADR-087 のモックテスト 8 件がログディレクトリ修正後も PASS する（回帰なし）
-- [ ] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-pull-default-branch` の symlink が作られ、実行可能である
-- [ ] 実機: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）
+- [x] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-pull-default-branch` の symlink が作られ、実行可能である
+- [x] 実機（スクリプト直接実行）: 配置後の `~/.local/bin/herdr-pull-default-branch` を dotfiles repo に対して実行し、exit 0 かつログに `pulled master` が残ることを確認した
+- [ ] 実機（herdr 経由）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）
