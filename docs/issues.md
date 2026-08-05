@@ -1321,6 +1321,14 @@ Phase A（home-manager と `setup.sh` の共存）のみを対象とする。Pha
 > **実マシン（sho-ishii@darwin）への初回ロールアウトで判明した差分**（Phase A スパイクの検証環境では顕在化しなかった）:
 > - `flake.nix` の `username` がスパイク環境の値 `"sho"` のままハードコードされており、実際の macOS ユーザー名 `sho-ishii` と不一致だった（`home-manager switch` が `USER is "sho-ishii", expected "sho"` で activation 前に失敗）。`username = "sho-ishii"` に修正し、flake output 名 `homeConfigurations."sho-ishii@darwin"` および README.md のコマンド例を合わせて更新した
 > - `jq` を `home.packages` に入れた状態で `nix/check-parity.py` を実行すると、この実マシンでは `~/.local/share/aquaproj-aqua/bin` 側にも `jq` が存在し PATH 衝突（ADR-084 知見 8 が警告していたケース）が実際に発生した。line 1339 の「現状 jq は aqua 側に無く衝突なし」はスパイク環境限定の観測であり、本番機では成立しなかった。aqua 側のバージョン固定を優先するため `jq` を `home.packages` から除外した（`neovim` / `ghostty-bin` のみ Nix 管理を継続）
+>
+> **知見 9: `username` は 1 台に固定できない**。上記の `"sho"` → `"sho-ishii"` 修正は会社 mac を通す代わりに個人 mac（ユーザー名 `sho`）を switch 不能にした（`USER is "sho", expected "sho-ishii"` で activation 前に失敗）。home-manager は activation 冒頭で `$USER` と `home.username` の一致を検証するため、どちらか 1 つにハードコードする限り必ず片方が壊れる。`usernames = [ "sho" "sho-ishii" ]` から `builtins.listToAttrs` で両方の output を生成し、各マシンは `--flake .#$(whoami)@darwin` で自分の output を選ぶ形にした（`dotfilesDir` は `/Users/${username}/...` なので username に追従する）。
+
+**受け入れ条件（ADR-084 追補: マシン別 username）**:
+
+- [x] `nix eval .#homeConfigurations --apply builtins.attrNames` が `[ "sho-ishii@darwin" "sho@darwin" ]` を返す
+- [x] 個人 mac（`whoami` = `sho`）で `home-manager switch --flake .#sho@darwin` が activation まで通り、pull 済みの新規 symlink（`~/.local/bin/herdr-new-default-worktree` / `herdr-pull-default-branch`）が張られる
+- [x] README のコマンド例をユーザー名非依存（`.#$(whoami)@darwin`）にする
 
 **受け入れ条件**:
 
