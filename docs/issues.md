@@ -1409,4 +1409,6 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] `<name>` は pane_id から導出され、複数 workspace で同時に claude を起動しても名前が衝突しない
 - [x] `agent start` が失敗しても `die()` は呼ばれず、ログに warn を残した上で popup は通常どおり閉じる（workspace 自体は使える状態のまま残る）
 - [x] `bash -n configs/herdr/new-workspace.sh` が構文エラーなく通過する
-- [x] 実機: `prefix+p` 相当の実処理（`herdr workspace create --cwd <repo> --label <label> --focus` → `herdr agent start <name> --kind claude --pane <pane_id>`）を `kubernetes/dns` repo で実行し、新規 workspace の pane で claude session が実際に起動することを確認した（`agent_status: idle`, `interactive_ready: true`, `terminal_title: "claude ~/g/g/k/dns"` を実機確認）
+- [x] 実機（CLI 直接実行、popup 外）: `prefix+p` 相当の実処理（`herdr workspace create --cwd <repo> --label <label> --focus` → `herdr agent start <name> --kind claude --pane <pane_id>`）を `kubernetes/dns` repo で実行し、新規 workspace の pane で claude session が実際に起動することを確認した（`agent_status: idle`, `interactive_ready: true`, `terminal_title: "claude ~/g/g/k/dns"` を実機確認）。**この検証方法は不十分だった**: 同じ手順を実際に `Cmd+Shift+S`（popup 経由）で実行するとユーザー環境で毎回 `agent_pane_busy` エラーになり自動起動しなかった。popup 外からの CLI 直接実行では何度再現を試みても失敗せず、popup 経由でのみ発生する
+- [x] `agent_pane_busy` 失敗時に `agent start` を最大 10 回・0.5 秒間隔でリトライする
+- [ ] 実機（popup 経由）: `Cmd+Shift+S` で未使用の repo を選び、新規 workspace の pane で claude session が実際に自動起動する（前回の CLI 直接実行では再現しなかった failure mode のため、popup 経由でのユーザー確認が必須）

@@ -49,7 +49,6 @@ herdr 0.7.5 の CLI を調査した結果、以下が判明した：
 
 - **agent の `NAME` は `pane_id` から導出する**: `NAME` は live agent 間で一意である必要があり、複数 workspace で同時に claude を起動する運用がある以上、固定文字列（`claude` 等）は使えない。新規 pane の `pane_id`（例 `wF:p1`）は作成直後の時点で必ず一意なので、コロンを除去し小文字化した `claude-wfp1` のような名前を組み立てる
 - **`agent start` の失敗は fatal にしない**: `workspace create` は既に成功しており、workspace 自体は使える状態になっている。claude の自動起動に失敗しても（herdr 側の一時的な不調、pane がまだプロンプトに達していない等）、ユーザーはそのまま手で `claude` を起動すれば足りる。既存の `die()`（popup を閉じずエラー表示してキー入力待ち）は使わず、ログに warn を残すだけで popup は通常どおり閉じる
-- **`agent start` はブロッキング呼び出しのまま使う**: デフォルト timeout 30 秒で pane がシェルプロンプトに達するのを待つ仕様（`--timeout` オプション）があるため、新規 pane 起動直後の競合状態（シェルの起動が終わっていない）は herdr 側の待機ロジックに委ねられる。popup 側で追加の `sleep` は挟まない
 - **既存 workspace への `focus` 分岐では起動しない**: 同じ repo の workspace が既にある場合は `herdr workspace focus` のみを行う分岐が既存実装にある。既存 workspace には他の作業状態が残っている可能性があるため、新規作成時（`workspace create` 実行時）のみ claude を自動起動する
 
 ## 変更が必要なファイル
@@ -57,6 +56,18 @@ herdr 0.7.5 の CLI を調査した結果、以下が判明した：
 | ファイル | 変更内容 |
 |---|---|
 | `configs/herdr/new-workspace.sh` | `workspace create` のレスポンス JSON から `pane_id` を取り出し、`herdr agent start <name> --kind claude --pane <pane_id>` を追加で呼ぶ |
+
+## 実機投入後に判明した問題と対処
+
+初回実装では `agent start` を `--timeout`（デフォルト 30 秒）の待機ロジックに任せれば pane 起動直後の競合は吸収されると判断し、追加の待機を入れなかった。実際に `Cmd+Shift+S` から使ったところ、毎回 `{"error":{"code":"agent_pane_busy","message":"agent target pane wK:p1 is not an available shell"}}` で失敗した（`~/.local/state/herdr/new-workspace.log` で確認）。
+
+原因調査:
+
+- 同じ `workspace create --focus` → 即 `agent start` の順序を、popup の外（このセッションの Bash ツール）から手動で再現したところ、`/tmp` でも実際に問題が起きた `aws-infra` repo でも**毎回即成功**し、再現しなかった
+- 差分は「`type = "popup"`（モーダル端末）の中から呼んでいるか」のみに見える。popup がまだ端末を専有している間は新規 pane 側のシェルが対話可能状態に達しない、popup 固有のタイミング問題と推測されるが、herdr のドキュメントに `agent_pane_busy` の説明や回避策の記載はなく、確証は取れていない
+- `--timeout` は「pane が対話可能になるまで待つ」仕様だが、`agent_pane_busy` は待機に入らず即座にエラー応答を返しており、`--timeout` ではこの失敗パターンを吸収できないことが実測で判明した（設計時の想定が誤りだった）
+
+対処: `agent start` の呼び出し自体を最大 10 回・0.5 秒間隔でリトライするループに変更した（対症療法。herdr 側の根本原因は未確認）。
 
 ## 受け入れ条件
 → [issues.md](../issues.md)（ADR-086 セクション）
