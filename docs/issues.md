@@ -1472,4 +1472,6 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] 実機（herdr 経由）で pull が全く走らない不具合を修正した。原因は herdr が popup クローズ時にプロセスグループへ SIGHUP を送ること。`&` + `disown` だけの素のバックグラウンド起動はスクリプトの 1 行目に到達する前に死ぬためログすら残らなかった（同じ場所の `launch_claude_retry` が無事なのは冒頭で `trap '' HUP` しているから、という差分から切り分けた）
 - [x] 呼び出しを `( trap '' HUP; exec <script> <arg> ) &` の形にし、プロセスグループへ SIGHUP を送る再現実験で pull が完走し HEAD が前進することを確認した（素の起動では死亡、`trap` 付きでは生存も併せて実測）
 - [x] pull 起動の stderr を `/dev/null` ではなくログへ落とす（今回「ログが無い」以外の手掛かりが無く切り分けに時間を要したため）
-- [ ] 実機（herdr 経由・再確認）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）
+- [x] 実機（herdr 経由・再確認）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（ログに clusterops / aws-infra の `pulled master` が残ることを確認）
+- [x] 「pane に何も出力しない」ことが ADR の設計判断として明文化されている。実装当初は結果的にそうなっていただけで判断として書かれておらず、利用者から「pull が実行されているように見えない」と問われて発覚した。あわせて可観測性をログに一本化する要件と、`cd` せず `git -C <path>` で操作する理由も追記した
+- [x] ログの読み方（`pulled` / `skip:` / `warn:`）と確認コマンドが `docs/reference.md` に記載されている（ADR は「なぜ」、reference.md は「今の全体像」という役割分担に従い、運用情報は reference.md 側に置く）

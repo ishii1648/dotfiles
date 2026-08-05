@@ -48,6 +48,28 @@ Ghostty 起動時に herdr が起動する（`command = ~/.local/bin/herdr`）�
 | リポジトリ内の並列 | git worktree（`gw_add` で作成、herdr の `prefix+shift+g` / `prefix+shift+o` でも操作可能） |
 | エージェント単位 | `prefix+a`（Cmd+A）のエージェントピッカーで一覧を j/k で辿って移動（[ADR-079](adr/079-agent-picker-popup.md)）。番号指定は `prefix+alt+1..9` |
 
+### space / tab を開いたときの自動処理
+
+`Cmd+Shift+S`（repo ピッカー）・`Cmd+T`（新しい tab）・`prefix+shift+n`（新しい workspace）では、開くのと同時に以下が自動で走る。
+
+| 処理 | 内容 | ADR |
+|---|---|---|
+| default worktree で開く | linked worktree に居ても、repo のメインチェックアウトを cwd にする | [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md) |
+| claude 自動起動 | 新しい pane で Claude Code を起動（repo ピッカー経由のみ） | [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md) |
+| default branch を pull | `git pull --ff-only origin <default branch>` | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
+
+**自動 pull は pane に何も表示されない。** pane のシェルに入力するのではなく独立プロセスとして走るため（画面を占有せず、popup のクローズや claude 起動を待たせないための設計）、確認はログで行う。
+
+```fish
+tail -5 ~/.local/state/herdr/pull-default-branch.log
+```
+
+| ログの行 | 意味 |
+|---|---|
+| `pulled <branch> (dir=...)` | 成功 |
+| `skip: <理由> (dir=...)` | 意図的なスキップ（linked worktree / default branch 以外に居る / `origin` remote が無い / git 管理外） |
+| `warn: ...` | 失敗（fast-forward できない等）。space / tab 自体は使えるので処理は続行される |
+
 ## 主要な運用フロー
 
 ### Worktree 管理 — `gw_add` / `gw_cd` / `gw_rm`
