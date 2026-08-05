@@ -43,14 +43,14 @@ ADR-082 の運用（worktree と branch を 1:1 に保ち、作業ごとに link
 
 ## 設計上の判断
 
-- **解決は `--git-common-dir` の親**: linked worktree からでも共有 `.git`（= default worktree の `.git`）を返すため、その親が default worktree になる。default worktree 自身から呼んだ場合も同じパスに解決されるので冪等。`.git` で終わらない場合（bare repo は repo ディレクトリ自身、submodule は `.git/modules/<name>`）は前提が崩れるため、解決せず呼び出し元の cwd をそのまま使う
-- **git 管理外では従来どおり**: repo の外で押した場合は解決に失敗するので、呼び出し元の cwd をそのまま使う（`new_cwd = "follow"` と同じ挙動）
-- **呼び出し元 cwd は pane の `cwd` を使う**: `foreground_cwd` は「pane 内の何らかの foreground 子プロセスの cwd」に過ぎず、Claude Code が spawn した MCP サーバーの一時ディレクトリや linked worktree を拾うことが実測で分かっている（ADR-076）。カスタムコマンドには `HERDR_ACTIVE_PANE_CWD` も渡るが、それが `cwd` / `foreground_cwd` のどちらに対応するかは未確認なので、`herdr pane get` の `cwd` を一次情報にし、`HERDR_ACTIVE_PANE_CWD` → `$PWD` の順でフォールバックする
-- **`type = "shell"` を使う**: UI を出さない一発コマンドなので popup は不要。detach 実行で TTY を持たないため、`new-workspace.sh` の `die()`（キー入力待ちでエラーを見せる）は使えず、原因追跡はログ（`~/.local/state/herdr/new-default-worktree.log`）に委ねる
-- **1 スクリプトを引数で分岐する**: カスタムコマンドの文字列は `/bin/sh -lc` 経由で実行されるため引数を渡せる（公式ドキュメントで確認）。`tab` / `workspace` で共通するのは cwd 解決部分なので、スクリプトを 2 本に分けず引数で切り替える
-- **workspace モードは常に新規作成する**: 組み込みの `new_workspace` と同じ挙動を保つ。同名 workspace があれば focus する ADR-077 のピッカーとは意図的に振る舞いが異なる
-- **pane 分割は対象外**: `split_vertical` / `split_horizontal` は「今の作業の続きを隣に開く」用途なので、cwd 継承のままが正しい
-- **claude の自動起動はしない**: ADR-086 の自動起動は repo ピッカー経由の workspace 作成に紐づく。本 ADR の経路に広げるかは別の判断なので、今回は付けない
+- **解決は `--git-common-dir` の親** — linked worktree からでも共有 `.git`（= default worktree の `.git`）を返すため、その親が default worktree になる。default worktree 自身から呼んだ場合も同じパスに解決されるので冪等。`.git` で終わらない場合（bare repo は repo ディレクトリ自身、submodule は `.git/modules/<name>`）は前提が崩れるため、解決せず呼び出し元の cwd をそのまま使う
+- **git 管理外では従来どおり** — repo の外で押した場合は解決に失敗するので、呼び出し元の cwd をそのまま使う（`new_cwd = "follow"` と同じ挙動）
+- **呼び出し元 cwd は pane の `cwd` を使う** — `foreground_cwd` は「pane 内の何らかの foreground 子プロセスの cwd」に過ぎず、Claude Code が spawn した MCP サーバーの一時ディレクトリや linked worktree を拾うことが実測で分かっている（ADR-076）。カスタムコマンドには `HERDR_ACTIVE_PANE_CWD` も渡るが、それが `cwd` / `foreground_cwd` のどちらに対応するかは未確認なので、`herdr pane get` の `cwd` を一次情報にし、`HERDR_ACTIVE_PANE_CWD` → `$PWD` の順でフォールバックする
+- **`type = "shell"` を使う** — UI を出さない一発コマンドなので popup は不要。detach 実行で TTY を持たないため、`new-workspace.sh` の `die()`（キー入力待ちでエラーを見せる）は使えず、原因追跡はログ（`~/.local/state/herdr/new-default-worktree.log`）に委ねる
+- **1 スクリプトを引数で分岐する** — カスタムコマンドの文字列は `/bin/sh -lc` 経由で実行されるため引数を渡せる（公式ドキュメントで確認）。`tab` / `workspace` で共通するのは cwd 解決部分なので、スクリプトを 2 本に分けず引数で切り替える
+- **workspace モードは常に新規作成する** — 組み込みの `new_workspace` と同じ挙動を保つ。同名 workspace があれば focus する ADR-077 のピッカーとは意図的に振る舞いが異なる
+- **pane 分割は対象外** — `split_vertical` / `split_horizontal` は「今の作業の続きを隣に開く」用途なので、cwd 継承のままが正しい
+- **claude の自動起動はしない** — ADR-086 の自動起動は repo ピッカー経由の workspace 作成に紐づく。本 ADR の経路に広げるかは別の判断なので、今回は付けない
 
 ## 変更が必要なファイル
 

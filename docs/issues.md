@@ -78,6 +78,7 @@
 | - | ○ | herdr | `prefix+p` で herdr space（workspace）を新規作成しても claude session が自動起動されず毎回手動で `claude` を打っている — `workspace create` レスポンスの pane_id を使って `herdr agent start` を呼ぶ | [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md) |
 | - | ○ | herdr | linked worktree に居ると新しい tab / space まで linked worktree で開く — `new_cwd = "follow"` に「repo の default worktree」の選択肢が無いため、組み込み `new_tab` / `new_workspace` を cwd 解決付きの `[[keys.command]]` に差し替える | [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md) |
 | - | ○ | herdr | space / tab を開いたあと毎回手で `git pull origin <default branch>` を叩いている — 自動化チェーン（repo 選択 → space/tab → claude 起動）の最後に pull まで含める | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
+| ✔ | ○ | docs | ADR のリスト書式が textlint 指摘（強調 + コロン）を全体で踏んでいる — 30 本・128 箇所を太字 + em ダッシュに統一し、規約を `adr-reference` skill に明記する | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1475,3 +1476,22 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] 実機（herdr 経由・再確認）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（ログに clusterops / aws-infra の `pulled master` が残ることを確認）
 - [x] 「pane に何も出力しない」ことが ADR の設計判断として明文化されている。実装当初は結果的にそうなっていただけで判断として書かれておらず、利用者から「pull が実行されているように見えない」と問われて発覚した。あわせて可観測性をログに一本化する要件と、`cd` せず `git -C <path>` で操作する理由も追記した
 - [x] ログの読み方（`pulled` / `skip:` / `warn:`）と確認コマンドが `docs/reference.md` に記載されている（ADR は「なぜ」、reference.md は「今の全体像」という役割分担に従い、運用情報は reference.md 側に置く）
+
+---
+
+### ADR のリスト書式を太字 + em ダッシュに統一する
+
+**コンポーネント**: docs | **ADR**: —
+
+textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル**: 説明` を「強調とコロンの組み合わせが機械的」として指摘する。ADR 全体で常態化していたため一括で移行する。ADR 本文の意味は変えず、区切り記号だけを置き換える。
+
+**受け入れ条件**:
+
+- [x] 置換後の書式が textlint を通ることを、候補3種（太字+emダッシュ / 太字なし+コロン / 太字+句点）を実際に lint して確認したうえで採用案を決めた
+- [x] `docs/adr/` 全 30 ファイル・128 箇所が `- **ラベル** — 説明` に統一されている（同一行に説明がある 122 箇所）
+- [x] ネストしたリストの見出し行（`- **利点**:` のようにコロンが行末）はコロンを落とすだけにする（6 箇所）。textlint はこの形も指摘するため対象に含める
+- [x] コードフェンス内は書き換えない（書式例やスクリプトが壊れるため）
+- [x] 置換で行が失われていない（全ファイルで置換前後の行数が一致し、`git diff --stat` が 128 挿入 / 128 削除で釣り合う）
+- [x] 128 行すべてが「区切り記号のみの変更」で本文が保存されている（逆変換して元ファイルと突き合わせ、不一致 0 件）
+- [x] `docs/adr/` に `- **ラベル**: ` パターンが 1 件も残っていない
+- [x] `adr-reference` skill にリスト項目の書式規約を明記し、新規 ADR で元の形式に戻らないようにした

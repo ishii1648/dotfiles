@@ -25,9 +25,9 @@ sre-docs リポジトリで作業中、default worktree（main worktree、`~/ghq
 
 `configs/claude/scripts/block-main-worktree-branch-switch.py` を `block-worktree-branch-switch.py` にリネームし、判定ロジックを拡張する。
 
-- **main worktree**: 引き続き default branch に固定（ADR-081 と同じ。drift していても常に default が正とみなす）
-- **linked worktree**: `git branch --show-current` で得られる「現在チェックアウトしている branch」に固定する。target がそれと一致しない `switch`/`checkout`（`-b`/`-c` による新規作成含む）は deny する
-- **detached HEAD**: `git branch --show-current` が空文字を返す（=判定不能）場合は fail-open で許可する。rebase 中などの一時的な detached 状態を誤ってブロックしないため
+- **main worktree** — 引き続き default branch に固定（ADR-081 と同じ。drift していても常に default が正とみなす）
+- **linked worktree** — `git branch --show-current` で得られる「現在チェックアウトしている branch」に固定する。target がそれと一致しない `switch`/`checkout`（`-b`/`-c` による新規作成含む）は deny する
+- **detached HEAD** — `git branch --show-current` が空文字を返す（=判定不能）場合は fail-open で許可する。rebase 中などの一時的な detached 状態を誤ってブロックしないため
 - 検出・`-C`/`cd` 追跡・heredoc 除外・fail-open といった既存の仕組みは ADR-081 のものをそのまま流用する（変更なし）
 
 ### CLAUDE.md の例外を stash ベースの手順に置き換える

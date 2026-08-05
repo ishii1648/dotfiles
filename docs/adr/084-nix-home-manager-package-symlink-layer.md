@@ -78,9 +78,9 @@ home-manager の既定（store へコピーして read-only symlink を張る）
 
 > **バージョンが外部要件で決まるツールは aqua、最新でよいツールと OS レベルのパッケージは Nix。**
 
-- **aqua に残す**: terraform / kubectl / istioctl / helm / helmfile / k9s / kubectx / kubens / stern / kubebuilder / knative client / kwokctl / kind。nixpkgs はパッケージのバージョンが flake の nixpkgs revision に紐づくため、個別ツールだけを特定バージョンに固定するには「そのバージョンを含む古い revision を別 input として持つ」か overlay で自作 derivation を書く必要があり、13個分は現実的でない。Renovate によるバージョン更新 PR も失われる
-- **Nix が持つ**: 現在 Homebrew が入れている OS レベルのパッケージと GUI アプリ
-- **動かさない**: `aqua.yaml` の「最新でよい」系（fzf / fd / ripgrep / zoxide / gh / yq / sops / age / envsubst / node / go）。困っていないものを移す理由がない
+- **aqua に残す** — terraform / kubectl / istioctl / helm / helmfile / k9s / kubectx / kubens / stern / kubebuilder / knative client / kwokctl / kind。nixpkgs はパッケージのバージョンが flake の nixpkgs revision に紐づくため、個別ツールだけを特定バージョンに固定するには「そのバージョンを含む古い revision を別 input として持つ」か overlay で自作 derivation を書く必要があり、13個分は現実的でない。Renovate によるバージョン更新 PR も失われる
+- **Nix が持つ** — 現在 Homebrew が入れている OS レベルのパッケージと GUI アプリ
+- **動かさない** — `aqua.yaml` の「最新でよい」系（fzf / fd / ripgrep / zoxide / gh / yq / sops / age / envsubst / node / go）。困っていないものを移す理由がない
 
 両者の責務が重ならないため、これは二重管理ではなく分業である。**Nix 導入は aqua 廃止を意味しない。**
 

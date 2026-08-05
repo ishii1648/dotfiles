@@ -32,11 +32,11 @@
 
 以下は既定（claude→codex）を例にした駆動の説明である。
 
-- **claude（実装役）**: `claude --resume <session-id> < prompt_file; tmux wait-for -S <signal>` で interactive 起動する。`-p` は使わず subscription 内に収める。`--resume` でラウンド間の文脈（実装意図・前回の議論）を保持する。プロセス終了＝完了シグナルとなるため、idle 推測も send-keys 注入も不要。
-- **codex（レビュー役）**: `codex exec review` / `codex review`（headless）で現在の作業ツリーの diff をレビューさせ、指摘をファイルに捕捉する。codex exec も終了時に `tmux wait-for -S <signal>` で完了通知する。
-- **コーディネータ**: orchestrate の `advance_loop` 同様、バックグラウンドで `tmux wait-for <signal>` をゼロコスト待機し、各ラウンドの出力ファイルを読んで「継続 / 終了」を判定し、次のロールを起動する。
-- **ハンドオフ**: 各ラウンドで codex の指摘と claude の応答をファイル（`reviews/round-N-codex.md` 等）に残す。
-- **終了条件**: codex の指摘がゼロ／承認マーカー検出、または最大 N ラウンド（既定 3）到達で収束終了する。
+- **claude（実装役）** — `claude --resume <session-id> < prompt_file; tmux wait-for -S <signal>` で interactive 起動する。`-p` は使わず subscription 内に収める。`--resume` でラウンド間の文脈（実装意図・前回の議論）を保持する。プロセス終了＝完了シグナルとなるため、idle 推測も send-keys 注入も不要。
+- **codex（レビュー役）** — `codex exec review` / `codex review`（headless）で現在の作業ツリーの diff をレビューさせ、指摘をファイルに捕捉する。codex exec も終了時に `tmux wait-for -S <signal>` で完了通知する。
+- **コーディネータ** — orchestrate の `advance_loop` 同様、バックグラウンドで `tmux wait-for <signal>` をゼロコスト待機し、各ラウンドの出力ファイルを読んで「継続 / 終了」を判定し、次のロールを起動する。
+- **ハンドオフ** — 各ラウンドで codex の指摘と claude の応答をファイル（`reviews/round-N-codex.md` 等）に残す。
+- **終了条件** — codex の指摘がゼロ／承認マーカー検出、または最大 N ラウンド（既定 3）到達で収束終了する。
 - 同一 worktree 上で claude の編集と codex のレビューを**逐次**実行するため競合しない（並行編集なし）。新規 worktree は作らず、レビュー対象ブランチの現在の worktree で動く。
 
 ### 案A: 永続セッション + mailbox + send-keys 注入（却下）

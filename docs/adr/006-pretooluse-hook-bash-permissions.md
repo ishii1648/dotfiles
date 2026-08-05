@@ -39,9 +39,9 @@ Claude Code の `settings.json` で `permissions.allow` に書き込み系 Bash 
 
 ### 設計方針
 
-- **fail-open**: 例外発生時（settings.json の不在、パースエラー等）は `sys.exit(0)` で通常動作に戻る。hook の障害でツール実行全体が止まることを防ぐ
-- **deny のチェイン分割**: `ls && sudo whoami` のようなコマンドで deny ルール（`sudo`）を確実に捕捉
-- **allow はコマンド全体のみ**: チェインの一部だけが allow パターンにマッチしてもコマンド全体を許可しない
+- **fail-open** — 例外発生時（settings.json の不在、パースエラー等）は `sys.exit(0)` で通常動作に戻る。hook の障害でツール実行全体が止まることを防ぐ
+- **deny のチェイン分割** — `ls && sudo whoami` のようなコマンドで deny ルール（`sudo`）を確実に捕捉
+- **allow はコマンド全体のみ** — チェインの一部だけが allow パターンにマッチしてもコマンド全体を許可しない
 
 `PreToolUse` hook を使い、`settings.json` の permission ルールを Python スクリプトで再評価するワークアラウンドを実装する。`settings.json` の既存ルールを変更せず hook が同じルールを読み取って強制実行する。
 

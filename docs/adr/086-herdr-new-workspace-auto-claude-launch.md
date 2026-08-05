@@ -47,9 +47,9 @@ herdr 0.7.5 の CLI を調査した結果、以下が判明した：
 
 ## 設計上の判断
 
-- **agent の `NAME` は `pane_id` から導出する**: `NAME` は live agent 間で一意である必要があり、複数 workspace で同時に claude を起動する運用がある以上、固定文字列（`claude` 等）は使えない。新規 pane の `pane_id`（例 `wF:p1`）は作成直後の時点で必ず一意なので、コロンを除去し小文字化した `claude-wfp1` のような名前を組み立てる
-- **`agent start` の失敗は fatal にしない**: `workspace create` は既に成功しており、workspace 自体は使える状態になっている。claude の自動起動に失敗しても（herdr 側の一時的な不調、pane がまだプロンプトに達していない等）、ユーザーはそのまま手で `claude` を起動すれば足りる。既存の `die()`（popup を閉じずエラー表示してキー入力待ち）は使わず、ログに warn を残すだけで popup は通常どおり閉じる
-- **既存 workspace への `focus` 分岐では起動しない**: 同じ repo の workspace が既にある場合は `herdr workspace focus` のみを行う分岐が既存実装にある。既存 workspace には他の作業状態が残っている可能性があるため、新規作成時（`workspace create` 実行時）のみ claude を自動起動する
+- **agent の `NAME` は `pane_id` から導出する** — `NAME` は live agent 間で一意である必要があり、複数 workspace で同時に claude を起動する運用がある以上、固定文字列（`claude` 等）は使えない。新規 pane の `pane_id`（例 `wF:p1`）は作成直後の時点で必ず一意なので、コロンを除去し小文字化した `claude-wfp1` のような名前を組み立てる
+- **`agent start` の失敗は fatal にしない** — `workspace create` は既に成功しており、workspace 自体は使える状態になっている。claude の自動起動に失敗しても（herdr 側の一時的な不調、pane がまだプロンプトに達していない等）、ユーザーはそのまま手で `claude` を起動すれば足りる。既存の `die()`（popup を閉じずエラー表示してキー入力待ち）は使わず、ログに warn を残すだけで popup は通常どおり閉じる
+- **既存 workspace への `focus` 分岐では起動しない** — 同じ repo の workspace が既にある場合は `herdr workspace focus` のみを行う分岐が既存実装にある。既存 workspace には他の作業状態が残っている可能性があるため、新規作成時（`workspace create` 実行時）のみ claude を自動起動する
 
 ## 変更が必要なファイル
 

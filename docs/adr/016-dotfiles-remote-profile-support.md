@@ -13,10 +13,10 @@
 dotfiles を lab（Mac mini）などの SSH 先にもデプロイして使いたいが、ローカル PC とリモート環境では必要な設定が異なる。
 
 具体的な差異：
-- **tmux**: リモート環境では tmux がネストされるため、ローカル側に F12 パススルートグル（ローカル tmux を一時無効化してリモート tmux にキーを透過させる）が必要
-- **tmux**: リモート側では Ghostty user-keys 系のキーバインドが不要（Ghostty はローカルにしかない）
-- **fish abbreviations**: macOS では `ggrep`/`gsed` 等の GNU toolchain エイリアスが必要だが、Linux では不要
-- **Claude Code hooks**: tmux/Ghostty 連携の hooks はリモート（GUI なし）環境では不要な場合がある
+- **tmux** — リモート環境では tmux がネストされるため、ローカル側に F12 パススルートグル（ローカル tmux を一時無効化してリモート tmux にキーを透過させる）が必要
+- **tmux** — リモート側では Ghostty user-keys 系のキーバインドが不要（Ghostty はローカルにしかない）
+- **fish abbreviations** — macOS では `ggrep`/`gsed` 等の GNU toolchain エイリアスが必要だが、Linux では不要
+- **Claude Code hooks** — tmux/Ghostty 連携の hooks はリモート（GUI なし）環境では不要な場合がある
 
 現在の `setup-symlinks.sh --profile remote` は symlink 対象の絞り込みのみで、設定内容の環境別切り替えは行っていない。ただし、tmux (`source-file -q ~/.tmux.local.conf`) や fish (`conf.d/` ファイル単位 symlink) には既にローカルオーバーライドの仕組みがある。
 

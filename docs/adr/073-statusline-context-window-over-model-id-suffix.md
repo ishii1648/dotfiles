@@ -38,8 +38,8 @@ Claude Code 本体が stdin JSON で渡す `context_window.context_window_size`�
 
 Fable 5 セッションで `(0/150k)` → `(32k/200k)` と表示され「1M であるべき」との指摘があり調査した結果、Anthropic 公式仕様（claude-api skill / Models 表）と Claude Code v2.1.191 の間で食い違いを確認した。
 
-- **Anthropic 公式**: `claude-fable-5` は 1M context / 128K max output（デフォルト値）
-- **Claude Code v2.1.191**: Fable 5 セッションの stdin で `context_window.context_window_size=200000, used_percentage=<200k基準>` を申告してくる
+- **Anthropic 公式** — `claude-fable-5` は 1M context / 128K max output（デフォルト値）
+- **Claude Code v2.1.191** — Fable 5 セッションの stdin で `context_window.context_window_size=200000, used_percentage=<200k基準>` を申告してくる
 
 statusline は ADR-073 の主方針どおり **CC の申告値を尊重する** 立場を取る。Fable 5 は CC 側 registry / 使用率計算がモデル真値と乖離しているが、auto-compaction の実発火タイミングは CC が保持しているため、CC が 200k と言う以上 200k 基準で表示するのが正しい（無理に 1M/950k 表示にすると実 compact との乖離で誤解を招く）。
 

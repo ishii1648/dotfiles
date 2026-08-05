@@ -62,9 +62,9 @@ flowchart TD
 
 ### 設計方針
 
-- **fail-open**: 例外発生時は `sys.exit(0)` で通常動作に戻る（`enforce-bash-permissions.py` と統一）
-- **hook の実行順序**: redirect → enforce の順。redirect がブロックした場合、後続の enforce は実行されない
-- **パイプ内コマンドは対象外**: `git log | grep` や `kubectl get pods | awk` のように、パイプの後段でフィルタリング用途に使われるケースは許可する
+- **fail-open** — 例外発生時は `sys.exit(0)` で通常動作に戻る（`enforce-bash-permissions.py` と統一）
+- **hook の実行順序** — redirect → enforce の順。redirect がブロックした場合、後続の enforce は実行されない
+- **パイプ内コマンドは対象外** — `git log | grep` や `kubectl get pods | awk` のように、パイプの後段でフィルタリング用途に使われるケースは許可する
 
 ### permissions.allow からの冗長ルール削除
 

@@ -28,19 +28,19 @@ dispatch を2つの skill に分離し、spawn を廃止する。
 
 ### dispatch（軽量版・新設）
 
-- **入力**: タスク記述 / issue 番号 / GitHub issue URL
-- **計画**: なし（1 worktree 固定）
-- **出力**: worktree 1つ + worker Claude 1つ
-- **用途**: README 修正、単機能 fix、1 ブランチで完結する作業
-- **フロー**: 引数解析 → worktree 作成 → worker Claude 起動（planning Claude なし）
+- **入力** — タスク記述 / issue 番号 / GitHub issue URL
+- **計画** — なし（1 worktree 固定）
+- **出力** — worktree 1つ + worker Claude 1つ
+- **用途** — README 修正、単機能 fix、1 ブランチで完結する作業
+- **フロー** — 引数解析 → worktree 作成 → worker Claude 起動（planning Claude なし）
 
 ### orchestrate（現 dispatch をリネーム）
 
-- **入力**: タスク記述 / issue 番号 / GitHub issue URL / TODO.md
-- **計画**: planning Claude が分析・戦略決定
-- **出力**: worktree N個 + worker Claude N個
-- **用途**: 複数ファイル/コンポーネントにまたがる並列・逐次作業
-- **フロー**: 現行の dispatch フロー（meta planner → YAML → worktree + worker）をそのまま継承
+- **入力** — タスク記述 / issue 番号 / GitHub issue URL / TODO.md
+- **計画** — planning Claude が分析・戦略決定
+- **出力** — worktree N個 + worker Claude N個
+- **用途** — 複数ファイル/コンポーネントにまたがる並列・逐次作業
+- **フロー** — 現行の dispatch フロー（meta planner → YAML → worktree + worker）をそのまま継承
 
 ### spawn（廃止）
 

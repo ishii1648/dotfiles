@@ -23,7 +23,7 @@ SandVault も同じ sandbox-exec 基盤のため、同様の問題が発生す�
 
 ### 参考実装
 
-- **Anthropic 公式 devcontainer**: Dockerfile + init-firewall.sh (iptables allowlist) + devcontainer.json
+- **Anthropic 公式 devcontainer** — Dockerfile + init-firewall.sh (iptables allowlist) + devcontainer.json
 - **agent-workspace** ([hiragram/agent-workspace](https://github.com/hiragram/agent-workspace)): Go 製 CLI。deny-by-default マウント、SSH 鍵 RO マウント、一方向設定同期、非 root 実行
 
 ## 設計案

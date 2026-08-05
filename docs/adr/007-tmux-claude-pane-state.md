@@ -66,11 +66,11 @@ prefix+s (fzf セッションリスト)
 
 ### 設計方針
 
-- **状態ファイル方式**: `echo "$STATE" > "$PANE_FILE"` の1行で書き出し、読み取りも `test -f` + `cat` で完結。`jq` 等の外部依存なし
-- **JSON パース不要**: 状態は hook イベント種別で一意に決まるため、コマンド引数で渡す
-- **複数ペイン優先度**: 1ウィンドウに複数 Claude ペインがある場合、アクション必要な状態を優先（`permission > ask > running > idle`）
-- **tmux 外では無動作**: `$TMUX_PANE` 未設定時は即座に exit
-- **stale running 検知**: 読み取り時に tmux の `pane_idle`（ペインへの最終出力からの秒数）を確認。`running` 状態だがペインに15秒以上出力がない場合、Stop 未発火とみなし `idle` に補正する
+- **状態ファイル方式** — `echo "$STATE" > "$PANE_FILE"` の1行で書き出し、読み取りも `test -f` + `cat` で完結。`jq` 等の外部依存なし
+- **JSON パース不要** — 状態は hook イベント種別で一意に決まるため、コマンド引数で渡す
+- **複数ペイン優先度** — 1ウィンドウに複数 Claude ペインがある場合、アクション必要な状態を優先（`permission > ask > running > idle`）
+- **tmux 外では無動作** — `$TMUX_PANE` 未設定時は即座に exit
+- **stale running 検知** — 読み取り時に tmux の `pane_idle`（ペインへの最終出力からの秒数）を確認。`running` 状態だがペインに15秒以上出力がない場合、Stop 未発火とみなし `idle` に補正する
 
 Claude Code の hooks でペインごとに状態ファイルを `/tmp` に書き出し、tmux セッションリスト生成時に読み取って色付きバッジとして表示する。状態ファイル方式により外部依存なしで実装できる。
 

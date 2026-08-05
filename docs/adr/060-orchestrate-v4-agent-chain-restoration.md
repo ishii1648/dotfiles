@@ -35,9 +35,9 @@ v0.1.0 のポーリング待機は `tmux wait-for` によるゼロコスト待�
 
 ### 実行モデル
 
-- **単一 worktree**: sequential 実行なのでエージェントごとの worktree は不要（v0.1.0 からの変更点）
-- **複数 tmux ウィンドウ**: 各エージェントに専用ウィンドウを割り当て進捗を可視化
-- **`tmux wait-for` による順次起動**: Claude 終了 → シェルが `tmux wait-for -S` を実行 → orchestrate.sh の advance ループがブロック解除 → 次エージェント起動
+- **単一 worktree** — sequential 実行なのでエージェントごとの worktree は不要（v0.1.0 からの変更点）
+- **複数 tmux ウィンドウ** — 各エージェントに専用ウィンドウを割り当て進捗を可視化
+- **`tmux wait-for` による順次起動** — Claude 終了 → シェルが `tmux wait-for -S` を実行 → orchestrate.sh の advance ループがブロック解除 → 次エージェント起動
 
 ### ワークフロータイプ（ADR-052 から復元）
 

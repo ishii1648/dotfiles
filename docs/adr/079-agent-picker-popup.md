@@ -61,13 +61,13 @@ herdr には未バインドの `next_agent` / `previous_agent` が存在する�
 
 ## 設計上の判断
 
-- **絞り込みではなく j/k を取る**: fzf は検索欄がある限り `j` / `k` を打つと絞り込み文字列として消費されるため、`--bind 'j:down,k:up'` と入力欄は両立しない。`--no-input`（fzf 0.68）で検索欄ごと隠し、j/k を移動に割り当てる。実測で `jj` → 3 行目、`G` → 末尾、`Gk` → 1 つ上、任意の文字列（`abc`）を打っても選択行が動かない（絞り込みが起きない）ことを確認した。エージェント数はサイドバーに収まる規模で、絞り込みより j/k の一貫性を優先する（ユーザー選択）。補助として `g`/`G`（先頭/末尾）、`Ctrl+D`/`Ctrl+U`（半画面）、`q`（キャンセル）も割り当てる。
-- **バインド先は `prefix+a`（小文字）**: herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（ADR-077 / close_workspace で判明済み）。ghostty から到達させるアクションは `prefix+<小文字>` に限る。`prefix+a` は herdr 既定でも本 config でも未使用。
-- **ghostty の `super+a=select_all` を潰すことは許容する**: ghostty にアプリ別・条件別のキーバインドは無いため、Cmd+A は herdr 以外のウィンドウでも全選択でなくなる。herdr セッションでは `[ui] copy_on_select = true` と `copy_mode`（Cmd+I）があり、全選択の用途は薄いと判断した。
-- **データ源は `herdr api snapshot` 1 回**: `herdr agent list` は `workspace_id` / `tab_id` しか返さず、表示用のラベルを別途引く必要がある。`api snapshot` は `agents` / `workspaces` / `tabs` を 1 レスポンスで返すため、jq で join すれば呼び出しは 1 回で済む。
-- **状態アイコンは自前で描く**: popup は herdr の描画層の外なので、サイドバーの `state_icon` トークンを再利用する手段が無い。`agent_status`（`working` / `idle` / `blocked` / `waiting` / `attention` / `starting` / `exited` / `unknown`）に ANSI 色付きの記号を割り当て、フォーカス中のエージェントには `▸` を付ける。
-- **`pane_id` は行に埋めて隠す**: 表示行に ID を出すと邪魔なので、`<pane_id>\t<表示行>` の TSV にして fzf の `--with-nth=2..` で 2 列目以降だけを見せる。選択結果から 1 列目を取り出して `herdr agent focus` に渡す。
-- **エラー処理は ADR-077 と同型**: PATH / `AQUA_GLOBAL_CONFIG` の明示補強、fzf の終了コードを「1・130 のみキャンセル、それ以外は異常」として扱う、失敗時は popup をキー入力待ちで保持しつつ `$XDG_STATE_HOME/herdr/agent-picker.log` に残す。エージェントが 0 件のときも同様に一瞬で閉じず、メッセージを出して待つ。
+- **絞り込みではなく j/k を取る** — fzf は検索欄がある限り `j` / `k` を打つと絞り込み文字列として消費されるため、`--bind 'j:down,k:up'` と入力欄は両立しない。`--no-input`（fzf 0.68）で検索欄ごと隠し、j/k を移動に割り当てる。実測で `jj` → 3 行目、`G` → 末尾、`Gk` → 1 つ上、任意の文字列（`abc`）を打っても選択行が動かない（絞り込みが起きない）ことを確認した。エージェント数はサイドバーに収まる規模で、絞り込みより j/k の一貫性を優先する（ユーザー選択）。補助として `g`/`G`（先頭/末尾）、`Ctrl+D`/`Ctrl+U`（半画面）、`q`（キャンセル）も割り当てる。
+- **バインド先は `prefix+a`（小文字）** — herdr は端末から届いたリテラル大文字を shift 付きとして解釈しない（ADR-077 / close_workspace で判明済み）。ghostty から到達させるアクションは `prefix+<小文字>` に限る。`prefix+a` は herdr 既定でも本 config でも未使用。
+- **ghostty の `super+a=select_all` を潰すことは許容する** — ghostty にアプリ別・条件別のキーバインドは無いため、Cmd+A は herdr 以外のウィンドウでも全選択でなくなる。herdr セッションでは `[ui] copy_on_select = true` と `copy_mode`（Cmd+I）があり、全選択の用途は薄いと判断した。
+- **データ源は `herdr api snapshot` 1 回** — `herdr agent list` は `workspace_id` / `tab_id` しか返さず、表示用のラベルを別途引く必要がある。`api snapshot` は `agents` / `workspaces` / `tabs` を 1 レスポンスで返すため、jq で join すれば呼び出しは 1 回で済む。
+- **状態アイコンは自前で描く** — popup は herdr の描画層の外なので、サイドバーの `state_icon` トークンを再利用する手段が無い。`agent_status`（`working` / `idle` / `blocked` / `waiting` / `attention` / `starting` / `exited` / `unknown`）に ANSI 色付きの記号を割り当て、フォーカス中のエージェントには `▸` を付ける。
+- **`pane_id` は行に埋めて隠す** — 表示行に ID を出すと邪魔なので、`<pane_id>\t<表示行>` の TSV にして fzf の `--with-nth=2..` で 2 列目以降だけを見せる。選択結果から 1 列目を取り出して `herdr agent focus` に渡す。
+- **エラー処理は ADR-077 と同型** — PATH / `AQUA_GLOBAL_CONFIG` の明示補強、fzf の終了コードを「1・130 のみキャンセル、それ以外は異常」として扱う、失敗時は popup をキー入力待ちで保持しつつ `$XDG_STATE_HOME/herdr/agent-picker.log` に残す。エージェントが 0 件のときも同様に一瞬で閉じず、メッセージを出して待つ。
 
 ## 変更が必要なファイル
 
