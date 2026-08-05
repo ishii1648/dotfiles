@@ -77,6 +77,7 @@
 | - | ○ | 複合 | Phase A で symlink が home-manager と `setup.sh` の二重定義になっている — full profile に限って `setup.sh` 側の定義を削除する。remote/linux は Nix 非対象なので profile 出し分けと端末固有 fish 関数の保全が必要 | [ADR-085](adr/085-nix-phase-b-manifest-migration.md) |
 | - | ○ | herdr | `prefix+p` で herdr space（workspace）を新規作成しても claude session が自動起動されず毎回手動で `claude` を打っている — `workspace create` レスポンスの pane_id を使って `herdr agent start` を呼ぶ | [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md) |
 | - | ○ | herdr | linked worktree に居ると新しい tab / space まで linked worktree で開く — `new_cwd = "follow"` に「repo の default worktree」の選択肢が無いため、組み込み `new_tab` / `new_workspace` を cwd 解決付きの `[[keys.command]]` に差し替える | [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md) |
+| - | ○ | herdr | space / tab を開いたあと毎回手で `git pull origin <default branch>` を叩いている — 自動化チェーン（repo 選択 → space/tab → claude 起動）の最後に pull まで含める | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1440,3 +1441,31 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] master 取り込み後: `herdr config check` が `config: ok`、`herdr server reload-config` が `status: applied` / diagnostics 空を返す
 - [ ] 実機: linked worktree に居る pane から `Cmd+T` を押すと、新しい tab が repo の default worktree で開く
 - [ ] 実機: linked worktree に居る pane から `prefix+shift+n` を押すと、新しい workspace が repo の default worktree で開く
+- [x] `new-default-worktree.sh` の初回実行バグ修正: `LOG_FILE` 定義直後に `mkdir -p` する（ログディレクトリ未作成の初回は `herdr tab create >>"$LOG_FILE"` のリダイレクトごと失敗し、tab を作らずに失敗扱いになっていた。ADR-088 の実装中に同型バグを踏んで発覚。既存環境では `~/.local/state/herdr/` が既にあるため実機では顕在化していなかった）
+
+---
+
+### ADR-088: space / tab を開いたときに default branch を自動で pull する
+
+**コンポーネント**: herdr | **ADR**: [ADR-088](adr/088-auto-pull-default-branch-on-open.md)
+
+**受け入れ条件**:
+
+ローカルの bare repo を origin にした fixture（ネットワーク非依存）で検証した。
+
+- [x] default worktree かつ default branch に居るとき `git pull --ff-only origin <default branch>` が実行され、実際に HEAD が前進する
+- [x] 2 回目以降の実行も成功する（冪等）
+- [x] linked worktree を渡した場合は pull せず skip する（ADR-082 の worktree:branch 1:1 を壊さない）
+- [x] default branch 以外のブランチに居る場合は skip する
+- [x] `origin` remote が無い repo では skip する
+- [x] git 管理外のディレクトリ・存在しないディレクトリでは skip する
+- [x] 引数なしで呼ばれた場合は exit 2 で終了する
+- [x] 初回実行（ログディレクトリが存在しない状態）でも pull が実行される
+- [x] `configs/herdr/new-workspace.sh` が workspace 作成後にバックグラウンドで呼ぶ（popup のクローズを待たせない）
+- [x] `configs/herdr/new-default-worktree.sh` が tab / workspace 作成後にバックグラウンドで呼ぶ
+- [x] pull の失敗が呼び出し元の成否に影響しない（バックグラウンド起動で終了コードを見ない）
+- [x] `nix/symlinks.nix` と `scripts/setup-manifest.yml` の双方に `~/.local/bin/herdr-pull-default-branch` が定義され、`nix/check-parity.py` が整合を報告する（55 links）
+- [x] `bash -n` が両スクリプトで構文エラーなく通過する
+- [x] ADR-087 のモックテスト 8 件がログディレクトリ修正後も PASS する（回帰なし）
+- [ ] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-pull-default-branch` の symlink が作られ、実行可能である
+- [ ] 実機: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）

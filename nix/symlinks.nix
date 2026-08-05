@@ -54,6 +54,7 @@ in
       ".local/bin/herdr-new-workspace".source = link "configs/herdr/new-workspace.sh";
       ".local/bin/herdr-agent-picker".source = link "configs/herdr/agent-picker.sh";
       ".local/bin/herdr-new-default-worktree".source = link "configs/herdr/new-default-worktree.sh";
+      ".local/bin/herdr-pull-default-branch".source = link "configs/herdr/pull-default-branch.sh";
 
       # --- aqua ---
       # 設定ファイルの配置だけを Nix が持つ。ツール本体の導入（`aqua install -l`）は

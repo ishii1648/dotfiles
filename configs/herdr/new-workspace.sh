@@ -153,3 +153,11 @@ if [ -n "$pane_id" ]; then
 else
     log "warn: pane_id not found in workspace create response"
 fi
+
+# --- default branch に追従させる（ADR-088） ---
+# ネットワーク往復を伴うので、popup のクローズを待たせないようバックグラウンドで走らせる
+# （claude 起動のリトライと同じ理由・同じ形。ADR-086）。claude 起動とは順序を持たせず
+# 独立に走らせる — pull を待ってから claude を起動すると起動が体感で遅くなるうえ、
+# claude はファイルを遅延読みするため先に pull が終わっている必要は無い。
+"$HOME/.local/bin/herdr-pull-default-branch" "$selected" </dev/null >/dev/null 2>&1 &
+disown

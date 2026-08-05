@@ -83,6 +83,10 @@ components:
       - link: ~/.local/bin/herdr-new-default-worktree
         target: configs/herdr/new-default-worktree.sh
         nix_managed: true
+      # new-workspace.sh / new-default-worktree.sh からバックグラウンドで呼ばれる（ADR-088）
+      - link: ~/.local/bin/herdr-pull-default-branch
+        target: configs/herdr/pull-default-branch.sh
+        nix_managed: true
 
   claude:
     setup: configs/claude/setup.sh

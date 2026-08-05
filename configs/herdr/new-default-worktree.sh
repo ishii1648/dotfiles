@@ -31,6 +31,11 @@ export AQUA_CONFIG="${AQUA_CONFIG:-$HOME/.config/aquaproj-aqua/aqua.yaml}"
 
 HERDR_BIN="${HERDR_BIN_PATH:-herdr}"
 LOG_FILE="${XDG_STATE_HOME:-$HOME/.local/state}/herdr/new-default-worktree.log"
+# ログディレクトリはここで先に作る。log() の中だけで mkdir していると、happy path で最初に
+# $LOG_FILE へ触れるのが `>>"$LOG_FILE"` リダイレクトになり、ディレクトリ未作成の初回実行で
+# リダイレクトごと失敗して tab / workspace の作成まで失敗扱いになる（ADR-088 で
+# pull-default-branch.sh の同型バグを踏んで発覚。2 回目以降は成功するため気付きにくい）。
+mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
 
 log() {
     mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || return 0
@@ -92,3 +97,10 @@ else
     log "warn: $mode create failed (src=$src_cwd target=$target)"
     exit 1
 fi
+
+# --- default branch に追従させる（ADR-088） ---
+# ネットワーク往復を伴うので、tab / workspace の作成完了を待たせないようバックグラウンドで
+# 走らせる。pull の成否はこのスクリプトの終了コードに影響させない（最新化できなくても
+# tab / workspace 自体は使えるため）。
+"$HOME/.local/bin/herdr-pull-default-branch" "$target" </dev/null >/dev/null 2>&1 &
+disown

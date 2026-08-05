@@ -1,0 +1,69 @@
+# ADR-088: space / tab を開いたときに default branch を自動で pull する
+
+## ステータス
+
+Draft
+
+## 関連 ADR
+
+- 依存: [ADR-087](087-new-tab-workspace-at-default-worktree.md)（新しい tab / workspace を default worktree で開く。pull の対象ディレクトリはここで解決した default worktree）
+- 依存: [ADR-077](077-new-workspace-ghq-picker.md)（Cmd+Shift+S の repo ピッカー。もう 1 つの呼び出し元）
+- 関連: [ADR-086](086-herdr-new-workspace-auto-claude-launch.md)（同じくバックグラウンドで走らせる後処理。popup を待たせない形を踏襲）
+- 関連: [ADR-082](082-pin-every-worktree-to-single-branch.md)（default worktree は常に default branch という不変条件。pull してよい前提の根拠）
+
+## コンテキスト
+
+ADR-077 / ADR-086 / ADR-087 で「repo を選ぶ → space / tab が default worktree で開く → claude が起動する」までは自動化された。しかし実際に作業を始める前には毎回手で `git pull origin <default branch>` を叩いており、ここが自動化のチェーンから漏れている。
+
+ADR-082 の不変条件により default worktree は常に default branch のままなので、「開いた直後に default branch を最新にする」操作は安全に自動化できる。
+
+## 設計案
+
+### 案A: 開いた直後にバックグラウンドで `pull --ff-only` する（採用）
+
+`configs/herdr/pull-default-branch.sh` を追加し、space / tab を default worktree で開いた直後に呼び出し元スクリプトからバックグラウンドで起動する。
+
+採用理由:
+
+- 呼び出し元は既に 2 系統（ピッカーの `new-workspace.sh` と ADR-087 の `new-default-worktree.sh`）あり、スクリプトを分けて共有するのが素直
+- バックグラウンド化は ADR-086 で popup のクローズ遅延を踏んだときと同じ理由（ネットワーク往復を UI の待ち時間にしない）
+- `--ff-only` なら merge commit を作らず履歴も書き換えないため、失敗しても副作用が無い
+
+### 案B: 呼び出し元スクリプトに直接 pull を書く（却下）
+
+却下理由: 同じロジックが 2 箇所（将来さらに増える可能性がある）に重複する。ガード条件（default worktree か、default branch に居るか、origin があるか）がそれなりの量になるため、コピーは維持できない。
+
+### 案C: pane のシェル起動時に fish 側で pull する（却下）
+
+却下理由: ADR-087 の案 C と同じ問題。pane を開くたびに走ってしまい、pane 分割や `herdr worktree open` など「最新化したくない」経路まで巻き込む。シェルの起動も遅くなる。
+
+## 設計上の判断
+
+- **`--ff-only` 固定**: merge commit を作らせない。fast-forward できない場合（ローカルが先行している・分岐している・dirty で衝突する）は何もせず失敗するだけで、ユーザーの作業を壊さない
+- **default worktree でのみ実行する**: linked worktree で pull すると、その worktree の作業ブランチに default branch を取り込むことになり ADR-082 の運用を壊す。`git-dir` と `git-common-dir` の一致で判定する
+- **現在のブランチが default branch のときだけ実行する**: ADR-082 の不変条件では常に一致するはずだが、崩れている場合に `origin/<default>` を取り込むのは意図と異なるため skip する
+- **失敗は呼び出し元に伝播させない**: 最新化できなくても space / tab 自体は使える。バックグラウンドで走らせ、結果は `~/.local/state/herdr/pull-default-branch.log` に残すだけにする
+- **claude の起動とは順序を持たせない**: pull を待ってから claude を起動すると起動が体感で遅くなる。claude はファイルを遅延読みするため、先に pull が終わっている必要は無い。両者を独立にバックグラウンドで走らせる
+- **同時実行のロックは取らない**: tab を短時間に複数開くと同じ repo に対して pull が並行し、片方が `index.lock` で失敗する。ただし失敗しても副作用が無く、どれか 1 つが成功すれば目的は達成されるため、ロック機構は持たない（stale lock の後始末という新しい失敗モードを増やさない方を選ぶ）
+- **default branch の検出は既存実装に揃える**: `git symbolic-ref refs/remotes/origin/HEAD` → `init.defaultBranch` の順。`gw_add.fish` / `block-worktree-branch-switch.py` と同じ。ブランチ名に `/` を含む場合も壊れないよう、末尾要素ではなく prefix を剥がして取り出す
+
+## 実装中に判明した既存バグ
+
+`pull --ff-only` が初回だけ必ず失敗する現象をテストで踏んだ。原因は本 ADR の設計ではなく、herdr スクリプト共通のログ処理にあった。
+
+`log()` の中でだけ `mkdir -p "$(dirname "$LOG_FILE")"` していると、happy path で最初に `$LOG_FILE` へ触れるのが `git ... >>"$LOG_FILE"` のリダイレクトになる。ログディレクトリが未作成の初回実行ではこのリダイレクト自体が失敗し、**コマンドを実行しないまま失敗扱い**になる（2 回目以降はディレクトリが出来ているため成功し、気付きにくい）。
+
+同型のバグが ADR-087 の `new-default-worktree.sh` にも入っていた（`herdr tab create` が初回だけ失敗する）。実機で発覚しなかったのは、`~/.local/state/herdr/` が既存スクリプトによって既に作られていたため。両方とも `LOG_FILE` 定義直後に `mkdir -p` する形に修正した。
+
+## 変更が必要なファイル
+
+| ファイル | 変更内容 |
+|---|---|
+| `configs/herdr/pull-default-branch.sh` | 新規。ガードを通ったうえで `git pull --ff-only origin <default branch>` を実行する |
+| `configs/herdr/new-workspace.sh` | workspace 作成後にバックグラウンドで呼ぶ |
+| `configs/herdr/new-default-worktree.sh` | tab / workspace 作成後にバックグラウンドで呼ぶ。あわせてログディレクトリ作成の初回バグを修正 |
+| `nix/symlinks.nix` | `~/.local/bin/herdr-pull-default-branch` を追加 |
+| `scripts/setup-manifest.yml` | 同上（`nix_managed: true`） |
+
+## 受け入れ条件
+→ [issues.md](../issues.md)（ADR-088 セクション）
