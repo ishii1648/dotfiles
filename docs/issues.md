@@ -1436,6 +1436,7 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] `herdr config check` が `config: ok` を返す（編集後の config.toml を `HERDR_CONFIG_PATH` で指定して確認）
 - [x] `nix/symlinks.nix` と `scripts/setup-manifest.yml` の双方に `~/.local/bin/herdr-new-default-worktree` が定義され、`nix/check-parity.py` が整合を報告する（54 links）
 - [x] `bash -n configs/herdr/new-default-worktree.sh` が構文エラーなく通過する
-- [ ] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-new-default-worktree` の symlink が作られ、実行可能である（新規 symlink のため switch が必要。既存スクリプトの編集と異なり out-of-store symlink だけでは反映されない）
+- [x] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-new-default-worktree` の symlink が作られ、実行可能である（新規 symlink のため switch が必要。既存スクリプトの編集と異なり out-of-store symlink だけでは反映されない）。実行属性は `git update-index --chmod=+x` でインデックスに記録した（`git add` が filesystem の 644 で上書きするため、commit 直前に再適用が必要だった）
+- [x] master 取り込み後: `herdr config check` が `config: ok`、`herdr server reload-config` が `status: applied` / diagnostics 空を返す
 - [ ] 実機: linked worktree に居る pane から `Cmd+T` を押すと、新しい tab が repo の default worktree で開く
 - [ ] 実機: linked worktree に居る pane から `prefix+shift+n` を押すと、新しい workspace が repo の default worktree で開く
