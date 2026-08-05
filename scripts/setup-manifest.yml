@@ -79,6 +79,10 @@ components:
       - link: ~/.local/bin/herdr-agent-picker
         target: configs/herdr/agent-picker.sh
         nix_managed: true
+      # config.toml の [[keys.command]] key = "prefix+c" / "prefix+shift+n" から呼ばれる（ADR-087）
+      - link: ~/.local/bin/herdr-new-default-worktree
+        target: configs/herdr/new-default-worktree.sh
+        nix_managed: true
 
   claude:
     setup: configs/claude/setup.sh

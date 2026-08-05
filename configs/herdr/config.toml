@@ -47,7 +47,9 @@ edit_scrollback = "prefix+shift+e"      # 既定の prefix+e は toggle_sidebar 
 resize_mode = "prefix+shift+r"
 
 # --- タブ（tmux の window） ---
-new_tab = "prefix+c"                    # tmux: bind c new-window
+# 組み込みの new_tab（cwd を new_cwd = "follow" で継承する）は使わず、default worktree に
+# 解決し直す [[keys.command]]（prefix+c）に譲る（ADR-087）。tmux: bind c new-window
+new_tab = ""
 # ghostty: super+shift+x=text:\x00w（prefix+w、リテラル小文字 w）。
 # 既定の prefix+shift+x のままだと、ghostty から \x00X を送っても herdr は大文字 X を
 # x として扱い close_pane（prefix+x）が発火してしまう（close_workspace の項を参照）。
@@ -69,9 +71,10 @@ next_workspace = "prefix+]"             # tmux: prefix+) switch-client -n に相
 # Cmd+Shift+S は組み込みの new_workspace ではなく、ghq リポジトリを選ばせる
 # [[keys.command]]（prefix+p）に譲った（ADR-077）。ghostty 側も super+shift+s=text:\x00p へ
 # 変更済みで、「大文字 \x00S が s として解釈され workspace_picker が開く」問題も併せて解消した。
-# 組み込みの new_workspace（cwd 継承でそのまま作る）は herdr 既定のキーに残す
-# （ghostty 経路は無く、物理 prefix 押しのみで到達可能）。
-new_workspace = "prefix+shift+n"
+# 組み込みの new_workspace（cwd 継承でそのまま作る）も使わず、default worktree に解決し直す
+# [[keys.command]]（prefix+shift+n）に譲る（ADR-087）。ghostty 経路は無く物理 prefix 押しのみ
+# なので、リテラル大文字が shift 付きとして解釈されない制約（close_workspace の項）は無関係。
+new_workspace = ""
 rename_workspace = "prefix+shift+w"
 # Cmd+D = フォーカス中の space（サイドバーで選択中の space）を閉じる。
 # ghostty: super+d=text:\x00d（prefix+d、リテラル小文字 d）。
@@ -159,6 +162,24 @@ type = "popup"
 command = "~/.local/bin/herdr-agent-picker"
 width = "80%"
 height = "60%"
+
+# Cmd+T / prefix+shift+n: 新しい tab / workspace を repo の default worktree で開く（ADR-087）
+# 組み込みの new_tab / new_workspace は cwd を [terminal] new_cwd = "follow" で継承するため、
+# linked worktree に居ると新しい tab まで linked worktree で開いてしまう。スクリプトが
+# 呼び出し元 pane の cwd から default worktree を解決し直して tab/workspace を作る。
+# type = "shell" は detach 実行（TTY 無し）。UI を出さない一発コマンドなのでこれで足りる。
+# custom command 文字列は /bin/sh -lc 経由で実行されるため引数を渡せる（公式ドキュメント）。
+[[keys.command]]
+key = "prefix+c"
+type = "shell"
+command = "~/.local/bin/herdr-new-default-worktree tab"
+description = "new tab at default worktree"
+
+[[keys.command]]
+key = "prefix+shift+n"
+type = "shell"
+command = "~/.local/bin/herdr-new-default-worktree workspace"
+description = "new workspace at default worktree"
 
 [ui]
 sidebar_width = 26

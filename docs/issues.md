@@ -76,6 +76,7 @@
 | ✔ | ○ | 複合 | `setup.sh` の symlink 配置・パッケージ導入層が Nix の機能縮小版になっている — 静的 symlink とパッケージ導入は home-manager に譲り、`setup.sh` は mutable 設定と外部インストーラの層に縮退させる（aqua はバージョン固定用途で残す） | [ADR-084](adr/084-nix-home-manager-package-symlink-layer.md) |
 | - | ○ | 複合 | Phase A で symlink が home-manager と `setup.sh` の二重定義になっている — full profile に限って `setup.sh` 側の定義を削除する。remote/linux は Nix 非対象なので profile 出し分けと端末固有 fish 関数の保全が必要 | [ADR-085](adr/085-nix-phase-b-manifest-migration.md) |
 | - | ○ | herdr | `prefix+p` で herdr space（workspace）を新規作成しても claude session が自動起動されず毎回手動で `claude` を打っている — `workspace create` レスポンスの pane_id を使って `herdr agent start` を呼ぶ | [ADR-086](adr/086-herdr-new-workspace-auto-claude-launch.md) |
+| - | ○ | herdr | linked worktree に居ると新しい tab / space まで linked worktree で開く — `new_cwd = "follow"` に「repo の default worktree」の選択肢が無いため、組み込み `new_tab` / `new_workspace` を cwd 解決付きの `[[keys.command]]` に差し替える | [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1413,4 +1414,28 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] `agent_pane_busy` 失敗時に `agent start` を最大 10 回・0.5 秒間隔でリトライする
 - [x] 実機（popup 経由）: `Cmd+Shift+S` で未使用の repo を選び、新規 workspace の pane で claude session が実際に自動起動する（ユーザー確認済み: 「claude 自動起動は ok」）
 - [x] `launch_claude_retry` のリトライループが popup の exit（= クローズ）をブロックしない。スタンドアロンのシェルスクリプトで、バックグラウンド化した処理が親プロセスの即時 exit を妨げず独立して完走することを実測した（`main start`/`main end` が同時刻、2 秒後に `background done` がログに残る）
-- [ ] 実機（popup 経由）: `Cmd+Shift+S` で repo を選んだ直後（claude 起動完了を待たず）に popup が閉じる。バックグラウンド化前は claude 起動待ちで popup のクローズが遅延していた
+- [x] 実機（popup 経由）: `Cmd+Shift+S` で repo を選んだ直後（claude 起動完了を待たず）に popup が閉じる。バックグラウンド化前は claude 起動待ちで popup のクローズが遅延していた（ユーザー確認済み）
+
+---
+
+### ADR-087: 新しい tab / workspace を repo の default worktree で開く
+
+**コンポーネント**: herdr | **ADR**: [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md)
+
+**受け入れ条件**:
+
+- [x] `[terminal] new_cwd` に「repo の default worktree」に相当する選択肢が無いことを確認した（`herdr --default-config` の記載は `follow` / `home` / `current` / 固定パス の 4 つのみ）
+- [x] `configs/herdr/new-default-worktree.sh` が linked worktree の pane から呼ばれたとき、default worktree を cwd として `herdr tab create` / `herdr workspace create` を呼ぶ（herdr をモックし、sre-hub の linked worktree `.claude/worktrees/knowledge-map` から main checkout `sre-hub` に解決されることを確認）
+- [x] default worktree から呼んだ場合も同じパスに解決される（冪等）
+- [x] git 管理外のディレクトリから呼んだ場合は解決せず呼び出し元の cwd をそのまま使う（`/tmp` で確認）
+- [x] 呼び出し元 cwd は pane の `cwd` を一次情報とし、`HERDR_ACTIVE_PANE_CWD` → `$PWD` の順にフォールバックする（`foreground_cwd` は使わない。ADR-076 の知見）
+- [x] tab モードは `HERDR_ACTIVE_WORKSPACE_ID` があれば `--workspace` を付け、無ければ付けない
+- [x] workspace モードは `--label` に default worktree の basename を渡す
+- [x] 引数が不正・未指定の場合は exit 2 で終了する
+- [x] `configs/herdr/config.toml` で組み込みの `new_tab` / `new_workspace` が空文字で無効化され、同じキー（`prefix+c` / `prefix+shift+n`）に `type = "shell"` の `[[keys.command]]` が定義されている
+- [x] `herdr config check` が `config: ok` を返す（編集後の config.toml を `HERDR_CONFIG_PATH` で指定して確認）
+- [x] `nix/symlinks.nix` と `scripts/setup-manifest.yml` の双方に `~/.local/bin/herdr-new-default-worktree` が定義され、`nix/check-parity.py` が整合を報告する（54 links）
+- [x] `bash -n configs/herdr/new-default-worktree.sh` が構文エラーなく通過する
+- [ ] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-new-default-worktree` の symlink が作られ、実行可能である（新規 symlink のため switch が必要。既存スクリプトの編集と異なり out-of-store symlink だけでは反映されない）
+- [ ] 実機: linked worktree に居る pane から `Cmd+T` を押すと、新しい tab が repo の default worktree で開く
+- [ ] 実機: linked worktree に居る pane から `prefix+shift+n` を押すと、新しい workspace が repo の default worktree で開く
