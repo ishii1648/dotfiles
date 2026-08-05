@@ -44,6 +44,38 @@ die() {
     exit 1
 }
 
+# --- 新規 pane に claude を自動起動する（ADR-086） ---
+# agent 名は live agent 間で一意である必要があり（複数 workspace で同時に claude を
+# 起動する運用があるため固定文字列は使えない）、作成直後の時点で必ず一意な pane_id
+# から組み立てる。claude の自動起動に失敗しても workspace 自体は既に使える状態なので
+# die() は呼ばず、ログに warn を残すだけにする。
+#
+# 実機でこの popup（type = "popup"、モーダル端末）の中から作成直後に即 agent start
+# すると "agent_pane_busy: ... is not an available shell" で毎回失敗することを確認
+# した（CLI から手動で同じ順序を再現しても即成功するため、popup がまだ端末を専有して
+# いる間は新規 pane 側のシェルが対話可能状態に達しない、popup 固有のタイミング問題と
+# 見られる）。原因を herdr 側で確定づける情報がないため、対症療法として短い間隔での
+# リトライで吸収する。
+#
+# このリトライ（最大10回・0.5秒間隔）をスクリプトの終了前に待つと、popup はスクリプト
+# の exit と同時に閉じる仕様のため、repo 選択直後に閉じるはずの popup が最大5秒程度
+# 遅延して体感が悪化する。呼び出し側で `&` によりバックグラウンド化し、popup を待たせ
+# ない。SIGHUP（端末クローズに伴うもの）は trap で無視するが、herdr がプロセスグループ
+# ごと終了させる実装だった場合は setsid 相当の完全分離ではないため巻き込まれる可能性
+# が残る（未検証）。
+launch_claude_retry() {
+    trap '' HUP
+    local pane_id="$1" agent_name="$2" attempt
+    for attempt in 1 2 3 4 5 6 7 8 9 10; do
+        if "$HERDR_BIN" agent start "$agent_name" --kind claude --pane "$pane_id" >>"$LOG_FILE" 2>&1; then
+            log "agent start claude ok (pane=$pane_id name=$agent_name, attempt=$attempt)"
+            return 0
+        fi
+        sleep 0.5
+    done
+    log "warn: agent start claude failed after $attempt attempts (pane=$pane_id name=$agent_name)"
+}
+
 # popup が「一瞬で消える」ときに何も手掛かりが残らないのを防ぐ。起動できたことと
 # 実行環境（TTY の有無・TERM）をまず記録しておく。fzf は TTY と terminfo が要る。
 log "invoked pid=$$ tty=$(tty 2>&1) term=${TERM:-unset} cwd=$PWD"
@@ -110,36 +142,14 @@ log "create $selected (label=$label)"
 create_json=$("$HERDR_BIN" workspace create --cwd "$selected" --label "$label" --focus) ||
     die "workspace create --cwd $selected に失敗しました"
 
-# --- 新規 pane に claude を自動起動する（ADR-086） ---
 # workspace create のレスポンス JSON に新規 pane の pane_id がそのまま乗っている
-# （実測確認済み、追加の api snapshot 問い合わせは不要）。agent 名は live agent 間で
-# 一意である必要があり（複数 workspace で同時に claude を起動する運用があるため固定
-# 文字列は使えない）、作成直後の時点で必ず一意な pane_id から組み立てる。claude の
-# 自動起動に失敗しても workspace 自体は既に使える状態なので die() は呼ばず、ログに
-# warn を残すだけにする。
-#
-# 実機でこの popup（type = "popup"、モーダル端末）の中から作成直後に即 agent start
-# すると "agent_pane_busy: ... is not an available shell" で毎回失敗することを確認
-# した（CLI から手動で同じ順序を再現しても即成功するため、popup がまだ端末を専有して
-# いる間は新規 pane 側のシェルが対話可能状態に達しない、popup 固有のタイミング問題と
-# 見られる）。原因を herdr 側で確定づける情報がないため、対症療法として短い間隔での
-# リトライで吸収する。
+# （実測確認済み、追加の api snapshot 問い合わせは不要）。claude 起動のリトライは
+# launch_claude_retry（バックグラウンド実行、上部で定義）に任せ、popup を待たせない。
 pane_id=$(printf '%s' "$create_json" | jq -r '.result.root_pane.pane_id // empty')
 if [ -n "$pane_id" ]; then
     agent_name="claude-$(printf '%s' "$pane_id" | tr -d ':' | tr '[:upper:]' '[:lower:]')"
-    agent_started=0
-    for attempt in 1 2 3 4 5 6 7 8 9 10; do
-        if "$HERDR_BIN" agent start "$agent_name" --kind claude --pane "$pane_id" >>"$LOG_FILE" 2>&1; then
-            agent_started=1
-            break
-        fi
-        sleep 0.5
-    done
-    if [ "$agent_started" -eq 1 ]; then
-        log "agent start claude ok (pane=$pane_id name=$agent_name, attempt=$attempt)"
-    else
-        log "warn: agent start claude failed after $attempt attempts (pane=$pane_id name=$agent_name)"
-    fi
+    launch_claude_retry "$pane_id" "$agent_name" </dev/null >>"$LOG_FILE" 2>&1 &
+    disown
 else
     log "warn: pane_id not found in workspace create response"
 fi
