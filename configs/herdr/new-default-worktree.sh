@@ -102,5 +102,13 @@ fi
 # ネットワーク往復を伴うので、tab / workspace の作成完了を待たせないようバックグラウンドで
 # 走らせる。pull の成否はこのスクリプトの終了コードに影響させない（最新化できなくても
 # tab / workspace 自体は使えるため）。
-"$HOME/.local/bin/herdr-pull-default-branch" "$target" </dev/null >/dev/null 2>&1 &
+#
+# サブシェルで SIGHUP を無視してから exec する形にしているのは、herdr がカスタムコマンドの
+# 終了時にプロセスグループへ SIGHUP を送るため（new-workspace.sh 側の popup 経路で、素の
+# バックグラウンド起動だと pull が 1 行もログを残さず即死することを実機で確認した）。
+# SIG_IGN は exec 後も引き継がれるので、この形なら生き残る。
+(
+    trap '' HUP
+    exec "$HOME/.local/bin/herdr-pull-default-branch" "$target"
+) </dev/null >>"$LOG_FILE" 2>&1 &
 disown

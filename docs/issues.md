@@ -1469,4 +1469,7 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] ADR-087 のモックテスト 8 件がログディレクトリ修正後も PASS する（回帰なし）
 - [x] master 取り込み後: `home-manager switch` で `~/.local/bin/herdr-pull-default-branch` の symlink が作られ、実行可能である
 - [x] 実機（スクリプト直接実行）: 配置後の `~/.local/bin/herdr-pull-default-branch` を dotfiles repo に対して実行し、exit 0 かつログに `pulled master` が残ることを確認した
-- [ ] 実機（herdr 経由）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）
+- [x] 実機（herdr 経由）で pull が全く走らない不具合を修正した。原因は herdr が popup クローズ時にプロセスグループへ SIGHUP を送ること。`&` + `disown` だけの素のバックグラウンド起動はスクリプトの 1 行目に到達する前に死ぬためログすら残らなかった（同じ場所の `launch_claude_retry` が無事なのは冒頭で `trap '' HUP` しているから、という差分から切り分けた）
+- [x] 呼び出しを `( trap '' HUP; exec <script> <arg> ) &` の形にし、プロセスグループへ SIGHUP を送る再現実験で pull が完走し HEAD が前進することを確認した（素の起動では死亡、`trap` 付きでは生存も併せて実測）
+- [x] pull 起動の stderr を `/dev/null` ではなくログへ落とす（今回「ログが無い」以外の手掛かりが無く切り分けに時間を要したため）
+- [ ] 実機（herdr 経由・再確認）: `Cmd+Shift+S` で repo を選ぶと、popup のクローズや claude 起動を遅らせずに default branch が最新化される（`~/.local/state/herdr/pull-default-branch.log` に `pulled <branch>` が残る）

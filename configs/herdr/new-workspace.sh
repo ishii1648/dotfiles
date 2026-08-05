@@ -159,5 +159,16 @@ fi
 # （claude 起動のリトライと同じ理由・同じ形。ADR-086）。claude 起動とは順序を持たせず
 # 独立に走らせる — pull を待ってから claude を起動すると起動が体感で遅くなるうえ、
 # claude はファイルを遅延読みするため先に pull が終わっている必要は無い。
-"$HOME/.local/bin/herdr-pull-default-branch" "$selected" </dev/null >/dev/null 2>&1 &
+#
+# `&` + disown だけでは足りない。herdr は popup を閉じるときプロセスグループへ SIGHUP を
+# 送るため、素のバックグラウンド外部コマンドは 1 行もログを残さず即死する（実機で pull が
+# 全く走らない事象として発生。launch_claude_retry が無事なのは冒頭で trap '' HUP して
+# いるからだと切り分けた）。サブシェルで SIG_IGN にしてから exec すると、その disposition
+# は exec 後も引き継がれるため生き残る。
+# stderr は /dev/null ではなくログへ落とす — 上記の即死を「ログが無い」以外の手掛かり無しで
+# 追う羽目になったため。
+(
+    trap '' HUP
+    exec "$HOME/.local/bin/herdr-pull-default-branch" "$selected"
+) </dev/null >>"$LOG_FILE" 2>&1 &
 disown
