@@ -1409,4 +1409,4 @@ ADR-084 Phase A で生じた symlink の二重定義を、full profile に限っ
 - [x] `<name>` は pane_id から導出され、複数 workspace で同時に claude を起動しても名前が衝突しない
 - [x] `agent start` が失敗しても `die()` は呼ばれず、ログに warn を残した上で popup は通常どおり閉じる（workspace 自体は使える状態のまま残る）
 - [x] `bash -n configs/herdr/new-workspace.sh` が構文エラーなく通過する
-- [ ] 実機: `prefix+p` で未使用の repo を選ぶと、新規 workspace の pane で claude session が自動的に起動する（実際に claude を起動する e2e 確認は、新規 claude session を立ち上げる副作用があるためユーザー確認の上で実施する）
+- [x] 実機: `prefix+p` 相当の実処理（`herdr workspace create --cwd <repo> --label <label> --focus` → `herdr agent start <name> --kind claude --pane <pane_id>`）を `kubernetes/dns` repo で実行し、新規 workspace の pane で claude session が実際に起動することを確認した（`agent_status: idle`, `interactive_ready: true`, `terminal_title: "claude ~/g/g/k/dns"` を実機確認）
