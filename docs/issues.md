@@ -1512,3 +1512,21 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 - [x] 128 行すべてが「区切り記号のみの変更」で本文が保存されている（逆変換して元ファイルと突き合わせ、不一致 0 件）
 - [x] `docs/adr/` に `- **ラベル**: ` パターンが 1 件も残っていない
 - [x] `adr-reference` skill にリスト項目の書式規約を明記し、新規 ADR で元の形式に戻らないようにした
+
+---
+
+### ADR-089: グローバル CLAUDE.md を行動ルールに絞り、背景を ADR に退避する
+
+**コンポーネント**: claude | **ADR**: [ADR-089](adr/089-global-claude-md-rules-only.md)
+
+**受け入れ条件**:
+
+- [x] `configs/claude/CLAUDE.md` から経緯・背景の記述が削除され、行動ルールだけが残っている（50 行 → 36 行、6107 → 4323 バイト）
+- [x] 実効ルールが 1 つも失われていない（fish / BSD、`|| true`、read-only 以外を混ぜない、`git diff` を真実とする、`python3` で count==1 を assert、中断した外向き操作を再試行しない、EnterWorktree、stash 経由の持ち込み、再分離しない、`Agent(isolation: "worktree")`、パス明示のステージ、worktree の残置を確認しない、codex-advise、`.outputs/claude/` の 14 項目を移行前後で突き合わせて確認する）
+- [x] 「`~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク」が nix home-manager 経由（ADR-084）の記述に修正されている。実リンクを追って、store を 2 段経由したうえで最終的に dotfiles の実体を指す out-of-store symlink であること（＝実体を編集すれば `home-manager switch` なしで反映される）を確認し、「読み取り専用の生成物」という誤った表現を「参照専用の symlink 層」に修正した
+- [x] harness のバージョンに依存する記述（「read-only は修正済み / mutating は未修正」）が、どちらに転んでも損しない行動の記述に置き換わっている
+- [x] worktree と branch の 1:1 について、判定手順ではなく結論と hook / ADR-081/082 への参照になっている
+- [x] 「既に worktree 内かどうか」の判定方法は 1 箇所だけ残っている（モデル自身が判定する必要があるため）
+- [x] `configs/claude/settings.json` に `env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1"` が追加され、CLAUDE.md の記述と実態が一致している（`jq` でパースが通ることも確認）
+- [x] 削った背景（並列キャンセルの経緯、advisor を使わない理由、`~/.claude/` の実態）が ADR-089 に保存されている
+- [x] textlint が `docs/adr/089-*.md` と `configs/claude/CLAUDE.md` に対してエラーを報告しない（`docs/issues.md` の既存指摘 6 件は今回の追加分ではないため対象外）
