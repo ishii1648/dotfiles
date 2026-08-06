@@ -34,7 +34,7 @@
 - 既に worktree 内にいる場合（`git rev-parse --git-dir` と `--git-common-dir` が一致しない）は再分離しない。
 - サブエージェントに並列でファイルを書かせる場合は `Agent(isolation: "worktree")` を使う。
 - main worktree で作業せざるを得ない場合、**ステージはパスを明示する**。`git add -A` / `git commit -a` は他セッションの編集中ファイルを巻き込む。
-- 作業完了時に worktree を残すか消すかはユーザに確認する（`ExitWorktree` は指示があったときだけ呼ぶ）。
+- **作業完了時に worktree を残すか消すかをユーザに確認しない。** 使い終わった worktree は定期削除の処理で回収されるため、都度の確認は不要（`ExitWorktree` は指示があったときだけ呼ぶ）。作業完了報告に「worktree が残っています、削除しますか」と書かない。
 
 ## セカンドオピニオンは codex-advise を使う
 built-in `advisor` ツールは server-side tool で `permissions.deny` の対象外（deny しても
