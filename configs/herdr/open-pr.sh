@@ -15,9 +15,12 @@
 # 手間も不要になった。
 #
 # 制約: `herdr pane read` はスクロールバックが実測で約 1000 行にクランプされる
-# （--lines を増やしても伸びない）。長いセッションでは古い PR がこの窓の外に
-# 出て一覧に現れないことを許容する（hook で gh pr コマンドを追跡する方式は
-# 実装コストに見合わないとして不採用。docs/issues.md 参照）。
+# （--lines を増やしても伸びない）。しかも拾えるのは完全な URL 文字列だけで、
+# Claude Code が PR を `#1071` の短縮表記で書くため URL 全文が出るのは
+# `gh pr create` した瞬間の 1 回きり。その行が窓の外に出ると、直前まで作業していた
+# PR でも一覧から消える。これを statusline の pane キャッシュを履歴化することで
+# 緩和する（hook で gh pr コマンドの出力を追跡する方式は実装コストに見合わない
+# として不採用のまま。docs/issues.md 参照）。
 #
 # type = "popup" はコマンドが終わるまで全入力（Esc 含む）を受け取るモーダル端末
 # なので fzf をそのまま動かせる。構成は configs/herdr/agent-picker.sh と同型。
@@ -89,17 +92,31 @@ pane_id="${HERDR_ACTIVE_PANE_ID:-}"
 [[ -n "$pane_id" ]] || die "呼び出し元 pane を特定できませんでした（HERDR_ACTIVE_PANE_ID 未設定）"
 
 # --- 候補 URL を集める（先着優先で重複除去。表示順が優先度） ---
-# 1) statusline が書いた pane_id キャッシュ（表示中の PR。ネットワーク不要・最優先）
+# 1) statusline が書いた pane_id キャッシュ（表示中の PR + 履歴。ネットワーク不要・最優先）
 # 2) スクロールバックのスクレイプ（ローカル完結。実測 25ms）
 # 3) gh pr view フォールバック（1/2 が両方空振りしたときだけ。実測 578ms のネットワーク
 #    往復で popup の表示ラグの主因なので最後に回す。Claude Code が動いていない pane 向け）
 featured=() # ★ 現在のPR（先頭固定）
+recent=()   # 同じ pane で過去に表示した PR（新しい順）
 scraped=()  # スクロールバック由来
 
+# キャッシュは 1 行目 = 現在の PR（無ければ空行）、2 行目以降 = 履歴（新しい順）。
+# スクレイプは完全な URL 文字列しか拾えず、Claude Code が `#1071` の短縮表記で書いた
+# PR は約 1000 行のクランプで URL 行が窓の外に出た時点で候補から消えるため、
+# statusline が毎ターン解決している PR を履歴として先に並べる。
 pane_cache="/tmp/gh-pr-pane-${pane_id//[!A-Za-z0-9_-]/_}"
 if [[ -f "$pane_cache" ]]; then
-    cache_url=$(cut -d' ' -f2 <"$pane_cache")
-    [[ -n "$cache_url" ]] && featured+=("\033[32m★ 現在のPR\033[0m  $cache_url")
+    cache_lineno=0
+    while IFS= read -r cache_line || [[ -n "$cache_line" ]]; do
+        cache_lineno=$((cache_lineno + 1))
+        cache_url=$(printf '%s' "$cache_line" | cut -d' ' -f2)
+        [[ -n "$cache_url" ]] || continue
+        if [[ $cache_lineno -eq 1 ]]; then
+            featured+=("\033[32m★ 現在のPR\033[0m  $cache_url")
+        else
+            recent+=("  $cache_url")
+        fi
+    done <"$pane_cache"
 fi
 
 scrollback=$("$HERDR_BIN" pane read "$pane_id" --source recent-unwrapped --format text --lines 5000 2>>"$LOG_FILE" || true)
@@ -115,7 +132,7 @@ if [[ -n "$scrollback" ]]; then
     )
 fi
 
-if [[ ${#featured[@]} -eq 0 && ${#scraped[@]} -eq 0 ]]; then
+if [[ ${#featured[@]} -eq 0 && ${#recent[@]} -eq 0 && ${#scraped[@]} -eq 0 ]]; then
     # pane get（python3 の起動を伴う）も gh を叩くときだけに遅延させる。
     foreground_cwd=""
     pane_cwd=""
@@ -153,7 +170,7 @@ fi
 
 # bash 3.2（macOS 標準）は set -u 下で空配列の展開を unbound variable にするため
 # ${arr[@]+...} で守る。
-candidates=(${featured[@]+"${featured[@]}"} ${scraped[@]+"${scraped[@]}"})
+candidates=(${featured[@]+"${featured[@]}"} ${recent[@]+"${recent[@]}"} ${scraped[@]+"${scraped[@]}"})
 
 log "candidates=${#candidates[@]} (pane_id=$pane_id)"
 [[ ${#candidates[@]} -gt 0 ]] || notice "GitHub の PR/Issue が見つかりません（pane_id=$pane_id）"

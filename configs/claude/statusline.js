@@ -12,6 +12,10 @@ const crypto = require('crypto');
 const COMPACTION_THRESHOLD_DEFAULT = 150000;
 const COMPACTION_THRESHOLD_1M = 950000;
 
+// pane ごとの PR 履歴（/tmp/gh-pr-pane-<pane_id>）の保持件数。herdr の prefix+u が
+// 開く一覧の材料で、長く使う pane でも fzf が見渡せる程度に抑える。
+const PANE_PR_HISTORY_MAX = 20;
+
 // 1M context モデル判定のパターン。stdin の context_window.context_window_size
 // を最優先とし、来ない旧バージョン CC 向けの最終フォールバックとして使う。
 // - "[1m]" サフィックス: Opus 4.7/4.8 (1M) 系
@@ -54,15 +58,34 @@ process.stdin.on('end', async () => {
     // pane_id は herdr pane current が常に返すフィールドなので、agent_session
     // （SessionStart hook の配線が必要）や cwd 推測（foreground_cwd が MCP サーバー等の
     // 無関係な cwd を拾う）と違い、追加の配線・ヒューリスティクスなしで照合できる。
+    // 1 行目 = 現在表示中の PR（無ければ空行）、2 行目以降 = 同じ pane で過去に表示した
+    // PR の履歴（新しい順）。履歴を残すのは open-pr.sh のスクロールバックスクレイプが
+    // 完全な URL 文字列しか拾えないため: Claude Code は PR を `#1071` の短縮表記で書くので
+    // URL 全文が出るのは `gh pr create` した瞬間の 1 回だけで、それが約 1000 行の
+    // クランプで窓の外に出ると直前まで作業していた PR すら候補から消える。
+    // ここは毎ターン `gh pr view` の結果を持っているので、捨てずに積むだけで済む。
     try {
       const paneId = process.env.HERDR_PANE_ID;
       if (paneId) {
         const paneCacheFile = `/tmp/gh-pr-pane-${paneId.replace(/[^A-Za-z0-9_-]/g, '_')}`;
-        if (prInfo) {
-          fs.writeFileSync(paneCacheFile, `${prInfo.number} ${prInfo.url}`);
-        } else if (fs.existsSync(paneCacheFile)) {
-          fs.unlinkSync(paneCacheFile);
+        let previous = [];
+        try {
+          previous = fs.readFileSync(paneCacheFile, 'utf8').split('\n');
+        } catch (e) {
+          // 初回はキャッシュが無い
         }
+        const current = prInfo ? `${prInfo.number} ${prInfo.url}` : '';
+        // 直前の「現在」も履歴に降ろす。PR の無いブランチへ移っても履歴は消さない
+        // （消すと直前まで見ていた PR まで巻き添えで失われる）。現在と同じものは
+        // 二重掲載になるので落とす。
+        const history = [];
+        for (const line of previous) {
+          const entry = line.trim();
+          if (!entry || entry === current || history.includes(entry)) continue;
+          history.push(entry);
+        }
+        const lines = [current, ...history.slice(0, PANE_PR_HISTORY_MAX)];
+        fs.writeFileSync(paneCacheFile, `${lines.join('\n')}\n`);
       }
     } catch (e) {}
     const stdinRateLimits = parseStdinRateLimits(data.rate_limits);
