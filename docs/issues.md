@@ -1521,8 +1521,11 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 
 **受け入れ条件**:
 
-- [x] `configs/claude/CLAUDE.md` から経緯・背景の記述が削除され、行動ルールだけが残っている（50 行 → 36 行、6107 → 4323 バイト）
-- [x] 実効ルールが 1 つも失われていない（fish / BSD、`|| true`、read-only 以外を混ぜない、`git diff` を真実とする、`python3` で count==1 を assert、中断した外向き操作を再試行しない、EnterWorktree、stash 経由の持ち込み、再分離しない、`Agent(isolation: "worktree")`、パス明示のステージ、worktree の残置を確認しない、codex-advise、`.outputs/claude/` の 14 項目を移行前後で突き合わせて確認する）
+- [x] `configs/claude/CLAUDE.md` から経緯・背景の記述が削除され、行動ルールだけが残っている（50 行 → 35 行、6107 → 3808 バイト）
+- [x] 意図せず失われた実効ルールが無い（fish / BSD、`|| true`、read-only 以外を混ぜない、`git diff` を真実とする、`python3` で count==1 を assert、中断した外向き操作を再試行しない、EnterWorktree、stash 経由の持ち込み、再分離しない、`Agent(isolation: "worktree")`、パス明示のステージ、worktree の残置を確認しない、`.outputs/claude/` の 13 項目を移行前後で突き合わせて確認する）
+- [x] 意図的に削除した 2 項目について、削除理由が ADR-089 に記載されている
+  - codex-advise / advisor の説明 — 無効化は `settings.json` の env で担保され、`codex-advise` skill は description で発動するため、CLAUDE.md に書く必要が無い
+  - 「人間への確認を最小化」セクション — 現在の harness のシステムプロンプトが同等の指示を既定で持つ。「物理的に不可能なもののみ人間に依頼」は harness 側の「取り消しにくい操作は先に確認する」と競合するため有害寄り。確認のタイミング（着手前にまとめて聞く）だけ 1 行残した
 - [x] 「`~/.claude/CLAUDE.md` は dotfiles へのシンボリックリンク」が nix home-manager 経由（ADR-084）の記述に修正されている。実リンクを追って、store を 2 段経由したうえで最終的に dotfiles の実体を指す out-of-store symlink であること（＝実体を編集すれば `home-manager switch` なしで反映される）を確認し、「読み取り専用の生成物」という誤った表現を「参照専用の symlink 層」に修正した
 - [x] harness のバージョンに依存する記述（「read-only は修正済み / mutating は未修正」）が、どちらに転んでも損しない行動の記述に置き換わっている
 - [x] worktree と branch の 1:1 について、判定手順ではなく結論と hook / ADR-081/082 への参照になっている
