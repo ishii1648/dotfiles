@@ -13,4 +13,6 @@
 
 コード実装タスクが完了した際は `git commit` まで自動で行う。git remote が設定されている場合は `git push` も自動で行う（PR 作成は不要）。master ブランチに直接コミットしてよい。
 
-ただし worktree 分離中（グローバル CLAUDE.md「並列セッションの衝突回避」参照）は master 直コミットにならないため、その worktree のブランチにコミット・push したうえで master への取り込み方法をユーザに確認する。自動コミット時は **`git add -A` を使わずパスを明示する**（他セッションの編集中ファイルを巻き込まないため）。
+worktree 分離中（グローバル CLAUDE.md「並列セッションの衝突回避」参照）は master 直コミットにならないため、その worktree のブランチにコミット・push したうえで、**確認せず master への merge と push まで自動で行う**。worktree 分離ガードが main checkout への git 操作をブロックするため、タスク完了後に `ExitWorktree`（keep）で main worktree に戻ってから `git merge <branch> && git push` を実行する。conflict した場合のみ中断してユーザに確認する。
+
+自動コミット時は **`git add -A` を使わずパスを明示する**（他セッションの編集中ファイルを巻き込まないため）。
