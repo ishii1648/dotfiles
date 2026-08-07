@@ -15,8 +15,7 @@
 - **Edit/Write/破壊的 Bash と「失敗しうる Bash」を同一バッチに混ぜない。** 1 つの非 0 exit が無関係な兄弟呼び出しを巻き添えでキャンセルする（ADR-089）
 - 非 0 exit が想定される Bash（`pkill` / `grep -c` / `curl` プローブ / `gh ... checks` 等）は末尾に `|| true` を付ける
 - 「保険」で同じコマンドを並列に並べない
-- **状態確認は `git diff --stat` / `git diff` を唯一の真実として扱う。** Edit の成功表示・直後の Read・スクリプトの `OK` 出力を鵜呑みにしない。巻き添えキャンセルの後は特に、成功したはずの Edit が未適用であることを疑う
-- 大きな anchor で Edit が滑るときは `python3` で `count == 1` を assert してから置換し、同じコマンド内で `git diff --stat` を出して着地を確認する
+- **巻き添えキャンセルが起きたバッチの直後だけ、`git diff --stat` / `git diff` で着地を確認する。** キャンセルされた Edit は成功したように見えて未適用のことがある（ADR-089）。それ以外の場面では Edit の成功表示を信じてよく、確認のための再 Read はしない
 - 中断された外向きの操作（push 等）を無断で再試行しない。ユーザが別タスクへ誘導したら、それを終えてから再開の可否を確認する
 
 ## 並列セッションの衝突回避（worktree isolation）
@@ -26,7 +25,6 @@
 - **ファイルを編集するタスクは、最初の Edit/Write の前に `EnterWorktree` で専用 worktree に移る**（読み取り・調査のみのタスクは分離不要）。既に worktree 内にいる場合（`git rev-parse --git-dir` と `--git-common-dir` が一致しない）は再分離しない
 - **worktree と branch は 1:1 に固定する。** branch を変えたくなったら既存 worktree 内で切り替えるのではなく、必ず新しい worktree を作る（hook `block-worktree-branch-switch.py` が機械的に強制する。ADR-081/082）
 - main worktree の未コミット変更を持ち込みたい場合は `git stash push` → `EnterWorktree` → 新 worktree 内で `git stash pop`。「持ち込みたいから分離しない」という判断はしない
-- サブエージェントに並列でファイルを書かせる場合は `Agent(isolation: "worktree")` を使う
 - main worktree で作業せざるを得ない場合、**ステージはパスを明示する**（`git add -A` / `git commit -a` は他セッションの編集中ファイルを巻き込む）
 - **使い終わった worktree を残すか消すかをユーザに確認しない**（定期削除の処理で回収される。`ExitWorktree` は指示があったときだけ呼ぶ）。作業完了報告に「worktree が残っています、削除しますか」と書かない
 
