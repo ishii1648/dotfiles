@@ -206,12 +206,13 @@ rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent
 rows = [["state_icon", "workspace"], ["branch", "git_status"]]
 
 [ui.toast]
-# 通知は出さない。macOS の通知バナーはクリックしても発生元タブに移動できず
+# herdr 自身の通知は出さない。macOS の通知バナーはクリックしても発生元タブに移動できず
 # （herdr は OS 通知に action を紐付けない。`notification show` にも宛先指定が無い）、
-# 「鳴っても飛べない」ため通知としての価値が薄い。状態把握はサイドバーの
-# state_icon（および pane 境界の agent ラベル）で足りる。
-# クリックでタブ遷移させたい場合は $HERDR_PANE_ID + `herdr agent focus` を使う
-# 自前実装か、第三者プラグイン（yankewei/herdr-focus-notify）が必要になる。
+# 「鳴っても飛べない」ため通知としての価値が薄い。
+# 代わりに自前 watcher（configs/herdr/agent-notify.py、launchd 常駐。ADR-090）が
+# agent_status: blocked（permission / 入力待ち）への遷移を terminal-notifier の
+# クリックアクション付き通知で知らせ、クリックで `herdr agent focus` により
+# 発生元ペインへジャンプする。
 delivery = "off"
 
 [ui.sound]

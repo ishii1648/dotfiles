@@ -29,5 +29,9 @@
     # 公式 .dmg を再パッケージした ghostty-bin を使う。GUI 本体は
     # ~/Applications/Home Manager Apps/ に置かれ、手動インストール版とは別インスタンスになる。
     ghostty-bin
+    # herdr blocked 通知 watcher（ADR-090）が使うクリックアクション付き通知 CLI。
+    # aqua 標準 registry に無く、GitHub Releases 直配布は x86_64 のみ（Rosetta 無し環境で
+    # 動かない）ため nixpkgs 版（arm64 ネイティブ実測確認済み）を使う。
+    terminal-notifier
   ];
 }

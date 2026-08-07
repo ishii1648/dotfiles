@@ -22,6 +22,34 @@ if [[ "${1:-}" == "--dry-run" ]]; then
     DRY_RUN=true
 fi
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# launchd agent（ADR-090: blocked 通知 watcher）。configs/fish/setup.sh の
+# worktree-auto-cleanup と同型だが、常駐（KeepAlive）なので plist が同一なら
+# 再インストールしない（setup のたびに watcher が再起動されるのを避ける）。
+NOTIFY_PLIST_NAME="com.user.herdr-agent-notify.plist"
+NOTIFY_PLIST_SRC="$SCRIPT_DIR/launchd/$NOTIFY_PLIST_NAME"
+NOTIFY_PLIST_DEST="$HOME/Library/LaunchAgents/$NOTIFY_PLIST_NAME"
+
+check_notify_launchd() {
+    # dry-run 用。0 = OK, 1 = 導入か更新が必要
+    [[ "$(uname)" == "Darwin" ]] || return 0
+    [[ -f "$NOTIFY_PLIST_DEST" ]] && cmp -s "$NOTIFY_PLIST_SRC" "$NOTIFY_PLIST_DEST"
+}
+
+install_notify_launchd() {
+    [[ "$(uname)" == "Darwin" ]] || return 0
+    if check_notify_launchd; then
+        echo "  herdr launchd (agent-notify): ✓ already current"
+        return 0
+    fi
+    mkdir -p "$HOME/Library/LaunchAgents"
+    cp "$NOTIFY_PLIST_SRC" "$NOTIFY_PLIST_DEST"
+    launchctl unload "$NOTIFY_PLIST_DEST" >/dev/null 2>&1 || true
+    launchctl load "$NOTIFY_PLIST_DEST"
+    echo "  herdr launchd (agent-notify): installed ($NOTIFY_PLIST_DEST)"
+}
+
 # herdr 本体の導入・更新は herdr.dev 公式 install script（$HOME/.local/bin/herdr に
 # 配置、sudo 不要）で管理する。Homebrew/mise/Nix で入れた場合は `herdr update` が
 # 使えない（各パッケージマネージャ側での更新が必要になる）ため、install script 経由
@@ -114,6 +142,13 @@ if [[ "$DRY_RUN" == "true" ]]; then
             && echo "  herdr config: ✓ OK" \
             || { echo "  herdr config: ✗ INVALID"; rc=1; }
     fi
+    if check_notify_launchd; then
+        echo "  herdr launchd (agent-notify): ✓ OK"
+    else
+        echo "  herdr launchd (agent-notify): ✗ MISSING or OUTDATED"
+        echo "    Fix: cp $NOTIFY_PLIST_SRC $NOTIFY_PLIST_DEST && launchctl load $NOTIFY_PLIST_DEST"
+        rc=1
+    fi
     exit "$rc"
 fi
 
@@ -143,5 +178,7 @@ for agent in "${AGENTS[@]}"; do
         exit 1
     fi
 done
+
+install_notify_launchd
 
 herdr config check

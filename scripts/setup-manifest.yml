@@ -87,6 +87,10 @@ components:
       - link: ~/.local/bin/herdr-pull-default-branch
         target: configs/herdr/pull-default-branch.sh
         nix_managed: true
+      # launchd agent（com.user.herdr-agent-notify）から呼ばれる blocked 通知 watcher（ADR-090）
+      - link: ~/.local/bin/herdr-agent-notify
+        target: configs/herdr/agent-notify.py
+        nix_managed: true
 
   claude:
     setup: configs/claude/setup.sh

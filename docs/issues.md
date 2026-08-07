@@ -79,6 +79,7 @@
 | - | ○ | herdr | linked worktree に居ると新しい tab / space まで linked worktree で開く — `new_cwd = "follow"` に「repo の default worktree」の選択肢が無いため、組み込み `new_tab` / `new_workspace` を cwd 解決付きの `[[keys.command]]` に差し替える | [ADR-087](adr/087-new-tab-workspace-at-default-worktree.md) |
 | - | ○ | herdr | space / tab を開いたあと毎回手で `git pull origin <default branch>` を叩いている — 自動化チェーン（repo 選択 → space/tab → claude 起動）の最後に pull まで含める | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
 | ✔ | ○ | docs | ADR のリスト書式が textlint 指摘（強調 + コロン）を全体で踏んでいる — 30 本・128 箇所を太字 + em ダッシュに統一し、規約を `adr-reference` skill に明記する | — |
+| - | ○ | herdr / claude / codex | claude/codex の permission 待ちに気づけない — herdr の toast はクリックで発生元へ移動できず agent も判別できないため off にしており、blocked 状態を watcher で監視してクリックジャンプ付き macOS 通知を出す | [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1533,3 +1534,23 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 - [x] `configs/claude/settings.json` に `env.CLAUDE_CODE_DISABLE_ADVISOR_TOOL: "1"` が追加され、CLAUDE.md の記述と実態が一致している（`jq` でパースが通ることも確認）
 - [x] 削った背景（並列キャンセルの経緯、advisor を使わない理由、`~/.claude/` の実態）が ADR-089 に保存されている
 - [x] textlint が `docs/adr/089-*.md` と `configs/claude/CLAUDE.md` に対してエラーを報告しない（`docs/issues.md` の既存指摘 6 件は今回の追加分ではないため対象外）
+
+---
+
+### ADR-090: herdr agent の permission 待ちをクリックでジャンプできる macOS 通知で知らせる
+
+**コンポーネント**: herdr / claude / codex | **ADR**: [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md)
+
+**受け入れ条件**:
+
+- [ ] claude セッションで permission プロンプトが出ると、数秒以内に macOS 通知が表示される
+- [ ] 通知タイトルで claude / codex のどちらが待っているか判別できる
+- [ ] 通知本文にリポジトリ名とセッションのタイトルが表示される
+- [ ] 通知をクリックすると Ghostty が前面化し、発生元のペインにフォーカスが移る
+- [ ] 発生元ペインを注視中（agent focused かつ Ghostty が frontmost）の場合は通知が出ない
+- [ ] blocked が解消 → 再発生した場合に再度通知される（遷移ベースで重複通知しない）
+- [ ] watcher が launchd で常駐し、プロセスを kill しても自動で再起動される
+- [ ] herdr サーバ停止中でも watcher がエラー終了せず、復帰後に監視を再開する
+- [ ] terminal-notifier が nix home-manager（home.packages）で導入され arm64 ネイティブで動作する
+- [ ] `configs/herdr/setup.sh --dry-run` が launchd agent の導入状態を検証する
+- [ ] `configs/herdr/config.toml` の [ui.toast] コメントが watcher 導入後の実態と一致している

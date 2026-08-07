@@ -55,6 +55,8 @@ in
       ".local/bin/herdr-agent-picker".source = link "configs/herdr/agent-picker.sh";
       ".local/bin/herdr-new-default-worktree".source = link "configs/herdr/new-default-worktree.sh";
       ".local/bin/herdr-pull-default-branch".source = link "configs/herdr/pull-default-branch.sh";
+      # launchd agent（ADR-090）から呼ばれる blocked 通知 watcher
+      ".local/bin/herdr-agent-notify".source = link "configs/herdr/agent-notify.py";
 
       # --- aqua ---
       # 設定ファイルの配置だけを Nix が持つ。ツール本体の導入（`aqua install -l`）は

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.user.herdr-agent-notify</string>
+    <!-- launchd は $HOME を展開しないため bash -lc 経由にする（worktree-auto-cleanup と同型）。
+         ログのリダイレクトも同じ理由でここで行う -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>-lc</string>
+        <string>mkdir -p "$HOME/.local/state/herdr" &amp;&amp; exec "$HOME/.local/bin/herdr-agent-notify" >> "$HOME/.local/state/herdr/agent-notify.log" 2>&amp;1</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+</dict>
+</plist>
