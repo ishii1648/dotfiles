@@ -8,7 +8,7 @@
 
 - シェルは **fish**。コマンド例も fish 構文で書く（heredoc `<<EOF` は使えないので `printf` + `tee` を使う）
 - macOS (BSD) 環境。GNU 専用フラグを使わない（例: `cat -A` は無効 → `cat -e` / `cat -v`）
-- `~/.claude/` 配下は nix home-manager が張る symlink 層（ADR-084）。参照専用として扱い、編集は dotfiles の実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/` に対して行う（out-of-store symlink なので実体を直せば即反映される）
+- `~/.claude/` は参照専用。編集は dotfiles の実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/` に対して行う（ADR-084）
 
 ## 並列セッションの衝突回避（worktree isolation）
 

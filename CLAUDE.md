@@ -7,6 +7,7 @@
 - 実装前に受け入れ条件を `docs/issues.md` に書くこと
 - ファイル検索結果から選択する際は、現在の worktree パス内のファイルを選択する
 - グローバル `~/.claude/` は参照専用。編集が必要な場合は `$PWD/configs/claude/` を編集（プロジェクトローカルの `$PWD/.claude/` は通常通り参照・編集可）
+- `configs/claude/settings.json` は symlink ではない。編集したら `configs/claude/setup.sh` を実行するまで `~/.claude/settings.json` に反映されない（ADR-015 / ADR-041。nix が張らない理由は `nix/symlinks.nix` のコメント参照）
 
 ## 実装完了時の自動コミット
 
