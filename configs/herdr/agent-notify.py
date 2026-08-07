@@ -8,12 +8,12 @@ terminal-notifier でクリックアクション付き通知を出す。クリ�
 launchd（com.user.herdr-agent-notify.plist）で常駐する前提。ログは stdout に出し、
 plist 側で ~/.local/state/herdr/agent-notify.log へリダイレクトする。
 
-常駐の維持は KeepAlive ではなく RunAtLoad + StartInterval の supervisor 方式。
-この macOS（Darwin 25）では launchd が KeepAlive / RunAtLoad の nondemand spawn を
-"pended (speculative/inefficient)" として無期限に保留することがあり（実測）、
-kill 後の自動再起動が保証できなかった。タイマー spawn（StartInterval /
-StartCalendarInterval）は確実に発火する実績がある（worktree-auto-cleanup）ため、
-定期 spawn + flock の単一インスタンスガードで「死んでいたら次の tick で復活」させる。
+常駐の維持は KeepAlive ではなく RunAtLoad + StartCalendarInterval（毎分）の
+supervisor 方式。この macOS（Darwin 25）では launchd が KeepAlive / RunAtLoad /
+StartInterval の nondemand spawn を "pended (speculative/inefficient/interval)" として
+保留し続けることを実測した（kill 後の自動再起動が保証できない）。カレンダー spawn は
+worktree-auto-cleanup（ADR-083）の実績で確実に発火するため、毎分の spawn + flock の
+単一インスタンスガードで「死んでいたら次の分で復活」させる。
 """
 
 import fcntl

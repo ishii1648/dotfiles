@@ -1549,8 +1549,8 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 - [x] 通知をクリックすると Ghostty が前面化し、発生元のペインにフォーカスが移る（ユーザ実機確認済み）
 - [ ] 発生元ペインを注視中（agent focused かつ Ghostty が frontmost）の場合は通知が出ない
 - [ ] blocked が解消 → 再発生した場合に再度通知される（遷移ベースで重複通知しない。blocked 継続中に重複しないことは fake herdr の e2e で確認済み）
-- [ ] watcher が launchd で常駐し、プロセスを kill しても自動で再起動される
+- [x] watcher が launchd で常駐し、プロセスを kill しても自動で再起動される（KeepAlive / StartInterval は launchd に保留されるため不採用。StartCalendarInterval 毎分 + flock ガードで、kill 後は次の分の tick（最大 60 秒 + slack 数秒）で復活することを実測）
 - [ ] herdr サーバ停止中でも watcher がエラー終了せず、復帰後に監視を再開する
-- [ ] terminal-notifier が nix home-manager（home.packages）で導入され arm64 ネイティブで動作する（nix store ビルドで arm64 は確認済み。home-manager switch は未実行）
+- [x] terminal-notifier が nix home-manager（home.packages）で導入され arm64 ネイティブで動作する（home-manager switch 適用済み・実通知で確認）
 - [x] `configs/herdr/setup.sh --dry-run` が launchd agent の導入状態を検証する
 - [x] `configs/herdr/config.toml` の [ui.toast] コメントが watcher 導入後の実態と一致している

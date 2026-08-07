@@ -12,14 +12,18 @@
         <string>-lc</string>
         <string>mkdir -p "$HOME/.local/state/herdr" &amp;&amp; exec "$HOME/.local/bin/herdr-agent-notify" >> "$HOME/.local/state/herdr/agent-notify.log" 2>&amp;1</string>
     </array>
-    <!-- KeepAlive は使わない: この macOS (Darwin 25) では launchd が KeepAlive/RunAtLoad の
-         nondemand spawn を "pended (speculative/inefficient)" として無期限保留することがあり
-         （実測）、kill 後の再起動が保証できない。確実に発火するタイマー spawn（2分間隔）+
-         watcher 側の flock 単一インスタンスガードで常駐を維持する（agent-notify.py 冒頭コメント参照）。
-         RunAtLoad はベストエフォートの即時起動として残す（保留されても次の tick で起動する）。 -->
+    <!-- KeepAlive / StartInterval は使わない: この macOS (Darwin 25) では launchd が
+         KeepAlive / RunAtLoad / StartInterval の nondemand spawn を
+         "pended (speculative/inefficient/interval)" として保留し続けることを実測した
+         （AC 電源・Low Power Mode オフでも発生）。一方 StartCalendarInterval は
+         worktree-auto-cleanup（毎日 04:00、slack 数分で発火）の実績で確実に発火する。
+         空 dict の StartCalendarInterval = 全フィールド wildcard = 毎分発火。これと
+         watcher 側の flock 単一インスタンスガードで「死んでいたら次の分で復活」させる
+         （agent-notify.py 冒頭コメント参照）。
+         RunAtLoad はベストエフォートの即時起動として残す（保留されても次の分で起動する）。 -->
     <key>RunAtLoad</key>
     <true/>
-    <key>StartInterval</key>
-    <integer>120</integer>
+    <key>StartCalendarInterval</key>
+    <dict/>
 </dict>
 </plist>
