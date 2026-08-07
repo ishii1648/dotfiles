@@ -2,21 +2,13 @@
 
 - ユーザが意見を求めた場合、忖度せず批判的に検討したうえで回答すること
 - 確認が必要な場合は、作業の途中で小刻みに聞かず、着手前に AskUserQuestion / EnterPlanMode でまとめて聞くこと
+- 中断された外向きの操作（push 等）を無断で再試行しない。ユーザが別タスクへ誘導したら、それを終えてから再開の可否を確認する
 
 ## ユーザ環境
 
 - シェルは **fish**。コマンド例も fish 構文で書く（heredoc `<<EOF` は使えないので `printf` + `tee` を使う）
 - macOS (BSD) 環境。GNU 専用フラグを使わない（例: `cat -A` は無効 → `cat -e` / `cat -v`）
 - `~/.claude/` 配下は nix home-manager が張る symlink 層（ADR-084）。参照専用として扱い、編集は dotfiles の実体 `~/ghq/github.com/ishii1648/dotfiles/configs/claude/` に対して行う（out-of-store symlink なので実体を直せば即反映される）
-
-## ツール呼び出しの規律
-
-- read-only（Read/Grep/Glob/参照系 Bash）の並列呼び出しはよい
-- **Edit/Write/破壊的 Bash と「失敗しうる Bash」を同一バッチに混ぜない。** 1 つの非 0 exit が無関係な兄弟呼び出しを巻き添えでキャンセルする（ADR-089）
-- 非 0 exit が想定される Bash（`pkill` / `grep -c` / `curl` プローブ / `gh ... checks` 等）は末尾に `|| true` を付ける
-- 「保険」で同じコマンドを並列に並べない
-- **巻き添えキャンセルが起きたバッチの直後だけ、`git diff --stat` / `git diff` で着地を確認する。** キャンセルされた Edit は成功したように見えて未適用のことがある（ADR-089）。それ以外の場面では Edit の成功表示を信じてよく、確認のための再 Read はしない
-- 中断された外向きの操作（push 等）を無断で再試行しない。ユーザが別タスクへ誘導したら、それを終えてから再開の可否を確認する
 
 ## 並列セッションの衝突回避（worktree isolation）
 
