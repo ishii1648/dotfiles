@@ -47,6 +47,9 @@ install_notify_launchd() {
     cp "$NOTIFY_PLIST_SRC" "$NOTIFY_PLIST_DEST"
     launchctl unload "$NOTIFY_PLIST_DEST" >/dev/null 2>&1 || true
     launchctl load "$NOTIFY_PLIST_DEST"
+    # load 直後の RunAtLoad spawn は launchd に保留されうる（plist コメント参照）ため、
+    # 即時起動は kickstart で明示する。二重起動は watcher 側の flock が防ぐ
+    launchctl kickstart "gui/$(id -u)/com.user.herdr-agent-notify" >/dev/null 2>&1 || true
     echo "  herdr launchd (agent-notify): installed ($NOTIFY_PLIST_DEST)"
 }
 

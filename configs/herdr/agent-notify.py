@@ -7,8 +7,16 @@ terminal-notifier でクリックアクション付き通知を出す。クリ�
 
 launchd（com.user.herdr-agent-notify.plist）で常駐する前提。ログは stdout に出し、
 plist 側で ~/.local/state/herdr/agent-notify.log へリダイレクトする。
+
+常駐の維持は KeepAlive ではなく RunAtLoad + StartInterval の supervisor 方式。
+この macOS（Darwin 25）では launchd が KeepAlive / RunAtLoad の nondemand spawn を
+"pended (speculative/inefficient)" として無期限に保留することがあり（実測）、
+kill 後の自動再起動が保証できなかった。タイマー spawn（StartInterval /
+StartCalendarInterval）は確実に発火する実績がある（worktree-auto-cleanup）ため、
+定期 spawn + flock の単一インスタンスガードで「死んでいたら次の tick で復活」させる。
 """
 
+import fcntl
 import json
 import os
 import shutil
@@ -89,6 +97,19 @@ def notify(notifier, agent):
     log(f"notified: {label} pane={pane_id} repo={repo} title={title!r}")
 
 
+def acquire_singleton_lock():
+    """flock による単一インスタンスガード。取れなければ既に稼働中なので静かに終了する
+    （StartInterval の tick ごとに呼ばれるため、ログも出さない）"""
+    lock_dir = os.path.join(HOME, ".local", "state", "herdr")
+    os.makedirs(lock_dir, exist_ok=True)
+    lock_file = open(os.path.join(lock_dir, "agent-notify.lock"), "w")
+    try:
+        fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:
+        sys.exit(0)
+    return lock_file  # プロセス生存中は開きっぱなしにしてロックを保持する
+
+
 def main():
     log("watcher started")
     # pane_id -> {"blocked_polls": int, "notified": bool}
@@ -148,6 +169,7 @@ def main():
 
 
 if __name__ == "__main__":
+    _lock = acquire_singleton_lock()
     try:
         main()
     except KeyboardInterrupt:

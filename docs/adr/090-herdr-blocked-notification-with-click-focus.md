@@ -42,7 +42,8 @@ herdr の既存機構だけを部品に、通知の出し方をこちらで握�
   - 却下: alerter — GitHub Releases が x86_64 のみで Rosetta 必須。brew tap（ソースビルド）は導入経路が増える
   - 却下: `osascript display notification` — クリックアクションを持てない
 - **抑制 — 発生元ペインを注視中なら通知しない**。agent の `focused: true` かつ frontmost アプリが Ghostty（`lsappinfo` で判定、TCC 権限不要）の場合はスキップする
-- **常駐 — launchd agent**（`KeepAlive`）。ADR-083 と同じ setup.sh 導入パターン、ログは `~/.local/state/herdr/agent-notify.log`。herdr サーバ停止中は接続エラーを検知して長めの間隔で再試行する
+- **常駐 — launchd agent（RunAtLoad + StartInterval 2 分 + flock 単一インスタンスガード）**。ADR-083 と同じ setup.sh 導入パターン、ログは `~/.local/state/herdr/agent-notify.log`。herdr サーバ停止中は接続エラーを検知して長めの間隔で再試行する
+  - 却下: `KeepAlive` — 実装時のデプロイ検証で、この macOS（Darwin 25）の launchd が KeepAlive / RunAtLoad の nondemand spawn を `pended nondemand spawn = speculative/inefficient` として無期限に保留し、kill 後の自動再起動が起きないことを実測した（`ProcessType: Interactive` でも回避不可、BTM は enabled/allowed で無関係）。タイマー spawn は worktree-auto-cleanup（ADR-083）の実績で確実に発火するため、2 分間隔の spawn + watcher 側の flock で「死んでいたら次の tick で復活」させる。setup.sh は load 直後に `launchctl kickstart` して初回起動の保留も回避する
 
 ### 案C: herdr 設定のみ（却下）
 
