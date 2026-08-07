@@ -80,6 +80,7 @@
 | - | ○ | herdr | space / tab を開いたあと毎回手で `git pull origin <default branch>` を叩いている — 自動化チェーン（repo 選択 → space/tab → claude 起動）の最後に pull まで含める | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
 | ✔ | ○ | docs | ADR のリスト書式が textlint 指摘（強調 + コロン）を全体で踏んでいる — 30 本・128 箇所を太字 + em ダッシュに統一し、規約を `adr-reference` skill に明記する | — |
 | - | ○ | herdr / claude / codex | claude/codex の permission 待ちに気づけない — herdr の toast はクリックで発生元へ移動できず agent も判別できないため off にしており、blocked 状態を watcher で監視してクリックジャンプ付き macOS 通知を出す | [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md) |
+| - | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。mermaid は端末が画像を描けないため図にならない | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1554,3 +1555,22 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 - [x] terminal-notifier が nix home-manager（home.packages）で導入され arm64 ネイティブで動作する（home-manager switch 適用済み・実通知で確認）
 - [x] `configs/herdr/setup.sh --dry-run` が launchd agent の導入状態を検証する
 - [x] `configs/herdr/config.toml` の [ui.toast] コメントが watcher 導入後の実態と一致している
+
+---
+
+### nvim: herdr 内で markdown が読みづらい
+
+**コンポーネント**: nvim / herdr | **ADR**: —
+
+`configs/nvim/lua/config/options.lua` が全 filetype に `wrap = false` を敷いており、ADR のような散文主体の markdown で長行が画面外に切れる。treesitter parser も markdown を含んでおらず、見出し・表・コードブロックが素のテキストで並ぶ。
+
+mermaid は別問題で、端末に画像を描く経路が要る。herdr 0.7.5 は `[experimental] kitty_graphics` と `pane.graphics.set` API を持ち、有効化したクライアントは `cell_width_px=13 cell_height_px=34` を報告して API も `ok` を返すところまでは確認したが、**実際に描画されるかは未確認**。ここが立たない限り nvim 内 mermaid（image.nvim 系）は成立しない。
+
+**受け入れ条件**:
+
+- [ ] markdown バッファで長い行が画面幅で折り返される（他の filetype の `wrap = false` は変えない）
+- [ ] 折り返しが単語の途中で切れず、折り返された行が箇条書きのインデントを引き継ぐ
+- [ ] 折り返された行を `j` / `k` で表示行単位に移動できる
+- [ ] 見出し・表・コードブロック・チェックボックスが装飾表示される
+- [ ] markdown の treesitter parser が導入され `:checkhealth` がエラーを出さない
+- [ ] mermaid ブロックの扱いが決まっている（端末内で図にするか、ブラウザに逃がすか）

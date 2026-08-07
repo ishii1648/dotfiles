@@ -15,6 +15,9 @@ return {
       "gotmpl",
       "hcl",
       "terraform",
+      -- render-markdown.nvim は markdown_inline も要求する
+      "markdown",
+      "markdown_inline",
     })
   end,
 }

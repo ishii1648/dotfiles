@@ -39,6 +39,21 @@ vim.api.nvim_create_autocmd({ "BufRead", "BufNewFile" }, {
   end,
 })
 
+-- 散文主体の markdown だけ折り返す（options.lua の wrap = false は他 filetype で維持）
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = { "markdown" },
+  callback = function(args)
+    vim.opt_local.wrap = true
+    vim.opt_local.linebreak = true -- 単語の途中で折り返さない
+    vim.opt_local.breakindent = true -- 折り返し後も箇条書きのインデントを保つ
+    vim.opt_local.showbreak = "↪ "
+    -- 折り返し後は論理行ではなく表示行で動かないと j/k が数行飛ぶ
+    for _, key in ipairs({ "j", "k" }) do
+      vim.keymap.set("n", key, "g" .. key, { buffer = args.buf, desc = "表示行で移動" })
+    end
+  end,
+})
+
 -- Enable treesitter highlighting for supported filetypes
 vim.api.nvim_create_autocmd("FileType", {
   pattern = {
@@ -54,6 +69,7 @@ vim.api.nvim_create_autocmd("FileType", {
     "helm",
     "hcl",
     "terraform",
+    "markdown",
   },
   callback = function()
     pcall(vim.treesitter.start)
