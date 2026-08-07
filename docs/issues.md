@@ -80,7 +80,7 @@
 | - | ○ | herdr | space / tab を開いたあと毎回手で `git pull origin <default branch>` を叩いている — 自動化チェーン（repo 選択 → space/tab → claude 起動）の最後に pull まで含める | [ADR-088](adr/088-auto-pull-default-branch-on-open.md) |
 | ✔ | ○ | docs | ADR のリスト書式が textlint 指摘（強調 + コロン）を全体で踏んでいる — 30 本・128 箇所を太字 + em ダッシュに統一し、規約を `adr-reference` skill に明記する | — |
 | - | ○ | herdr / claude / codex | claude/codex の permission 待ちに気づけない — herdr の toast はクリックで発生元へ移動できず agent も判別できないため off にしており、blocked 状態を watcher で監視してクリックジャンプ付き macOS 通知を出す | [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md) |
-| - | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。mermaid は端末が画像を描けないため図にならない | — |
+| ✔ | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。折り返しと装飾表示で解決し、mermaid の端末内描画は変換系が重いため見送った | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1564,13 +1564,24 @@ textlint（`@textlint-ja/ai-writing/no-ai-list-formatting`）が `- **ラベル*
 
 `configs/nvim/lua/config/options.lua` が全 filetype に `wrap = false` を敷いており、ADR のような散文主体の markdown で長行が画面外に切れる。treesitter parser も markdown を含んでおらず、見出し・表・コードブロックが素のテキストで並ぶ。
 
-mermaid は別問題で、端末に画像を描く経路が要る。herdr 0.7.5 は `[experimental] kitty_graphics` と `pane.graphics.set` API を持ち、有効化したクライアントは `cell_width_px=13 cell_height_px=34` を報告して API も `ok` を返すところまでは確認したが、**実際に描画されるかは未確認**。ここが立たない限り nvim 内 mermaid（image.nvim 系）は成立しない。
+mermaid は別問題で、端末に画像を描く経路が要る。**実機で経路が生きていることは確認できたが、採用は見送った**（下記）。
 
 **受け入れ条件**:
 
-- [ ] markdown バッファで長い行が画面幅で折り返される（他の filetype の `wrap = false` は変えない）
-- [ ] 折り返しが単語の途中で切れず、折り返された行が箇条書きのインデントを引き継ぐ
-- [ ] 折り返された行を `j` / `k` で表示行単位に移動できる
-- [ ] 見出し・表・コードブロック・チェックボックスが装飾表示される
-- [ ] markdown の treesitter parser が導入され `:checkhealth` がエラーを出さない
-- [ ] mermaid ブロックの扱いが決まっている（端末内で図にするか、ブラウザに逃がすか）
+- [x] markdown バッファで長い行が画面幅で折り返される（他の filetype の `wrap = false` は変えない）
+- [x] 折り返しが単語の途中で切れず、折り返された行が箇条書きのインデントを引き継ぐ
+- [x] 折り返された行を `j` / `k` で表示行単位に移動できる
+- [x] 見出し・表・コードブロック・チェックボックスが装飾表示される（render-markdown.nvim）
+- [x] markdown の treesitter parser が導入され `:checkhealth` がエラーを出さない
+- [x] mermaid ブロックの扱いが決まっている（端末内描画は見送り。図が要るときはブラウザで見る）
+
+#### 端末内 mermaid の実機検証結果（2026-08-08、見送り）
+
+herdr 0.7.5 の `[experimental] kitty_graphics` で画像経路が動くことを実測した。採用はしなかったが、再検討時に同じ調査を繰り返さないよう記録する。
+
+- `kitty_graphics = true` は **クライアント起動時にしか読まれない**。`herdr server reload-config` では既存クライアントに反映されず、Ghostty のウィンドウを開き直す必要がある
+- 無効なクライアントは `herdr-server.log` の client resize に `cell_width_px=0 cell_height_px=0` を出す。有効化すると `cell_width_px=13 cell_height_px=34` に変わる。**この値がログの判定材料になる**
+- 有効化後は 3 経路すべてが実際に描画された — socket API の `pane.graphics.set`、単一のエスケープシーケンス、チャンク分割（`m=1` → `m=0`）のエスケープシーケンス
+- 単一送信で `m=0` を単独指定すると描画されない。`m` キーを付けないこと
+- herdr バイナリには kitty graphics の unicode placeholder / virtual placement 実装があり、image.nvim が位置合わせに使う機能と一致する
+- 見送りの理由は herdr 側ではなく変換系の重さ。mermaid → PNG に mermaid-cli（node + puppeteer）と ImageMagick が要り、experimental フラグ + nvim プラグイン 2 個 + 外部バイナリ 2 個の直列構成になる。折り返しと装飾表示で読む用は足りたため、図が要るときはブラウザで見る方針にした
