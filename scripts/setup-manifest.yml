@@ -134,6 +134,13 @@ components:
 
   git:
     setup: configs/git/setup-github-ssh.sh
+    symlinks:
+      # global ignore。gitconfig と違い端末ごとに書き換える値を持たないので、
+      # copies + if_missing ではなく symlink で配布する（core.excludesfile 未設定でも
+      # git が XDG デフォルトとしてこのパスを読む）
+      - link: ~/.config/git/ignore
+        target: configs/git/ignore
+        nix_managed: true
     copies:
       - src: configs/git/gitconfig
         dest: ~/.gitconfig

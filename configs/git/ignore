@@ -1,0 +1,15 @@
+# git の global ignore（XDG デフォルトの ~/.config/git/ignore に symlink される）。
+# core.excludesfile は設定しない — 未設定なら git がこのパスを自動で読む。
+#
+# ここに置くのは「どのリポジトリでも生成されうるツール由来の生成物」だけ。
+# リポジトリ固有の無視パターンは各リポジトリの .gitignore に書く。
+
+# Claude Code の worktree（旧レイアウト / 現レイアウト）
+.worktrees/
+.claude/worktrees/
+
+# Claude Code の端末ローカル設定（ADR-015 / ADR-041）
+settings.local.json
+
+# Claude Code の調査結果出力先
+.outputs/claude/

@@ -77,6 +77,11 @@ in
       # 書き込むため、dotfiles 由来の skill だけを個別に張る（configs/claude/setup.sh と同じ）。
       ".claude/skills/codex-sync".source = link "configs/claude/skills/codex-sync";
 
+      # --- git ---
+      # ~/.gitconfig は含めない: user.email / 署名鍵など端末ごとに書き換える値を持つため、
+      # manifest の copies（if_missing）が担当する（ADR-027 / ADR-028）。
+      ".config/git/ignore".source = link "configs/git/ignore";
+
       # --- fish（dotfiles が占有するもの）---
       ".config/fish/completions".source = link "configs/fish/completions";
       ".config/fish/config.fish".source = link "configs/fish/config.fish";

@@ -81,6 +81,7 @@
 | ✔ | ○ | docs | ADR のリスト書式が textlint 指摘（強調 + コロン）を全体で踏んでいる — 30 本・128 箇所を太字 + em ダッシュに統一し、規約を `adr-reference` skill に明記する | — |
 | - | ○ | herdr / claude / codex | claude/codex の permission 待ちに気づけない — herdr の toast はクリックで発生元へ移動できず agent も判別できないため off にしており、blocked 状態を watcher で監視してクリックジャンプ付き macOS 通知を出す | [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md) |
 | ✔ | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。折り返しと装飾表示で解決し、mermaid の端末内描画は変換系が重いため見送った | — |
+| ✔ | ○ | git | git の global ignore が dotfiles 管理外 — `~/.config/git/ignore` が端末ローカルの実ファイルで、Claude Code 由来の無視パターン（worktree・調査出力）が新端末に配布されない | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1585,3 +1586,21 @@ herdr 0.7.5 の `[experimental] kitty_graphics` で画像経路が動くこと�
 - 単一送信で `m=0` を単独指定すると描画されない。`m` キーを付けないこと
 - herdr バイナリには kitty graphics の unicode placeholder / virtual placement 実装があり、image.nvim が位置合わせに使う機能と一致する
 - 見送りの理由は herdr 側ではなく変換系の重さ。mermaid → PNG に mermaid-cli（node + puppeteer）と ImageMagick が要り、experimental フラグ + nvim プラグイン 2 個 + 外部バイナリ 2 個の直列構成になる。折り返しと装飾表示で読む用は足りたため、図が要るときはブラウザで見る方針にした
+
+---
+
+### git: global ignore が dotfiles 管理外
+
+**コンポーネント**: git | **ADR**: —
+
+`~/.config/git/ignore` が端末ローカルの実ファイルで、git 管理されていない。中身は Claude Code / worktree 運用由来の無視パターン（`.worktrees/`、`.claude/worktrees/`、`settings.local.json`、`.outputs/claude/`）だけで端末固有の値を持たないのに、新端末では手で作り直す必要がある。実際 worktree のレイアウトが `.worktrees/` から `.claude/worktrees/` に変わった際、この端末でしか追随できなかった。
+
+`~/.gitconfig` は `user.email` や署名鍵など端末ごとに書き換える値を持つため manifest の `copies` + `if_missing: true` で配布しているが（ADR-027 / ADR-028）、`ignore` は書き換え不要なので symlink 方式（`nix_managed: true`）が適切。`core.excludesfile` は設定しない — 未設定なら git が XDG デフォルトとしてこのパスを読む。
+
+**受け入れ条件**:
+
+- [ ] `configs/git/ignore` が dotfiles に存在し、`~/.config/git/ignore` がそこへの symlink になっている
+- [ ] `.claude/worktrees/` が global ignore され、dotfiles リポジトリの `git status` に現れない
+- [ ] manifest（`git` コンポーネント）と `nix/symlinks.nix` の双方に定義があり、`nix/check-parity.py` が整合と報告する
+- [ ] `scripts/setup.sh --dry-run`（full profile）が通る
+- [ ] linux / remote profile でも同じ symlink が張られる（これらは setup.sh が張る側）
