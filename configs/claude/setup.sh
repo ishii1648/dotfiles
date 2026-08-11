@@ -21,7 +21,9 @@ fi
 # SYNC_KEYS: source の値で全置換するキー
 SYNC_KEYS=("hooks" "statusLine")
 # MERGE_KEYS: source のキーを dest にマージするキー（dest 固有のキーは保持）
-MERGE_KEYS=("env")
+# permissions は ADR-091 で追加。allow/deny/defaultMode は dotfiles を正とし、
+# 端末固有のキー（additionalDirectories 等）は dest 側を保持する。
+MERGE_KEYS=("env" "permissions")
 SYNC_SRC="$SCRIPT_DIR/settings.json"
 SYNC_DEST="$HOME/.claude/settings.json"
 

@@ -2,7 +2,9 @@
 
 ## ステータス
 
-採用済み
+廃止（ADR-091 で置換）
+
+`approve-safe-file-ops.py` は削除した。パス判定が `re.search(r"\.claude/[^/]+/")` のみで正規化もリポジトリ判定もせず、`~/.claude/skills/foo/../../../.ssh/config` のような `.claude/` 配下でないパスまで allow していた。`.claude/` 配下の Read 許可は `permissions.allow` の `Read(~/.claude/**)` に移した。
 
 ## 関連 ADR
 

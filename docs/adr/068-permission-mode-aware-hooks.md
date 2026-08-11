@@ -1,7 +1,10 @@
 # ADR-068: auto mode 下での hook 無効化と destructive 防御の permissions.deny 移行
 
 ## ステータス
-採用済み
+部分廃止（ADR-091 で一部変更）
+
+- **ADR-091 で上書き** — approve 系 2 hook は mode 別 skip ではなく削除した。permission 判定を肩代わりする構造そのものが問題で、mode で無効化しても `default` / `acceptEdits` を使う端末では発火し続けるため
+- **引き続き有効** — `redirect-to-tools.py` の `auto` / `bypassPermissions` / `dontAsk` skip、`rm -rf` の `permissions.deny` 移行、global CLAUDE.md からの「自律性の原則」削除
 
 ## 関連 ADR
 - 依存: ADR-013（permission ask auto-block）— 本 ADR は ADR-013 の hook 戦略の上に立ち、auto mode 運用への移行を反映

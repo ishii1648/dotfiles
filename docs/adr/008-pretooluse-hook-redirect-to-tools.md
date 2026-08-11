@@ -2,7 +2,10 @@
 
 ## ステータス
 
-採用済み
+部分廃止（ADR-091 で一部変更）
+
+- **ADR-091 で上書き** — redirect ルールを剪定した。残すのは `find` / `grep` / `rg` / `cat` / `echo >` / `sed -i` / `cd <path> && …` / `/tmp/` 書き込みのみ
+- **引き続き有効** — deny 専用 hook で Bash をネイティブツールへ誘導するという設計、および fail-open 方針
 
 ## 関連 ADR
 

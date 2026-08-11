@@ -82,6 +82,7 @@
 | - | ○ | herdr / claude / codex | claude/codex の permission 待ちに気づけない — herdr の toast はクリックで発生元へ移動できず agent も判別できないため off にしており、blocked 状態を watcher で監視してクリックジャンプ付き macOS 通知を出す | [ADR-090](adr/090-herdr-blocked-notification-with-click-focus.md) |
 | ✔ | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。折り返しと装飾表示で解決し、mermaid の端末内描画は変換系が重いため見送った | — |
 | ✔ | ○ | git | git の global ignore が dotfiles 管理外 — `~/.config/git/ignore` が端末ローカルの実ファイルで、Claude Code 由来の無視パターン（worktree・調査出力）が新端末に配布されない | — |
+| - | ○ | claude | approve 系 PreToolUse hook が permission system をバイパスする — `;` / `&&` 以降やリダイレクトを検査せず `git log; rm -rf …` まで allow するため、default mode を使う端末ほど危険。redirect 側も助言として誤ったルールを抱えている | [ADR-091](adr/091-remove-approve-hooks-and-prune-redirect-rules.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1604,3 +1605,29 @@ herdr 0.7.5 の `[experimental] kitty_graphics` で画像経路が動くこと�
 - [ ] manifest（`git` コンポーネント）と `nix/symlinks.nix` の双方に定義があり、`nix/check-parity.py` が整合と報告する
 - [ ] `scripts/setup.sh --dry-run`（full profile）が通る
 - [ ] linux / remote profile でも同じ symlink が張られる（これらは setup.sh が張る側）
+
+---
+
+### ADR-091: approve 系 PreToolUse hook を廃止し redirect ルールを剪定する
+
+**コンポーネント**: claude | **ADR**: [ADR-091](adr/091-remove-approve-hooks-and-prune-redirect-rules.md)
+
+`approve-safe-commands.py` / `approve-safe-file-ops.py` は `permissionDecision: allow` で Claude Code の permission 判定を肩代わりするが、パターン照合が本体のコマンドパーサより弱く、`git log; rm -rf …` や `<untrusted-repo>/.claude/hooks/evil.sh` への Write まで allow する。auto mode では発火しないが、本番トークンを持つ端末は意図的に `default` / `acceptEdits` を使うため、permission UI を残す判断をした端末ほど無効化される。
+
+`redirect-to-tools.py` は deny 専用で権限の穴は作らないが、`&&` 全面禁止（deny の 39%）が prompt を増やす方向に働き、`awk` → Edit や `cp` → Read+Write のように助言として誤ったルールも含む。
+
+**受け入れ条件**:
+
+- [x] `approve-safe-commands.py` / `approve-safe-file-ops.py` とそのテストが削除され、`configs/claude/settings.json` の PreToolUse から両エントリが消えている
+- [x] `~/.claude/scripts/` にも両スクリプトが存在しない（`~/.claude/scripts` は home-manager の out-of-store symlink で main worktree の実体を指すため、main への merge で伝播する。merge 後に確認済み）
+- [x] `permissions.allow` に read-only な git サブコマンドが宣言され、`git branch -D` / `git tag -d` / `git stash clear` / `git reflog expire` / `gh api` は許可されていない
+- [x] `git log --oneline; rm -rf /tmp/victim` を allow する経路が存在しない（allow を返す hook が削除され、`permissions.allow` は Claude Code 本体のパーサが全サブコマンドを照合する）
+- [x] `setup.sh` 実行後、`~/.claude/settings.json` の `permissions.allow` が dotfiles 側と一致し、`defaultMode: auto` と `deny` が保持されている
+- [x] `configs/claude/setup.sh` の `MERGE_KEYS` に `permissions` が含まれ、`--dry-run` が `permissions` の差分を検出する（`WARN: key 'permissions' missing entries: allow` を確認）
+- [x] `redirect-to-tools.py` から `&&` 全面禁止 / `$()` 全面禁止 / `head` / `tail` / `awk` / `mkdir` / `cp` / `for` / `while` / `python -c` / プロジェクト外 `.py` のルールが削除されている
+- [x] `find` / `grep` / `rg` / `cat` / `echo >` / `/tmp/` 書き込み / `cd <path> && …` の deny は従来どおり動く
+- [x] `sed -i 's/a/b/' f` は deny され、`sed -n '1,50p' f` は deny されない
+- [x] `configs/claude/scripts/tests/` の unittest が全て通る（78 件）
+- [x] ADR-017 / ADR-038 が `廃止（ADR-091 で置換）`、ADR-008 / ADR-014 / ADR-068 が `部分廃止（ADR-091 で一部変更）` に更新されている
+- [x] `scripts/setup.sh --dry-run`（full profile）が通る
+- [ ] `permission_mode: default` の実セッションで `git log --oneline` が prompt なし、`git log --oneline; rm -rf /tmp/victim` が prompt ありになる（`permissions.allow` の記法が実際に効くことの実機確認。default mode を使う端末で確認する）
