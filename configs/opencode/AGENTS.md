@@ -25,4 +25,4 @@ OpenCode は Claude Code と異なり、Edit/Write/破壊的 Bash と失敗し�
 - ただし、プロジェクト AGENTS.md で調査ドキュメントの出力先が指定されている場合はそちらに従う
 
 ## 実装完了時の自動コミット
-コード実装タスクが完了した際は `git commit` まで自動で行う。git remote が設定されている場合は `git push` も自動で行う（PR 作成は不要）。master ブランチに直接コミットしてよい。
+コード実装タスクが完了した際は `git commit` まで自動で行う。git remote が設定されている場合は `git push` も自動で行う（PR 作成は不要）。デフォルトブランチに直接コミットしてよい。
