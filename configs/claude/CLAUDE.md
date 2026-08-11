@@ -19,6 +19,7 @@
 - main worktree の未コミット変更を持ち込みたい場合は `git stash push` → `EnterWorktree` → 新 worktree 内で `git stash pop`。「持ち込みたいから分離しない」という判断はしない
 - main worktree で作業せざるを得ない場合、**ステージはパスを明示する**（`git add -A` / `git commit -a` は他セッションの編集中ファイルを巻き込む）
 - **使い終わった worktree を残すか消すかをユーザに確認しない**（定期削除の処理で回収される。`ExitWorktree` は指示があったときだけ呼ぶ）。作業完了報告に「worktree が残っています、削除しますか」と書かない
+- **ファイルを編集する subagent を Agent tool で起動する時は `isolation: "worktree"` を指定する**。subagent はコンテキストこそ独立だが working directory は親と共有するため、指定しないと親セッションと、あるいは並列 subagent 同士が同じ checkout を奪い合う。読み取り・調査のみの subagent（`Explore` 等）は指定しない。カスタム subagent 定義でも frontmatter の `isolation` に同じ値を書ける
 
 ## 調査結果のまとめ
 
