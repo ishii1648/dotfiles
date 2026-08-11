@@ -1630,4 +1630,19 @@ herdr 0.7.5 の `[experimental] kitty_graphics` で画像経路が動くこと�
 - [x] `configs/claude/scripts/tests/` の unittest が全て通る（78 件）
 - [x] ADR-017 / ADR-038 が `廃止（ADR-091 で置換）`、ADR-008 / ADR-014 / ADR-068 が `部分廃止（ADR-091 で一部変更）` に更新されている
 - [x] `scripts/setup.sh --dry-run`（full profile）が通る
-- [ ] `permission_mode: default` の実セッションで `git log --oneline` が prompt なし、`git log --oneline; rm -rf /tmp/victim` が prompt ありになる（`permissions.allow` の記法が実際に効くことの実機確認。default mode を使う端末で確認する）
+- [x] `permission_mode: default` の実セッションで `permissions.allow` の記法が効く（下記の実機検証を参照）
+
+#### permissions.allow の実機検証（2026-08-11）
+
+`claude --permission-mode manual` の新規セッション（`claude < prompt_file` で非対話駆動）を中立な一時 git リポジトリで起動し、4 パターンを確認した。
+
+| 実行内容 | 結果 | 意味 |
+|---|:---:|---|
+| `git log --oneline -1` | 実行された | `Bash(git log:*)` が効いている |
+| `touch injected1.txt` | DENIED | ベースライン。許可されていないコマンドは拒否される |
+| `git log --oneline -1; touch injected2.txt` | DENIED | **`;` 以降も照合される。** 旧 hook が allow していた形が塞がった |
+| `git log --oneline -1; echo INJECTED` | 実行された | `echo` は Claude Code が組み込みで安全扱いするため。chain 照合の反例ではない |
+| Read `~/.claude/settings.json` | 実行された | `Read(~/.claude/**)` のチルダ記法が効いている |
+| Read `~/.gitconfig` | DENIED | ベースライン。プロジェクト外の他パスは拒否される |
+
+補足: `claude --permission-mode` の選択肢は `manual` に改称されており `default` は受け付けない。ただし transcript と hook input の `permission_mode` には従来どおり `default` が入るため、hook 側の mode 判定は変更不要（実測で確認）。

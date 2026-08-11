@@ -3,7 +3,7 @@
 ## ステータス
 採用済み
 
-`permissions.allow` の記法が実セッションで効くことの確認だけは default mode を使う端末に残している（issues.md の最終項目）。
+`permissions.allow` への移行が実際に穴を塞ぐことは新規セッションで実測済み（issues.md の検証表を参照）。`git log --oneline -1; touch x` は拒否され、`git log --oneline -1` 単体は prompt なしで通る。
 
 ## 関連 ADR
 - 依存: ADR-017（approve-safe-commands hook）— 本 ADR で廃止する
