@@ -9,7 +9,7 @@
 | Neovim 設定 | `configs/nvim/` | エディタ設定（lazy.nvim） |
 | herdr 設定 | `configs/herdr/` | ターミナルマルチプレクサ設定（キーバインド・サイドバー・agent integration） |
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
-| Claude Code スクリプト | `configs/claude/scripts/` | 通知・自動承認・リダイレクトなどの補助スクリプト |
+| Claude Code スクリプト | `configs/claude/scripts/` | 通知・リダイレクト・worktree ガードなどの補助スクリプト |
 | Claude Code skills | `configs/claude/skills/` | codex-sync（skill を Codex CLI にも展開） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 | Nix (home-manager) | `flake.nix` / `nix/` | 静的 symlink 配置と OS レベルパッケージの宣言（Spike 中、[ADR-084](adr/084-nix-home-manager-package-symlink-layer.md)） |

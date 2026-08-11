@@ -14,8 +14,11 @@ _mod = importlib.util.module_from_spec(_spec)
 _mod.__name__ = "redirect_to_tools"
 _spec.loader.exec_module(_mod)
 
-has_command_substitution = _mod.has_command_substitution
 writes_to_tmp = _mod.writes_to_tmp
+is_sed_in_place = _mod.is_sed_in_place
+check_command = _mod.check_command
+check_and_chain = _mod.check_and_chain
+split_chain = _mod.split_chain
 
 
 class TestWritesToTmp(unittest.TestCase):
@@ -48,86 +51,121 @@ class TestWritesToTmp(unittest.TestCase):
         self.assertFalse(writes_to_tmp("echo 'data' > /var/log/app.log"))
 
 
-class TestCommandSubstitutionBasic(unittest.TestCase):
-    """基本的な $() / バッククォートの検出。"""
+class TestSedInPlace(unittest.TestCase):
+    """sed は -i（インプレース編集）のときだけ deny する（ADR-091）。"""
 
-    def test_dollar_paren(self):
-        self.assertTrue(has_command_substitution("echo $(whoami)"))
+    def test_short_flag(self):
+        self.assertTrue(is_sed_in_place("sed -i '' 's/a/b/' foo.txt"))
 
-    def test_backtick(self):
-        self.assertTrue(has_command_substitution("echo `whoami`"))
+    def test_short_flag_with_suffix(self):
+        self.assertTrue(is_sed_in_place("sed -i.bak 's/a/b/' foo.txt"))
 
-    def test_no_substitution(self):
-        self.assertFalse(has_command_substitution("echo hello"))
+    def test_flag_cluster(self):
+        self.assertTrue(is_sed_in_place("sed -ri 's/a/b/' foo.txt"))
 
-    def test_plain_command(self):
-        self.assertFalse(has_command_substitution("ls -la /tmp"))
+    def test_long_flag(self):
+        self.assertTrue(is_sed_in_place("sed --in-place 's/a/b/' foo.txt"))
 
-    def test_dollar_sign_without_paren(self):
-        self.assertFalse(has_command_substitution("echo $HOME"))
+    def test_read_only_print(self):
+        self.assertFalse(is_sed_in_place("sed -n '1,50p' foo.txt"))
 
+    def test_read_only_substitute(self):
+        self.assertFalse(is_sed_in_place("sed 's/a/b/' foo.txt"))
 
-class TestCommandSubstitutionQuotes(unittest.TestCase):
-    """クォート内の挙動。"""
-
-    def test_double_quotes_detected(self):
-        """ダブルクォート内の $() はシェルが展開するので検出する。"""
-        self.assertTrue(has_command_substitution('echo "$(whoami)"'))
-
-    def test_single_quotes_ignored(self):
-        """シングルクォート内の $() はシェルが展開しないのでスキップ。"""
-        self.assertFalse(has_command_substitution("echo '$(whoami)'"))
-
-    def test_backtick_in_single_quotes_ignored(self):
-        self.assertFalse(has_command_substitution("echo '`whoami`'"))
-
-    def test_backtick_in_double_quotes_detected(self):
-        self.assertTrue(has_command_substitution('echo "`whoami`"'))
+    def test_expression_flag_containing_i(self):
+        """-e の式に i が含まれても -i と誤認しない。"""
+        self.assertFalse(is_sed_in_place("sed -e 's/i/x/' foo.txt"))
 
 
-class TestCommandSubstitutionArithmetic(unittest.TestCase):
-    """$((...)) 算術展開は安全なため除外。"""
+class TestRedirectRules(unittest.TestCase):
+    """残したルールが従来どおり deny すること。"""
 
-    def test_arithmetic_expansion(self):
-        self.assertFalse(has_command_substitution("echo $((1+2))"))
+    def test_find_denied(self):
+        self.assertIsNotNone(check_command("find . -name '*.py'"))
 
-    def test_arithmetic_with_variable(self):
-        self.assertFalse(has_command_substitution("echo $((x + y))"))
+    def test_grep_denied(self):
+        self.assertIsNotNone(check_command("grep -r pattern src/"))
 
-    def test_arithmetic_mixed_with_command_sub(self):
-        """算術展開と $() が混在する場合、$() を検出する。"""
-        self.assertTrue(has_command_substitution("echo $((1+2)) $(whoami)"))
+    def test_rg_denied(self):
+        self.assertIsNotNone(check_command("rg pattern src/"))
 
+    def test_cat_denied(self):
+        self.assertIsNotNone(check_command("cat foo.txt"))
 
-class TestCommandSubstitutionGitCommitHeredoc(unittest.TestCase):
-    """git commit の heredoc パターンは approve-safe-commands.py で許可済みのため除外。"""
+    def test_cat_redirect_denied(self):
+        self.assertIsNotNone(check_command("cat > foo.txt"))
 
-    def test_git_commit_cat_heredoc(self):
-        self.assertFalse(
-            has_command_substitution('git commit -m "$(cat <<\'EOF\'\nhello\nEOF\n)"')
-        )
+    def test_echo_redirect_denied(self):
+        self.assertIsNotNone(check_command("echo 'x' > foo.txt"))
 
-    def test_git_commit_cat_heredoc_no_quotes(self):
-        self.assertFalse(
-            has_command_substitution('git commit -m "$(cat <<EOF\nhello\nEOF\n)"')
-        )
+    def test_sed_in_place_denied(self):
+        self.assertIsNotNone(check_command("sed -i '' 's/a/b/' foo.txt"))
 
-    def test_git_commit_without_heredoc_still_detected(self):
-        """git commit でも heredoc でない $() は検出する。"""
-        self.assertTrue(has_command_substitution('git commit -m "$(date)"'))
-
-    def test_non_git_cat_heredoc_detected(self):
-        """git commit 以外の $(cat <<...) は検出する。"""
-        self.assertTrue(
-            has_command_substitution('echo "$(cat <<EOF\nhello\nEOF\n)"')
-        )
+    def test_piped_grep_allowed(self):
+        """パイプ先の grep は先頭コマンドではないので許可。"""
+        self.assertIsNone(check_command("git log --oneline | grep fix"))
 
 
-class TestCommandSubstitutionNested(unittest.TestCase):
-    """ネストされたコマンド置換。"""
+class TestPrunedRules(unittest.TestCase):
+    """ADR-091 で削除したルールが deny しないこと。"""
 
-    def test_nested_dollar_paren(self):
-        self.assertTrue(has_command_substitution("echo $(echo $(whoami))"))
+    def test_head_allowed(self):
+        self.assertIsNone(check_command("head -20 foo.log"))
+
+    def test_tail_allowed(self):
+        self.assertIsNone(check_command("tail -f app.log"))
+
+    def test_awk_allowed(self):
+        self.assertIsNone(check_command("awk '{print $1}' foo.txt"))
+
+    def test_sed_without_in_place_allowed(self):
+        self.assertIsNone(check_command("sed -n '1,50p' foo.txt"))
+
+    def test_mkdir_allowed(self):
+        self.assertIsNone(check_command("mkdir -p build/out"))
+
+    def test_cp_allowed(self):
+        self.assertIsNone(check_command("cp src/a.bin dest/a.bin"))
+
+    def test_for_loop_allowed(self):
+        self.assertIsNone(check_command("for f in *.py; do echo $f; done"))
+
+    def test_while_loop_allowed(self):
+        self.assertIsNone(check_command("while read l; do echo $l; done"))
+
+    def test_python_inline_allowed(self):
+        self.assertIsNone(check_command("python3 -c 'print(1)'"))
+
+    def test_external_python_script_allowed(self):
+        self.assertIsNone(check_command("python3 /tmp/foo.py"))
+
+
+class TestAndChain(unittest.TestCase):
+    """cd 起点の連結だけを deny し、それ以外の && は許可する（ADR-091）。"""
+
+    def test_cd_git_suggests_git_c(self):
+        result = check_and_chain(split_chain("cd /path/to/repo && git status"))
+        self.assertIsNotNone(result)
+        self.assertIn("git -C /path/to/repo", result[1])
+
+    def test_cd_other_command_denied(self):
+        result = check_and_chain(split_chain("cd /path/to/repo && npm test"))
+        self.assertIsNotNone(result)
+        self.assertIn("絶対パス", result[1])
+
+    def test_plain_and_chain_allowed(self):
+        self.assertIsNone(check_and_chain(split_chain("npm ci && npm test")))
+
+    def test_semicolon_chain_allowed(self):
+        self.assertIsNone(check_and_chain(split_chain("make build; make test")))
+
+    def test_single_command_allowed(self):
+        self.assertIsNone(check_and_chain(split_chain("npm test")))
+
+    def test_command_substitution_allowed(self):
+        """$() は ADR-091 で許可した（deny ルール自体を削除）。"""
+        self.assertIsNone(check_and_chain(split_chain('echo "$(date)"')))
+        self.assertIsNone(check_command('echo "$(date)"'))
 
 
 if __name__ == "__main__":

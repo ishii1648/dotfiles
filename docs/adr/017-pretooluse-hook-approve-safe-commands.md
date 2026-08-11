@@ -2,7 +2,9 @@
 
 ## ステータス
 
-採用済み
+廃止（ADR-091 で置換）
+
+`approve-safe-commands.py` は削除した。パターン照合が Claude Code 本体のコマンドパーサより弱く、`;` / `&&` 以降やリダイレクトを検査しないため `git log; rm -rf …` まで allow していた。read-only な git サブコマンドの許可は `permissions.allow` に移し、本 ADR が回避対象としていた heredoc の誤検知は auto mode 運用下で発火経路がないため移行していない。
 
 ## 関連 ADR
 

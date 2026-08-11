@@ -48,26 +48,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/scripts/approve-safe-commands.py",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
             "command": "~/.claude/scripts/block-worktree-branch-switch.py",
-            "timeout": 5000
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "~/.claude/scripts/approve-safe-file-ops.py",
             "timeout": 5000
           }
         ]
@@ -82,6 +63,27 @@
   "effortLevel": "medium",
   "permissions": {
     "defaultMode": "auto",
+    "allow": [
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git status:*)",
+      "Bash(git shortlog:*)",
+      "Bash(git rev-parse:*)",
+      "Bash(git rev-list:*)",
+      "Bash(git describe:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git cat-file:*)",
+      "Bash(git merge-base:*)",
+      "Bash(git blame:*)",
+      "Bash(git worktree list:*)",
+      "Bash(git branch)",
+      "Bash(git branch -a)",
+      "Bash(git branch --show-current)",
+      "Bash(git stash list:*)",
+      "Read(~/.claude/**)"
+    ],
     "deny": [
       "Bash(rm -rf *)",
       "Bash(rm -fr *)",
