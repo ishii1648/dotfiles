@@ -228,8 +228,19 @@ directory = "~/.herdr/worktrees"
 
 [experimental]
 # --- 日本語 IME 対策（Phase 0 で実機確認済み） ---
-# CJK IME 有効時に prefix が届かない問題への対策（macOS のみ、best-effort）
-switch_ascii_input_source_in_prefix = true
+# prefix モード中だけ入力ソースを ASCII レイアウトへ退避し、抜けたら復元する機能。
+# 有効にすると「Claude Code のペインでたまに日本語入力に切り替わらない」症状を起こすため
+# 既定値のまま無効にしてある。
+#
+# ghostty の Cmd 系バインドは全て `text:\x00X` で prefix を送る（configs/ghostty/config）
+# ため、ペイン移動・タブ切替・エージェントピッカーのたびに ABC への切替と復元が走る。
+# 入力ソース ID は復元されるが、Google 日本語入力は再選択されると内部モードが半角英数で
+# 始まるので、日本語で打っている最中にペインを移ると英数に落ちる（実測: 往復 540ms）。
+#
+# そもそもこの機能が守る「CJK IME 有効時に物理 ctrl+space の prefix が届かない」ケースは
+# 発生しない。ghostty が PTY へ直接書き込む prefix は IME を経由しないため必ず届く
+# （docs/issues.md「Spike: IME 有効時の prefix」でも実機確認済み）。
+switch_ascii_input_source_in_prefix = false
 # Claude Code / Codex が自前でカーソルを描くと IME 候補窓が追従しない問題への対策
 reveal_hidden_cursor_for_cjk_ime = true
 cjk_ime_agents = ["claude", "codex"]

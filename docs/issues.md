@@ -83,6 +83,7 @@
 | ✔ | ○ | nvim / herdr | herdr 内で markdown が読みづらい — 全 filetype 一律の `wrap = false` で長行が画面外に切れ、見出しも表も素のテキストのまま。折り返しと装飾表示で解決し、mermaid の端末内描画は変換系が重いため見送った | — |
 | ✔ | ○ | git | git の global ignore が dotfiles 管理外 — `~/.config/git/ignore` が端末ローカルの実ファイルで、Claude Code 由来の無視パターン（worktree・調査出力）が新端末に配布されない | — |
 | - | ○ | claude | approve 系 PreToolUse hook が permission system をバイパスする — `;` / `&&` 以降やリダイレクトを検査せず `git log; rm -rf …` まで allow するため、default mode を使う端末ほど危険。redirect 側も助言として誤ったルールを抱えている | [ADR-091](adr/091-remove-approve-hooks-and-prune-redirect-rules.md) |
+| - | ○ | herdr / ghostty | Claude Code のペインで日本語入力に切り替わらないことがある — `switch_ascii_input_source_in_prefix` が prefix のたびに入力ソースを ABC へ切替・復元し、復元されても Google 日本語入力の内部モードが半角英数に落ちる | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1646,3 +1647,36 @@ herdr 0.7.5 の `[experimental] kitty_graphics` で画像経路が動くこと�
 | Read `~/.gitconfig` | DENIED | ベースライン。プロジェクト外の他パスは拒否される |
 
 補足: `claude --permission-mode` の選択肢は `manual` に改称されており `default` は受け付けない。ただし transcript と hook input の `permission_mode` には従来どおり `default` が入るため、hook 側の mode 判定は変更不要（実測で確認）。
+
+---
+
+### herdr: prefix 操作のたびに日本語入力が英数へ落ちる
+
+**コンポーネント**: herdr / ghostty | **ADR**: —
+
+Claude Code のペインで、たまに日本語入力に切り替えられなくなる。メニューバーは「A」に落ちており、かなキーを押しても戻らない。他アプリへ切り替えて戻ると復旧する。
+
+原因は `configs/herdr/config.toml` の `[experimental] switch_ascii_input_source_in_prefix = true`。herdr は prefix モードに入るたび macOS の入力ソースを ASCII レイアウトへ切り替え、抜ける時に元へ戻す（herdr 内蔵の説明どおり macOS 限定・best-effort）。`configs/ghostty/config` の Cmd 系バインドは**すべて** `text:\x00X` 形式で prefix を送るため、ペイン移動（`Cmd+Shift+H/J/K/L`）・タブ切替（`Cmd+1..9`）・エージェントピッカー（`Cmd+A`）のたびにこの往復が走る。
+
+入力ソース変更通知（`kTISNotifySelectedKeyboardInputSourceChanged`）で実測した往復:
+
+```
+03:57:59.297  [start]   GoogleJa    mode=com.apple.inputmethod.Japanese
+03:58:45.385  [poll]    ASCII:ABC                                        ← prefix で ABC へ
+03:58:45.386  [notify]  ASCII:ABC
+03:58:45.925  [poll]    GoogleJa    mode=com.apple.inputmethod.Japanese  ← 540ms 後に復元
+```
+
+入力ソース **ID は正しく復元される**。しかし Google 日本語入力は再選択されると内部モードが「半角英数」で始まるため、ユーザから見ると日本語入力に切り替わらない状態になる。TIS の入力ソース ID を見るだけでは異常が見えないのが、この問題の分かりにくさの実体。「たまに」なのは prefix 操作の直前に日本語モードだった時だけ表面化するため。「Claude Code のペインだけ」に見えるのは、日本語を打つのがそのペインで、かつそこへ移動する操作が全部 prefix を通るため。
+
+この設定は「CJK IME 有効時に**物理** `Ctrl+Space` の prefix が届かない」ことへの対策だが、実運用の prefix は Ghostty が `text:\x00X` で PTY へ直接書き込むので IME を経由せず必ず届く。上記「Spike: IME 有効時の prefix」でも「CJK IME が有効な状態でも `ctrl+space` の prefix が herdr に届く（実機確認で良好）」と記録済みで、守るべきケースが無い。ADR にも導入根拠は残っていない（ADR-076 Phase 0 の名残）。
+
+なお調査の過程で、kitty keyboard protocol（Claude Code は `ESC[>1u` = flags=1 と `ESC[>4;2m` のみを使用。IME をバイパスする flag 8 は使わない）・カーソル非表示（`ESC[?25l`）・`Ctrl+Space` の二重定義・Secure Input 残留・per-context 入力ソースは、いずれも実測で無関係と確認した。
+
+**受け入れ条件**:
+
+- [ ] `configs/herdr/config.toml` の `switch_ascii_input_source_in_prefix` が `false` になっている
+- [ ] `~/.config/herdr/config.toml` は out-of-store symlink なので、home-manager switch なしで変更が反映される
+- [ ] herdr の設定リロード後、ペイン切替・タブ切替・エージェントピッカーを操作しても入力ソース変更通知が発火しない（`com.apple.keylayout.ABC` への切替が観測されない）
+- [ ] 日本語入力の状態でペイン/タブを切り替えても、メニューバーが「A」に落ちない
+- [ ] Ghostty の Cmd 系バインド（`Cmd+A` のピッカー、`Cmd+1..9` のタブ切替、`Cmd+Shift+H/J/K/L` のペイン移動）は従来どおり動く
