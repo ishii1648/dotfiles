@@ -1680,3 +1680,20 @@ Claude Code のペインで、たまに日本語入力に切り替えられな�
 - [ ] herdr の設定リロード後、ペイン切替・タブ切替・エージェントピッカーを操作しても入力ソース変更通知が発火しない（`com.apple.keylayout.ABC` への切替が観測されない）
 - [ ] 日本語入力の状態でペイン/タブを切り替えても、メニューバーが「A」に落ちない
 - [ ] Ghostty の Cmd 系バインド（`Cmd+A` のピッカー、`Cmd+1..9` のタブ切替、`Cmd+Shift+H/J/K/L` のペイン移動）は従来どおり動く
+
+---
+
+### aqua の a8m/envsubst をやめて Homebrew の GNU envsubst に一本化する
+
+**コンポーネント**: aqua | **ADR**: —
+
+`git clone --recursive` が最後に呼ぶ `git submodule`（シェルスクリプト）は `git-sh-i18n` 経由で PATH 上の `gettext.sh` を検出すると GNU スキームを選び、`envsubst --variables` を実行する。PATH で aqua の `a8m/envsubst`（Go 製、`--variables` 非対応）が先に解決されるセッションでは、そのたびに `flag provided but not defined: -variables` と usage が端末に出る。clone や submodule 処理自体は成功しており実害はノイズだけだが、PATH 順に依存して再発するため、GNU 版（`/opt/homebrew/bin/envsubst`）に一本化して衝突そのものを無くす。
+
+**受け入れ条件**:
+
+- [ ] `aqua.yaml` から `a8m/envsubst` が削除されている
+- [ ] `docs/reference-tools.md` の aqua パッケージ一覧から `a8m/envsubst` が削除されている
+- [ ] dotfiles 内に `a8m/envsubst` 固有のオプション（`-no-unset` / `-no-empty` / `-fail-fast` / `-no-digit`）に依存する箇所が無い
+- [ ] main 取り込み後: `home-manager switch` で `~/.config/aquaproj-aqua/aqua.yaml` から当該行が消える
+- [ ] 実機: `~/.local/share/aquaproj-aqua/bin/envsubst`（aqua-proxy への symlink）が削除され、`which -a envsubst` が `/opt/homebrew/bin/envsubst` だけを返す
+- [ ] 実機: PATH 先頭に aqua の bin を置いた状態で `git clone --recursive` してもエラーが出ない（修正前は同条件で再現し、`GIT_INTERNAL_GETTEXT_TEST_FALLBACKS=1` を付けると消えることも確認済み）

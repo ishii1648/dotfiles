@@ -89,4 +89,3 @@
 | knative/client | knative-v1.14.0 |
 | kubernetes-sigs/kubebuilder | v4.0.0 |
 | kubernetes-sigs/kwok/kwokctl | v0.6.1 |
-| a8m/envsubst | v1.4.3 |

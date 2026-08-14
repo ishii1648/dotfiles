@@ -31,7 +31,6 @@ packages:
 - name: hashicorp/terraform@v1.10.3
 - name: mike-engel/jwt-cli@6.2.0
 - name: kubernetes-sigs/kwok/kwokctl@v0.6.1
-- name: a8m/envsubst@v1.4.3
 - name: cli/cli@v2.69.0
 - name: docker/buildx@v0.32.1
 - name: toshimaru/nyan@v1.2.5
