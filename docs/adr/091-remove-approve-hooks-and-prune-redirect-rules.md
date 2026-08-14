@@ -1,9 +1,12 @@
 # ADR-091: approve 系 PreToolUse hook の廃止と redirect ルールの剪定
 
 ## ステータス
-採用済み
+部分廃止（ADR-092 で一部変更）
 
 `permissions.allow` への移行が実際に穴を塞ぐことは新規セッションで実測済み（issues.md の検証表を参照）。`git log --oneline -1; touch x` は拒否され、`git log --oneline -1` 単体は prompt なしで通る。
+
+- **ADR-092 で上書きした決定** — 「設計案 案C の 3. `permissions` を settings.json の同期対象に追加」。`MERGE_KEYS` に `permissions` を追加する方式は、jq の `*` が配列を右辺で置換するため配布先の `allow` / `deny` を全置換する。同期をやめ、`configs/claude/permissions-baseline.json` によるベースライン検査へ移した
+- **引き続き有効な決定** — approve 系 hook 2 本の廃止、等価な許可を `permissions.allow` で宣言する方針（配布方法だけが変わる）、`redirect-to-tools.py` のルール剪定、`plan` を skip リストに追加しない判断
 
 ## 関連 ADR
 - 依存: ADR-017（approve-safe-commands hook）— 本 ADR で廃止する

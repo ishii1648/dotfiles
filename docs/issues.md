@@ -1712,3 +1712,44 @@ Claude Code のペインで、たまに日本語入力に切り替えられな�
 - [x] 既存の `~/.config/git/ignore` のパターンが取り込み後の dotfiles 版にすべて含まれている。文字列は一致しないが、いずれも dotfiles 側がより広いパターンで覆う（`**/.claude/settings.local.json` → `settings.local.json`、`**/.outputs/claude/` → `.outputs/claude/`、`/.worktrees/` → `.worktrees/`）
 - [x] 実機: `home-manager switch` が activation まで通り、`~/.config/git/ignore` が dotfiles の実体（`configs/git/ignore`）を指す symlink になっている。既存ファイルは `-b backup` で `~/.config/git/ignore.backup` に退避した
 - [x] 実機: `git check-ignore -v` で `HANDOVER.md` と `CLAUDE.local.md` が global ignore にマッチする（`.claude/scheduled_tasks.lock` は dotfiles 自身の `.gitignore` が先にマッチするため、global 側の効きは他リポジトリで確認する）
+
+---
+
+### settings.json の permissions を配布せずベースライン検査に変える
+
+**コンポーネント**: Claude Code | **ADR**: [ADR-092](adr/092-permissions-baseline-check.md)
+
+ADR-091 で `configs/claude/setup.sh` の `MERGE_KEYS` に `permissions` を追加したが、マージに使っている jq の `*` は object を再帰マージする一方で**配列に当たると右辺で置換する**。`permissions.allow` / `deny` は配列のため、setup.sh を実行するたびに配布先のエントリが dotfiles の内容で全置換される。
+
+2026-08-14 に実機で発生した。ADR-091 の hook 削除を反映するため setup.sh を実行したところ、hook の同期（`SYNC_KEYS`）は意図どおり効いた一方で permissions が壊れた。
+
+| キー | 値の型 | 実行前 | 実行直後 |
+|---|---|---:|---:|
+| `permissions.allow` | 配列 | 47 | 19 |
+| `permissions.deny` | 配列 | 46 | 4 |
+| `permissions.ask` | 配列（dotfiles 側に無い） | 7 | 7 |
+| `permissions.additionalDirectories` | 配列（dotfiles 側に無い） | 1 | 1 |
+| `permissions.defaultMode` | スカラー | `acceptEdits` | `auto` |
+| `env` | object | 11 | 11 |
+
+消えた allow 47 件の内訳は `Bash()` 26 / `mcp__*` 17 / `Edit`・`Write`・`Skill(*)`・`Read()` 4。deny 45 件の内訳は `Bash()` 27 / `Read()` 12 / `Artifact`・`Skill`・`mcp` 6 で、`Bash(sudo *)` や `Read(~/.aws/credentials)` のようなガードが外れた。`ask` と `additionalDirectories` が無傷だったのは dotfiles 側に同名キーが無かったためで、追加された時点で同じ事故が起きる。
+
+setup.sh の出力は `managed-keys sync: updated` の 1 行だけで件数を報告しないため、失敗が静かに起きる。とくに deny の欠落は動かしても何も起きず、目視では気づけない。
+
+設定は端末ごとに揃わない（実機は本番トークンを持つため `acceptEdits`、dotfiles は `auto`）ことを前提に、dotfiles では**どの端末でも最低限入っているべき設定のみ**をベースラインとして定義し、setup.sh はコピーせず違反の指摘にとどめる方式へ変える。
+
+**受け入れ条件**:
+
+- [x] `configs/claude/settings.json` から `permissions` キーが削除されている
+- [x] `configs/claude/setup.sh` の `MERGE_KEYS` に `permissions` が含まれていない
+- [x] `configs/claude/permissions-baseline.json` が `required.deny`（必須 35 件）と `recommended.allow`（推奨 19 件）に分かれている
+- [x] `required.deny` には端末の役割によらず必要なガードのみが入り、`kubectl` / `terraform` / `aws` / `gcloud` / `Artifact` / `claude-in-chrome` のような端末固有の deny は入っていない
+- [x] setup.sh が `required.deny` の欠落を件数と一覧で報告する
+- [x] `recommended.allow` の欠落は「prompt が増えるだけで害はない」と添えた note として報告され、必須の指摘に埋もれない
+- [x] `Bash(cmd *)` と `Bash(cmd:*)` が等価な記法として照合される（片方だけ持つ配布先を欠落と誤判定しない）。公式ドキュメントに「The `:*` suffix is an equivalent way to write a trailing wildcard, so `Bash(ls:*)` matches the same commands as `Bash(ls *)`」とあり、permission ダイアログは空白区切りの形を書き込むため配布先には両方が混在する
+- [x] `--fix` は欠落分のみ追加し、配布先の既存エントリと `ask` / `additionalDirectories` / `defaultMode` を保持する
+- [x] `--fix` は冪等で、2 回実行しても重複を作らない
+- [x] `--dry-run` は配布先を書き換えない
+- [x] `tests/claude-permissions-baseline.bats` が上記を回帰テストとして固定する（ADR-034 の追加基準 3・4）。ローカルで 7 件すべて通り、既存分と合わせて 26 件が通る。aqua の jq shim は `$HOME` 配下のレジストリを参照するため、テスト用 `$HOME` では PATH から aqua を外してシステムの jq を使う
+- [x] 実機: setup.sh を実行しても `~/.claude/settings.json` の allow / deny の件数が減らない（実行前後とも allow 66 件 / deny 49 件 / ask 7 件 / `defaultMode` は `acceptEdits`）
+- [x] 実機: 2026-08-14 の事故から復元した settings.json（allow 66 件 / deny 49 件）に対して baseline 検査が OK を返す

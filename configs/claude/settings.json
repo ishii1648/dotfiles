@@ -60,35 +60,5 @@
     "command": "~/.claude/statusline.js"
   },
   "language": "日本語",
-  "effortLevel": "medium",
-  "permissions": {
-    "defaultMode": "auto",
-    "allow": [
-      "Bash(git log:*)",
-      "Bash(git diff:*)",
-      "Bash(git show:*)",
-      "Bash(git status:*)",
-      "Bash(git shortlog:*)",
-      "Bash(git rev-parse:*)",
-      "Bash(git rev-list:*)",
-      "Bash(git describe:*)",
-      "Bash(git ls-files:*)",
-      "Bash(git ls-tree:*)",
-      "Bash(git cat-file:*)",
-      "Bash(git merge-base:*)",
-      "Bash(git blame:*)",
-      "Bash(git worktree list:*)",
-      "Bash(git branch)",
-      "Bash(git branch -a)",
-      "Bash(git branch --show-current)",
-      "Bash(git stash list:*)",
-      "Read(~/.claude/**)"
-    ],
-    "deny": [
-      "Bash(rm -rf *)",
-      "Bash(rm -fr *)",
-      "Bash(rm -r -f *)",
-      "Bash(rm -f -r *)"
-    ]
-  }
+  "effortLevel": "medium"
 }

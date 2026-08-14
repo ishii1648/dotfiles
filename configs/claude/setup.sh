@@ -6,9 +6,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/../../scripts/lib/path.sh"
 
 DRY_RUN="${DRY_RUN:-false}"
-if [[ "${1:-}" == "--dry-run" ]]; then
-    DRY_RUN=true
-fi
+# --fix: permissions ベースラインの欠落を配布先へ追加する（ADR-092）。既存エントリは消さない。
+FIX="${FIX:-false}"
+for arg in "$@"; do
+    case "$arg" in
+        --dry-run) DRY_RUN=true ;;
+        --fix) FIX=true ;;
+    esac
+done
 
 # ADR-085: Nix 対象 profile（現状 full のみ）では dotfiles 由来 skill の symlink を
 # home-manager が張るため setup.sh は触らない。
@@ -21,11 +26,13 @@ fi
 # SYNC_KEYS: source の値で全置換するキー
 SYNC_KEYS=("hooks" "statusLine")
 # MERGE_KEYS: source のキーを dest にマージするキー（dest 固有のキーは保持）
-# permissions は ADR-091 で追加。allow/deny/defaultMode は dotfiles を正とし、
-# 端末固有のキー（additionalDirectories 等）は dest 側を保持する。
-MERGE_KEYS=("env" "permissions")
+# jq の `*` は object を再帰マージする一方で配列は右辺で置換するため、値が配列の
+# キーを入れてはならない。permissions は ADR-091 で追加したが、この性質で配布先の
+# allow/deny を全消しするため ADR-092 で外し、ベースライン検査へ移した。
+MERGE_KEYS=("env")
 SYNC_SRC="$SCRIPT_DIR/settings.json"
-SYNC_DEST="$HOME/.claude/settings.json"
+# CLAUDE_SETTINGS_DEST はテストから配布先を差し替えるための入口
+SYNC_DEST="${CLAUDE_SETTINGS_DEST:-$HOME/.claude/settings.json}"
 
 if [[ -f "$SYNC_DEST" ]]; then
     if [[ "$DRY_RUN" == "true" ]]; then
@@ -79,6 +86,66 @@ if [[ -f "$SYNC_DEST" ]]; then
     fi
 else
     echo "  managed-keys sync: SKIP (dest not found)"
+fi
+
+# --- permissions ベースラインの検査（ADR-092）---
+# dotfiles は permissions を配布しない。required.deny の欠落を指摘するだけにとどめ、
+# --fix のときだけ追加する。配布先のエントリを削除・置換することは一切しない。
+BASELINE_SRC="$SCRIPT_DIR/permissions-baseline.json"
+
+# Bash / PowerShell ルールの末尾 `:*` は ` *` と等価な記法のため、照合前に寄せる。
+# $1: baseline 内のパス（required.deny 等）、$2: settings.json 内のパス
+baseline_missing() {
+    jq -r --slurpfile base "$BASELINE_SRC" --arg bp "$1" --arg dp "$2" '
+        def norm: if (startswith("Bash(") or startswith("PowerShell("))
+                  then sub(":\\*\\)$"; " *)") else . end;
+        ([ (getpath($dp | split(".")) // [])[] | norm ]) as $have
+        | [ (($base[0] | getpath($bp | split("."))) // [])[]
+            | . as $e | select(($have | index($e | norm)) == null) ]
+        | .[]
+    ' "$SYNC_DEST"
+}
+
+if [[ ! -f "$BASELINE_SRC" ]]; then
+    echo "  permissions baseline: SKIP (baseline not found)"
+elif [[ ! -f "$SYNC_DEST" ]]; then
+    echo "  permissions baseline: SKIP (dest not found)"
+else
+    missing_deny=$(baseline_missing "required.deny" "permissions.deny")
+    missing_allow=$(baseline_missing "recommended.allow" "permissions.allow")
+    n_deny=$([[ -n "$missing_deny" ]] && echo "$missing_deny" | wc -l | tr -d ' ' || echo 0)
+    n_allow=$([[ -n "$missing_allow" ]] && echo "$missing_allow" | wc -l | tr -d ' ' || echo 0)
+
+    if [[ "$FIX" == "true" && "$DRY_RUN" != "true" && ( "$n_deny" != "0" || "$n_allow" != "0" ) ]]; then
+        tmp_perm=$(mktemp)
+        jq --slurpfile base "$BASELINE_SRC" '
+            def norm: if (startswith("Bash(") or startswith("PowerShell("))
+                      then sub(":\\*\\)$"; " *)") else . end;
+            ([ (.permissions.deny  // [])[] | norm ]) as $hd
+            | ([ (.permissions.allow // [])[] | norm ]) as $ha
+            | .permissions = ((.permissions // {})
+                | .deny  = ((.deny  // []) + [ (($base[0].required.deny) // [])[]
+                            | . as $e | select(($hd | index($e | norm)) == null) ])
+                | .allow = ((.allow // []) + [ (($base[0].recommended.allow) // [])[]
+                            | . as $e | select(($ha | index($e | norm)) == null) ]))
+        ' "$SYNC_DEST" > "$tmp_perm"
+        cp "$SYNC_DEST" "${SYNC_DEST}.bk"
+        mv "$tmp_perm" "$SYNC_DEST"
+        echo "  permissions baseline: fixed — deny $n_deny 件 / allow $n_allow 件を追加 [backup: ${SYNC_DEST}.bk]"
+    else
+        if [[ "$n_deny" == "0" ]]; then
+            echo "  permissions baseline: ✓ OK (required deny すべて存在)"
+        else
+            echo "  permissions baseline: MISSING: required deny が $n_deny 件欠けている（--fix で追加できる）"
+            echo "$missing_deny" | sed 's/^/      /'
+        fi
+        if [[ "$n_allow" != "0" ]]; then
+            echo "  permissions baseline: note: recommended allow が $n_allow 件未設定（prompt が増えるだけで害はない）"
+            if [[ "$DRY_RUN" == "true" ]]; then
+                echo "$missing_allow" | sed 's/^/      /'
+            fi
+        fi
+    fi
 fi
 
 # --- skills symlinks ---

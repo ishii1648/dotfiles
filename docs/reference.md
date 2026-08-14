@@ -11,6 +11,7 @@
 | Claude Code 設定 | `configs/claude/` | CLAUDE.md・スクリプト・statusline |
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・リダイレクト・worktree ガードなどの補助スクリプト |
 | Claude Code skills | `configs/claude/skills/` | codex-sync（skill を Codex CLI にも展開） |
+| Claude Code permissions ベースライン | `configs/claude/permissions-baseline.json` | どの端末でも必要な deny と推奨 allow の定義。配布物ではなく検査基準で、`setup.sh` が欠落を指摘する（`--fix` で追加のみ実行、[ADR-092](adr/092-permissions-baseline-check.md)） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 | Nix (home-manager) | `flake.nix` / `nix/` | 静的 symlink 配置と OS レベルパッケージの宣言（Spike 中、[ADR-084](adr/084-nix-home-manager-package-symlink-layer.md)） |
 
