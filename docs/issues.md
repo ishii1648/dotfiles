@@ -1694,7 +1694,7 @@ Claude Code のペインで、たまに日本語入力に切り替えられな�
 - [x] `aqua.yaml` から `a8m/envsubst` が削除されている
 - [x] `docs/reference-tools.md` の aqua パッケージ一覧から `a8m/envsubst` が削除されている
 - [x] dotfiles 内に `a8m/envsubst` 固有のオプション（`-no-unset` / `-no-empty` / `-fail-fast` / `-no-digit`）に依存する箇所が無い（`configs/` / `scripts/` / `nix/` に envsubst の呼び出し自体が無い）
-- [ ] main 取り込み後: `home-manager switch` で `~/.config/aquaproj-aqua/aqua.yaml` から当該行が消える。実行を保留している — この clone のローカル `master` が origin/main より 19 コミット遅れており、そのまま switch すると古い世代の設定が実機に適用されるため。ローカル `master` を main に追いつかせてから実行する
+- [x] main 取り込み後: `home-manager switch` で `~/.config/aquaproj-aqua/aqua.yaml` から当該行が消える。switch は一度保留した — この clone のローカル `master` が origin/main より 19 コミット遅れており、そのまま実行すると古い世代の設定が実機に適用されるため。`master` を main に追いつかせてから実行した
 - [x] 実機: `~/.local/share/aquaproj-aqua/bin/envsubst`（aqua-proxy への symlink）が削除され、`which -a envsubst` が `/opt/homebrew/bin/envsubst` だけを返す
 - [x] 実機: PATH 先頭に aqua の bin を置いた状態で `git clone --recursive` してもエラーが出ない（修正前は同条件で再現し、`GIT_INTERNAL_GETTEXT_TEST_FALLBACKS=1` を付けると消えることも確認済み）
 
@@ -1708,7 +1708,7 @@ Claude Code のペインで、たまに日本語入力に切り替えられな�
 
 **受け入れ条件**:
 
-- [ ] `configs/git/ignore` に `CLAUDE.local.md` / `.claude/commands/*.local.md` / `HANDOVER.md` / `.claude/scheduled_tasks.lock` が含まれている
-- [ ] 既存の `~/.config/git/ignore` のパターンが取り込み後の dotfiles 版にすべて含まれている（差分が「dotfiles 側の追加分」だけになる）
-- [ ] 実機: `home-manager switch` が activation まで通り、`~/.config/git/ignore` が dotfiles の実体を指す symlink になっている
-- [ ] 実機: `git check-ignore -v` で `HANDOVER.md` と `.claude/scheduled_tasks.lock` が global ignore にマッチする
+- [x] `configs/git/ignore` に `CLAUDE.local.md` / `.claude/commands/*.local.md` / `HANDOVER.md` / `.claude/scheduled_tasks.lock` が含まれている
+- [x] 既存の `~/.config/git/ignore` のパターンが取り込み後の dotfiles 版にすべて含まれている。文字列は一致しないが、いずれも dotfiles 側がより広いパターンで覆う（`**/.claude/settings.local.json` → `settings.local.json`、`**/.outputs/claude/` → `.outputs/claude/`、`/.worktrees/` → `.worktrees/`）
+- [x] 実機: `home-manager switch` が activation まで通り、`~/.config/git/ignore` が dotfiles の実体（`configs/git/ignore`）を指す symlink になっている。既存ファイルは `-b backup` で `~/.config/git/ignore.backup` に退避した
+- [x] 実機: `git check-ignore -v` で `HANDOVER.md` と `CLAUDE.local.md` が global ignore にマッチする（`.claude/scheduled_tasks.lock` は dotfiles 自身の `.gitignore` が先にマッチするため、global 側の効きは他リポジトリで確認する）
