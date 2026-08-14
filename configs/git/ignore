@@ -10,6 +10,12 @@
 
 # Claude Code の端末ローカル設定（ADR-015 / ADR-041）
 settings.local.json
+CLAUDE.local.md
+.claude/commands/*.local.md
 
 # Claude Code の調査結果出力先
 .outputs/claude/
+
+# Claude Code の実行時ファイル
+HANDOVER.md
+.claude/scheduled_tasks.lock

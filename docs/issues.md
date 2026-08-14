@@ -1697,3 +1697,18 @@ Claude Code のペインで、たまに日本語入力に切り替えられな�
 - [ ] main 取り込み後: `home-manager switch` で `~/.config/aquaproj-aqua/aqua.yaml` から当該行が消える。実行を保留している — この clone のローカル `master` が origin/main より 19 コミット遅れており、そのまま switch すると古い世代の設定が実機に適用されるため。ローカル `master` を main に追いつかせてから実行する
 - [x] 実機: `~/.local/share/aquaproj-aqua/bin/envsubst`（aqua-proxy への symlink）が削除され、`which -a envsubst` が `/opt/homebrew/bin/envsubst` だけを返す
 - [x] 実機: PATH 先頭に aqua の bin を置いた状態で `git clone --recursive` してもエラーが出ない（修正前は同条件で再現し、`GIT_INTERNAL_GETTEXT_TEST_FALLBACKS=1` を付けると消えることも確認済み）
+
+---
+
+### global ignore の dotfiles 化で手元の無視パターンを失わない
+
+**コンポーネント**: git | **ADR**: —
+
+`configs/git/ignore` を nix 管理下に置いた変更（`f041e87`）を実機に初適用しようとしたところ、`home-manager switch` が `Existing file '/Users/sho-ishii/.config/git/ignore' would be clobbered` で activation 前に停止した。手元のファイルには dotfiles 版に無いパターンが 4 つあり、そのまま上書きすると実効の無視設定が変わってしまう。いずれも Claude Code が生成するツール由来のファイルで、`configs/git/ignore` の方針（どのリポジトリでも生成されうるツール由来の生成物を置く）に合致するため dotfiles 側へ取り込む。
+
+**受け入れ条件**:
+
+- [ ] `configs/git/ignore` に `CLAUDE.local.md` / `.claude/commands/*.local.md` / `HANDOVER.md` / `.claude/scheduled_tasks.lock` が含まれている
+- [ ] 既存の `~/.config/git/ignore` のパターンが取り込み後の dotfiles 版にすべて含まれている（差分が「dotfiles 側の追加分」だけになる）
+- [ ] 実機: `home-manager switch` が activation まで通り、`~/.config/git/ignore` が dotfiles の実体を指す symlink になっている
+- [ ] 実機: `git check-ignore -v` で `HANDOVER.md` と `.claude/scheduled_tasks.lock` が global ignore にマッチする
