@@ -38,6 +38,16 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python3 ~/.claude/scripts/block-secret-file-read.py",
+            "timeout": 5000
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "~/.claude/scripts/redirect-to-tools.py",
             "timeout": 5000
           }

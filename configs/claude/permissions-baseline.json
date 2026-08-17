@@ -35,6 +35,8 @@
       "Bash(gh release delete *)",
       "Bash(gh issue delete *)",
       "Read(~/.aws/credentials)",
+      "Read(~/.ssh/id_*)",
+      "Read(**/.ssh/id_*)",
       "Read(**/.env*)",
       "Read(**/*credential*)",
       "Read(**/.claude.json)",
