@@ -43,7 +43,7 @@ macOS の外観設定に合わせて 3 層がそれぞれ配色を切り替え�
 |---|---|---|
 | ターミナル | `configs/ghostty/config` の `theme = light:Catppuccin Latte,dark:Dracula` | Ghostty が OS の外観設定を直接見る |
 | マルチプレクサ | `configs/herdr/config.toml` の `[theme] auto_switch = true` | herdr の UI（サイドバー・ペイン境界）は端末パレットではなく自前の配色で描くため、端末とは別に指定が必要 |
-| Claude Code | `configs/claude/settings.json` の `"theme": "auto"` | OSC 11 で端末に背景色を問い合わせて light / dark を判定（[ADR-093](adr/093-claude-code-theme-auto.md)） |
+| Claude Code | `configs/claude/settings.json` の `"theme": "auto"` | OSC 11 で端末に背景色を問い合わせて light / dark を判定（[ADR-093](adr/093-claude-code-theme-auto.md)）。**判定は起動時のみ**で、外観を切り替えても走っているセッションは切り替え前の配色のまま残る |
 
 ライト背景で薄い前景色が沈む分は Ghostty の `minimum-contrast = 3.0` が持ち上げる。透過（`background-opacity`）を掛けるとこの補正が見た目とずれるため 1.0 で使う。
 

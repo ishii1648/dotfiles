@@ -1,7 +1,7 @@
 # ADR-093: Claude Code の theme を auto にしてターミナルに追随させる
 
 ## ステータス
-Draft
+採用済み
 
 ## 関連 ADR
 - 依存: ADR-041（settings.json の管理キー同期 — `SYNC_KEYS` の追加先）
@@ -27,6 +27,7 @@ dotfiles 側は theme を配布していない。`configs/claude/settings.json` 
 - **ADR-092 との整合** — ADR-092 は「端末ごとに違ってよい設定を dotfiles から上書きしない」ために permissions を配布から外した決定だが、`auto` は特定の配色を強制する値ではなく「その端末の背景に合わせる」という指示であり、端末差を潰さない。値もスカラーなので、配列を全置換して deny を消したような破壊は起きない
 - **上書きの副作用** — `SYNC_KEYS` は src の値で全置換するため、ある端末で `/theme` から `dark` 等を選んでも次の setup.sh 実行で `auto` に戻る。色覚特性向け（`*-daltonized`）や ANSI 限定（`*-ansi`）を常用したい端末が出てきた時点で、その端末は `settings.local.json` 側に置くか、theme を `SYNC_KEYS` から外して再検討する
 - **statusline の ANSI 色は対象外** — `statusline.js` が出す色（tier のシアン、worktree の緑、dirty の黄、ctx バーの緑 / 黄 / 赤）は端末パレット由来で、Ghostty の `minimum-contrast = 3.0` が持ち上げる。今回の変更とは独立している
+- **判定は起動時のみ（実機で確認）** — 外観を切り替えても走っているセッションは追随せず、Claude Code を再起動して初めて新しい配色になる。`watchSystemTheme` は端末のテーマ変更通知も購読しているが、herdr 経由では届いていないと見られる。切り替えは 1 日 1〜2 回で、そのたびにセッションを畳む方が高くつくため制約として受け入れる（新しく開くペインは正しい側で始まる）
 
 ### 案B: 端末ごとに `light` / `dark` を手で選ぶ（却下）
 

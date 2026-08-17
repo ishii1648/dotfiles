@@ -1804,6 +1804,6 @@ dotfiles は theme を配布しておらず（`SYNC_KEYS` は `hooks` / `statusL
 - [x] `configs/claude/setup.sh` の `SYNC_KEYS` に `theme` が含まれ、`--dry-run` が差分を WARN として報告する（`managed-keys sync: WARN: key 'theme' differs`）
 - [x] setup.sh 実行後、`~/.claude/settings.json` の `theme` が `"auto"` になる
 - [x] setup.sh 実行の前後で `permissions.allow` / `deny` / `ask` の件数と `defaultMode`・`effortLevel`・`language`・`attribution` が変化しない（実測: allow 19 / deny 4 / ask 0 / `defaultMode` は `auto` で前後一致。同じ実行で未反映だった `hooks` の同期も走り、`block-secret-file-read.py` の PreToolUse が配布先に追加された）
-- [ ] 実機: ライトモードで `plan mode on` / `accept edits on` が背景に沈まず識別できる
-- [ ] 実機: ダークモードに戻すと従来どおりの配色で表示される
-- [ ] 実機: セッション起動中に macOS の外観を切り替えたときの挙動（即時追随するか、再起動が要るか）を確認して記録する
+- [x] 実機: ライトモードで `plan mode on` / `accept edits on` が背景に沈まず識別できる
+- [x] 実機: ダークモードに戻すと従来どおりの配色で表示される
+- [x] 実機: セッション起動中に macOS の外観を切り替えたときの挙動を確認した。**切り替えただけでは追随せず、Claude Code の再起動で反映される。** バイナリの `watchSystemTheme` は端末のテーマ変更通知（`subscribeThemeChange`）も購読しているが、herdr 経由では通知が届いていないと見られる。外観を切り替える頻度は 1 日 1〜2 回で、そのたびに走っているセッションを畳む運用は現実的でないため、既存セッションが切り替え前の配色のまま残るのは制約として受け入れる（新しく開くペインは正しい側になる）
