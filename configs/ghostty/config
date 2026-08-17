@@ -1,10 +1,11 @@
 command = ~/.local/bin/herdr
 font-family = "BIZ UDGothic Bold"
 adjust-cell-height = 20%
-theme = Dracula
+# macOS の外観設定（ライト/ダーク）に追随する
+theme = light:Catppuccin Latte,dark:Dracula
 
-# 背景を暗くして壁紙透過時の視認性を確保
-background = #181a2a
+# background は明示指定しない。指定するとライト時も暗いままになるため、
+# 壁紙透過時の視認性は theme 側の背景色 + opacity + minimum-contrast で確保する
 background-opacity = 0.9
 minimum-contrast = 1.2
 cursor-opacity = 1.0

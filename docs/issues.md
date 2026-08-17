@@ -1753,3 +1753,20 @@ setup.sh の出力は `managed-keys sync: updated` の 1 行だけで件数を�
 - [x] `tests/claude-permissions-baseline.bats` が上記を回帰テストとして固定する（ADR-034 の追加基準 3・4）。ローカルで 7 件すべて通り、既存分と合わせて 26 件が通る。aqua の jq shim は `$HOME` 配下のレジストリを参照するため、テスト用 `$HOME` では PATH から aqua を外してシステムの jq を使う
 - [x] 実機: setup.sh を実行しても `~/.claude/settings.json` の allow / deny の件数が減らない（実行前後とも allow 66 件 / deny 49 件 / ask 7 件 / `defaultMode` は `acceptEdits`）
 - [x] 実機: 2026-08-14 の事故から復元した settings.json（allow 66 件 / deny 49 件）に対して baseline 検査が OK を返す
+
+---
+
+### Ghostty をシステムの外観設定に追随させる
+
+**コンポーネント**: ghostty
+
+`configs/ghostty/config` は `theme = Dracula` に加えて `background = #181a2a` を明示指定しており、テーマを差し替えても背景が暗いまま残る。macOS をライトモードで使う時間帯でもターミナルだけダークに固定される。
+
+Ghostty の `theme = light:<名前>,dark:<名前>` 形式で macOS の外観設定に追随させる。ライト側は Catppuccin Latte（Dracula と同系統で彩度が控えめ）。`background` の明示指定は theme 側の背景色を潰すため削除し、壁紙透過時の視認性は `background-opacity` と `minimum-contrast` で確保する。
+
+**受け入れ条件**:
+
+- [x] `configs/ghostty/config` の `theme` が `light:Catppuccin Latte,dark:Dracula` になっている
+- [x] `background` の明示指定が削除されている（`background-opacity` / `minimum-contrast` は残す）
+- [x] `ghostty +validate-config --config-file=configs/ghostty/config` がエラーなく通る（存在しないテーマ名は validate が検出するため、両テーマが解決できていることの確認になる）
+- [ ] 実機: macOS をライトモードにすると Ghostty の背景がライトになり、ダークモードに戻すと Dracula に戻る（`~/.config/ghostty/config` は dotfiles の実体を指す out-of-store symlink のため、main に取り込めば Cmd+R の reload_config で反映される）
