@@ -9,7 +9,12 @@ onboarding = false
 # キーバインドは現行 tmux.conf の体系に合わせてある。各行のコメントが tmux 側の対応。
 
 [theme]
-name = "dracula"
+# ghostty 側の `theme = light:...,dark:...` と揃えて macOS の外観設定に追随させる。
+# サイドバー等の herdr UI は端末のパレットではなく自前の配色で描くため、
+# ここを dracula 固定にしているとライト時にサイドバーだけダーク用の色が残る。
+auto_switch = true
+dark_name = "dracula"
+light_name = "catppuccin-latte"
 
 [terminal]
 # 新規ペインは呼び出し元の cwd を継承（tmux の split-window -c "#{pane_current_path}" 相当）

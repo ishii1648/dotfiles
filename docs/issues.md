@@ -1758,15 +1758,28 @@ setup.sh の出力は `managed-keys sync: updated` の 1 行だけで件数を�
 
 ### Ghostty をシステムの外観設定に追随させる
 
-**コンポーネント**: ghostty
+**コンポーネント**: ghostty / herdr
 
 `configs/ghostty/config` は `theme = Dracula` に加えて `background = #181a2a` を明示指定しており、テーマを差し替えても背景が暗いまま残る。macOS をライトモードで使う時間帯でもターミナルだけダークに固定される。
 
-Ghostty の `theme = light:<名前>,dark:<名前>` 形式で macOS の外観設定に追随させる。ライト側は Catppuccin Latte（Dracula と同系統で彩度が控えめ）。`background` の明示指定は theme 側の背景色を潰すため削除し、壁紙透過時の視認性は `background-opacity` と `minimum-contrast` で確保する。
+Ghostty の `theme = light:<名前>,dark:<名前>` 形式で macOS の外観設定に追随させる。ライト側は Catppuccin Latte（Dracula と同系統で彩度が控えめ）。`background` の明示指定は theme 側の背景色を潰すため削除する。
+
+ライト化後にスクリーンショットで確認したところ、読みにくい箇所が 3 系統あり、原因もそれぞれ別だった。
+
+1. **左サイドバーがほぼ読めない** — herdr は端末のパレットではなく自前の配色で UI を描くため、`configs/herdr/config.toml` の `[theme] name = "dracula"` がライト背景の上にダーク用の色を乗せていた。herdr 側にも `auto_switch` / `dark_name` / `light_name` があるので Ghostty と同じくシステム追随にする
+2. **dim 表現が背景に沈む** — Catppuccin Latte は背景 `#eff1f5` に対して 17 色中 9 色がコントラスト比 3.0 未満（br-white 1.61 / white 1.91 / br-yellow 1.91 / yellow 2.31 / green 2.96）。本文 foreground は 7.06 で読めるため、一部だけが沈む。`minimum-contrast = 1.2` は実質無効な値で、これを 3.0 に上げて Ghostty 側で持ち上げる
+3. **場所によって読みやすさが変わる** — `background-opacity = 0.9` の壁紙透過で、壁紙の明暗がそのままコントラストのムラになる。加えて `minimum-contrast` は設定上の背景色に対して比を計算するため、透過している分だけ補正が見た目とずれる。2 を効かせる前提として透過を切る
+
+`font-thicken` は実機の表示では潰れておらず、ライト背景ではむしろ字が細く見えるため残す。
 
 **受け入れ条件**:
 
 - [x] `configs/ghostty/config` の `theme` が `light:Catppuccin Latte,dark:Dracula` になっている
-- [x] `background` の明示指定が削除されている（`background-opacity` / `minimum-contrast` は残す）
+- [x] `background` の明示指定が削除されている
 - [x] `ghostty +validate-config --config-file=configs/ghostty/config` がエラーなく通る（存在しないテーマ名は validate が検出するため、両テーマが解決できていることの確認になる）
+- [x] `background-opacity` が 1.0、`minimum-contrast` が 3.0 になっている
+- [x] `configs/herdr/config.toml` の `[theme]` が `auto_switch = true` / `dark_name = "dracula"` / `light_name = "catppuccin-latte"` になっている（テーマ名は herdr バイナリ内の一覧で実在を確認済み）
+- [ ] 実機: `herdr config check` が unknown config key を報告しない
 - [ ] 実機: macOS をライトモードにすると Ghostty の背景がライトになり、ダークモードに戻すと Dracula に戻る（`~/.config/ghostty/config` は dotfiles の実体を指す out-of-store symlink のため、main に取り込めば Cmd+R の reload_config で反映される）
+- [ ] 実機: ライト時に herdr の左サイドバー（spaces / agents ペイン）がライト配色になり、セッション名が読める
+- [ ] 実機: ライト時に dim 表現（`Brewed for …` / `auto mode on` / diff の + 行）が背景に沈まない

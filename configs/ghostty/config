@@ -4,10 +4,14 @@ adjust-cell-height = 20%
 # macOS の外観設定（ライト/ダーク）に追随する
 theme = light:Catppuccin Latte,dark:Dracula
 
-# background は明示指定しない。指定するとライト時も暗いままになるため、
-# 壁紙透過時の視認性は theme 側の背景色 + opacity + minimum-contrast で確保する
-background-opacity = 0.9
-minimum-contrast = 1.2
+# background は明示指定しない（指定するとライト時も暗いまま残る）
+# 透過は切る。壁紙の明暗がそのままコントラストのムラになるうえ、minimum-contrast は
+# 設定上の背景色に対して比を計算するため、透過分だけ見た目とずれる
+background-opacity = 1.0
+# Catppuccin Latte は 17 色中 9 色が背景 #eff1f5 に対してコントラスト比 3.0 未満で、
+# dim 表現（br-white 1.61 / br-yellow 1.91）が背景に沈む。薄い前景色を持ち上げる。
+# 1.2 は実質無効な値だった
+minimum-contrast = 3.0
 cursor-opacity = 1.0
 window-save-state = never
 font-thicken
