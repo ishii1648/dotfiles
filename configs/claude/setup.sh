@@ -24,7 +24,9 @@ fi
 
 # --- dotfiles 管理キーの同期 ---
 # SYNC_KEYS: source の値で全置換するキー
-SYNC_KEYS=("hooks" "statusLine")
+# theme = "auto" は特定の配色ではなく「端末の背景に合わせる」指示なので、端末差を潰さずに
+# 配布できる（ADR-093）。ある端末で /theme を使って固定色を選ぶと次回の実行で auto に戻る。
+SYNC_KEYS=("hooks" "statusLine" "theme")
 # MERGE_KEYS: source のキーを dest にマージするキー（dest 固有のキーは保持）
 # jq の `*` は object を再帰マージする一方で配列は右辺で置換するため、値が配列の
 # キーを入れてはならない。permissions は ADR-091 で追加したが、この性質で配布先の

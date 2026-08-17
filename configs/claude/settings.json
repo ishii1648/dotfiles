@@ -70,5 +70,6 @@
     "command": "~/.claude/statusline.js"
   },
   "language": "日本語",
-  "effortLevel": "medium"
+  "effortLevel": "medium",
+  "theme": "auto"
 }

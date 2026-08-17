@@ -1783,3 +1783,27 @@ Ghostty の `theme = light:<名前>,dark:<名前>` 形式で macOS の外観設�
 - [ ] 実機: macOS をライトモードにすると Ghostty の背景がライトになり、ダークモードに戻すと Dracula に戻る（`~/.config/ghostty/config` は dotfiles の実体を指す out-of-store symlink のため、main に取り込めば Cmd+R の reload_config で反映される）
 - [ ] 実機: ライト時に herdr の左サイドバー（spaces / agents ペイン）がライト配色になり、セッション名が読める
 - [ ] 実機: ライト時に dim 表現（`Brewed for …` / `auto mode on` / diff の + 行）が背景に沈まない
+
+---
+
+### Claude Code の配色をターミナルに追随させる
+
+**コンポーネント**: Claude Code | **ADR**: [ADR-093](adr/093-claude-code-theme-auto.md)
+
+Ghostty / herdr をシステムの外観設定に追随させた（前項）あと、ライト時に Claude Code の permission mode 表示（`plan mode on` / `accept edits on` / `bypass permissions`）が色で識別できなくなった。`~/.claude/settings.json` が `"theme": "dark"` 固定のままで、端末がライトになっても Claude Code の配色だけダーク前提で描かれている。
+
+statusline は自前スクリプト（`configs/claude/statusline.js`）だが、mode バッジはそこで描いておらず（tier / model / repo / branch / PR / ctx / 使用率のみ）、statusline 側の修正では直らない。色を決めているのは Claude Code 本体のテーマ。
+
+Claude Code 2.1.233 には `Auto (match terminal)`（`theme = "auto"`）があり、OSC 11 で端末に背景色を問い合わせて light / dark を判定する（バイナリ内の `watchSystemTheme` が OSC 11 を送って `osc11Responsive` を記録し、端末のテーマ変更通知も購読する。`$TMUX` / `$STY` 下では DCS passthrough に切り替える）。herdr 0.7.5 もペイン内からの OSC 11 に `]11;rgb:` で応答する実装を持つため、herdr 経由でも到達できる見込み。
+
+dotfiles は theme を配布しておらず（`SYNC_KEYS` は `hooks` / `statusLine` のみ）、theme 未設定時の Claude Code 既定は `dark`。新端末でも追随させるため `auto` を管理キーに加える。
+
+**受け入れ条件**:
+
+- [x] `configs/claude/settings.json` に `"theme": "auto"` が入っている
+- [x] `configs/claude/setup.sh` の `SYNC_KEYS` に `theme` が含まれ、`--dry-run` が差分を WARN として報告する（`managed-keys sync: WARN: key 'theme' differs`）
+- [x] setup.sh 実行後、`~/.claude/settings.json` の `theme` が `"auto"` になる
+- [x] setup.sh 実行の前後で `permissions.allow` / `deny` / `ask` の件数と `defaultMode`・`effortLevel`・`language`・`attribution` が変化しない（実測: allow 19 / deny 4 / ask 0 / `defaultMode` は `auto` で前後一致。同じ実行で未反映だった `hooks` の同期も走り、`block-secret-file-read.py` の PreToolUse が配布先に追加された）
+- [ ] 実機: ライトモードで `plan mode on` / `accept edits on` が背景に沈まず識別できる
+- [ ] 実機: ダークモードに戻すと従来どおりの配色で表示される
+- [ ] 実機: セッション起動中に macOS の外観を切り替えたときの挙動（即時追随するか、再起動が要るか）を確認して記録する

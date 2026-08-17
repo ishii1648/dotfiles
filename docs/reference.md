@@ -35,6 +35,18 @@
 | package manager (OS レベル) | Homebrew → Nix (home-manager) へ移行中 | `nix/home.nix` / `scripts/lib/deps-macos.sh` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 
+## ライト / ダークの追随
+
+macOS の外観設定に合わせて 3 層がそれぞれ配色を切り替える。1 層でも固定のままだと、その層だけ反対の配色が残る（サイドバーだけ暗い、mode 表示だけ読めない、等）。
+
+| 層 | 設定 | 切り替えの仕組み |
+|---|---|---|
+| ターミナル | `configs/ghostty/config` の `theme = light:Catppuccin Latte,dark:Dracula` | Ghostty が OS の外観設定を直接見る |
+| マルチプレクサ | `configs/herdr/config.toml` の `[theme] auto_switch = true` | herdr の UI（サイドバー・ペイン境界）は端末パレットではなく自前の配色で描くため、端末とは別に指定が必要 |
+| Claude Code | `configs/claude/settings.json` の `"theme": "auto"` | OSC 11 で端末に背景色を問い合わせて light / dark を判定（[ADR-093](adr/093-claude-code-theme-auto.md)） |
+
+ライト背景で薄い前景色が沈む分は Ghostty の `minimum-contrast = 3.0` が持ち上げる。透過（`background-opacity`）を掛けるとこの補正が見た目とずれるため 1.0 で使う。
+
 ## 並列スケール開発アーキテクチャ（廃止）
 
 独立タスクの並列実行のため `/dispatch`・`/orchestrate`・`/session-log` skill と tmux-sidebar の popup picker を使う仕組みがあったが、herdr 移行（[ADR-076](adr/076-herdr-migration-from-tmux.md)）に伴い廃止した。orchestrate・session-log は dotfiles vendor を削除、dispatch・review-loop（agmsg-go 配布）は自動配布（bootstrap）を止めた。並列実行は herdr の agent 機能（`agent start`/`agent send` 等）への置き換えを検討中（未実装）。
