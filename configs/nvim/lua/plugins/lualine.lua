@@ -3,6 +3,17 @@ local worktree_cache = {
   cwd = nil,
 }
 
+-- 配色は 'background' に追随して切り替わる（lua/plugins/colorscheme.lua）ため、
+-- ハードコードした Dracula 色のままだとライト背景で沈む。両方の palette を持つ。
+local palette = {
+  dark = { green = "#50fa7b", red = "#ff5555" }, -- Dracula
+  light = { green = "#40a02b", red = "#d20f39" }, -- Catppuccin Latte
+}
+
+local function color_of(name)
+  return (palette[vim.o.background] or palette.dark)[name]
+end
+
 local function is_in_worktree()
   local cwd = vim.fn.getcwd()
   if worktree_cache.cwd == cwd then
@@ -31,7 +42,7 @@ return {
           "branch",
           color = function()
             if is_in_worktree() then
-              return { fg = "#50fa7b" }
+              return { fg = color_of("green") }
             end
           end,
         },
@@ -46,7 +57,9 @@ return {
             end
             return ""
           end,
-          color = { fg = "#ff5555" },
+          color = function()
+            return { fg = color_of("red") }
+          end,
         },
       },
     },

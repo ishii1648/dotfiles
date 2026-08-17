@@ -1807,3 +1807,31 @@ dotfiles は theme を配布しておらず（`SYNC_KEYS` は `hooks` / `statusL
 - [x] 実機: ライトモードで `plan mode on` / `accept edits on` が背景に沈まず識別できる
 - [x] 実機: ダークモードに戻すと従来どおりの配色で表示される
 - [x] 実機: セッション起動中に macOS の外観を切り替えたときの挙動を確認した。**切り替えただけでは追随せず、Claude Code の再起動で反映される。** バイナリの `watchSystemTheme` は端末のテーマ変更通知（`subscribeThemeChange`）も購読しているが、herdr 経由では通知が届いていないと見られる。外観を切り替える頻度は 1 日 1〜2 回で、そのたびに走っているセッションを畳む運用は現実的でないため、既存セッションが切り替え前の配色のまま残るのは制約として受け入れる（新しく開くペインは正しい側になる）
+
+---
+
+### Neovim の配色をターミナルの背景に追随させる
+
+**コンポーネント**: Neovim
+
+Ghostty / herdr / Claude Code をシステムの外観設定に追随させた（前 2 項）あと、ライト背景の中で Neovim のペインだけ Dracula の暗い矩形として残る。`configs/nvim/lua/plugins/colorscheme.lua` が `colorscheme dracula` 固定で、Dracula にはライト版が無い。
+
+ライト側は端末と揃えて Catppuccin Latte（`catppuccin/nvim` の `catppuccin-latte`）にする。ダーク側は見慣れた Dracula を変えたくないので、2 つの colorscheme を入れて `'background'` で切り替える。Neovim の TUI は起動時に OSC 11 で端末へ背景色を問い合わせて `'background'` を設定する（`:help 'background'`）ため、判定そのものは自前で書かなくてよい。herdr が `]11;rgb:` に応答することは ADR-093 で確認済み。端末が応答しない環境では既定の `dark` のままで、従来どおり Dracula になる。
+
+注意点が 2 つあった。
+
+1. **`OptionSet background` からの再入** — `dracula` の colors ファイルは自身で `set background=dark` する。切り替え関数をそのまま autocmd に繋ぐと再入するので、適用中フラグで止める
+2. **lualine のハードコード色** — worktree 表示の `#50fa7b`（Dracula green）と `[RO]` の `#ff5555`（Dracula red）はライト背景で沈む。`'background'` に応じて Latte の `#40a02b` / `#d20f39` を返す
+
+`lazy-lock.json` は `~/.config/nvim` が dotfiles の実体を指す out-of-store symlink なので、nvim 側の install がそのまま dotfiles に書き戻る。
+
+**受け入れ条件**:
+
+- [x] `configs/nvim/lua/plugins/colorscheme.lua` が `'background'` を見て `dracula` / `catppuccin-latte` を切り替える
+- [x] `catppuccin/nvim` が `lazy-lock.json` に pin されている
+- [x] 起動時に `background = dark` なら Dracula（`Normal` の背景 `#282a36`）になる
+- [x] 起動後に `:set background=light` すると Catppuccin Latte（`Normal` の背景 `#eff1f5`）に切り替わり、`dark` に戻すと Dracula に戻る（`dracula` が内部で `set background=dark` するため無限ループしないことも確認）
+- [x] lualine の worktree ブランチ色と `[RO]` 色が `'background'` に応じて Latte 側の色を返す
+- [ ] 実機: ライトモードの ghostty / herdr ペインで nvim を起動すると Catppuccin Latte で開く（TUI の OSC 11 判定が herdr 経由で通ることの確認）
+- [ ] 実機: ダークモードでは従来どおり Dracula で開く
+- [ ] 実機: セッション起動中に外観を切り替えたときの挙動を確認する。Claude Code（ADR-093）と同じく端末のテーマ変更通知が herdr 経由で届かない場合は追随しない見込みで、その場合は開き直すか `:set background=light` で切り替える
