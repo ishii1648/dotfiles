@@ -20,4 +20,5 @@ abbr -a find gfind
 abbr -a n "nvim ."
 abbr -a cc claude
 abbr -a cf fable
+abbr -a ca claude_auto
 abbr -a oc opencode

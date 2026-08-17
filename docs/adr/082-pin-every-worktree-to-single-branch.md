@@ -10,7 +10,7 @@
 
 ## コンテキスト
 
-sre-docs リポジトリで作業中、default worktree（main worktree、`~/ghq/github.com/C-FO/sre-docs`）が `docs/adr-production-feature-flag-id-base-policy-removal` ブランチをチェックアウトしたまま放置されている状態が見つかった。ADR-081 の hook は main worktree での `git switch`/`checkout` を既にブロックしているため、この特定インスタンスは hook 導入前の drift か、Claude Code の Bash tool を経由しない操作（手動 git 操作・別ツール経由）によるものと考えられ、本 ADR の hook 変更で遡って直るものではない。
+sre-docs リポジトリで作業中、default worktree が `docs/adr-production-feature-flag-id-base-policy-removal` ブランチをチェックアウトしたまま放置されている状態が見つかった。ADR-081 の hook は main worktree での `git switch`/`checkout` を既にブロックしているため、この特定インスタンスは hook 導入前の drift か、Claude Code の Bash tool を経由しない操作（手動 git 操作・別ツール経由）によるものと考えられ、本 ADR の hook 変更で遡って直るものではない。
 
 ただし、これを機にグローバル CLAUDE.md の worktree isolation ルールを再点検した結果、ADR-081 が意図的にスコープ外とした部分に構造的なギャップが見つかった。
 

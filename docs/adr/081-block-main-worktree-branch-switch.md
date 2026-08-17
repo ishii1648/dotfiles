@@ -13,7 +13,7 @@
 
 ## コンテキスト
 
-sre-hub リポジトリで作業中、main worktree（`/Users/sho-ishii/ghq/github.com/C-FO/sre-hub`）が `learnings/ssh2node-pasture-ssm-agent-race` ブランチをチェックアウトしたままの状態になっており、`git switch main` が失敗する事故が発生した。調査の結果、原因は 2 つあった。
+sre-hub リポジトリで作業中、main worktree が `learnings/ssh2node-pasture-ssm-agent-race` ブランチをチェックアウトしたままの状態になっており、`git switch main` が失敗する事故が発生した。調査の結果、原因は 2 つあった。
 
 1. リンク worktree が 224 個も放置されており、そのうち 1 つが `main` を掴んだまま忘れられていた（cleanup 運用の問題。hook では解決しない、別途 `code-flow:clean_gone` 等の定期実行で対処する）
 2. main worktree 自体で `git switch`/`checkout` を直接実行し、非 default branch で作業していた（グローバル CLAUDE.md の「ファイルを編集するタスクは最初の Edit/Write の前に EnterWorktree で専用 worktree に移る」というルール違反）
