@@ -34,6 +34,7 @@
 | package manager (バージョン固定 CLI) | aqua | `aqua.yaml` |
 | package manager (OS レベル) | Homebrew → Nix (home-manager) へ移行中 | `nix/home.nix` / `scripts/lib/deps-macos.sh` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
+| stacked PR | git-spice（コマンド名は `git-spice`。`gs` は fish の abbr で展開する。v0.25.0 で公式配布物から `gs` バイナリが削除された） | `aqua.yaml` / `configs/fish/conf.d/aliases.fish` |
 
 ## ライト / ダークの追随
 
