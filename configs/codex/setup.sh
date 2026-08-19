@@ -20,6 +20,63 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m'
 
+CODEX_CONFIG_DEST="${CODEX_CONFIG_DEST:-$HOME/.codex/config.toml}"
+
+has_obsolete_hooks() {
+    [[ -f "$1" ]] && grep -q 'agent-pane-state\.sh' "$1"
+}
+
+remove_obsolete_hooks() {
+    local config_file="$1" tmp mode
+    tmp="$(mktemp "${config_file}.tmp.XXXXXX")"
+
+    # A top-level [[hooks.<Event>]] and its nested [[hooks.<Event>.hooks]] tables
+    # form one matcher group. Drop only groups that still invoke the removed
+    # tmux-era agent-pane-state.sh; preserve all other user settings and hook state.
+    awk '
+        function flush_group() {
+            if (!capturing) return
+            if (buffer !~ /agent-pane-state[.]sh/) printf "%s", buffer
+            buffer = ""
+            capturing = 0
+        }
+        /^\[\[hooks\.[^.]+\]\][[:space:]]*$/ {
+            flush_group()
+            capturing = 1
+            buffer = $0 ORS
+            next
+        }
+        capturing && /^\[/ && !/^\[\[hooks\.[^.]+\.hooks\]\][[:space:]]*$/ {
+            flush_group()
+            print
+            next
+        }
+        capturing {
+            buffer = buffer $0 ORS
+            next
+        }
+        { print }
+        END { flush_group() }
+    ' "$config_file" >"$tmp"
+
+    mode="$(stat -f '%Lp' "$config_file" 2>/dev/null || stat -c '%a' "$config_file")"
+    chmod "$mode" "$tmp"
+    mv "$tmp" "$config_file"
+}
+
+legacy_rc=0
+if has_obsolete_hooks "$CODEX_CONFIG_DEST"; then
+    if $DRY_RUN; then
+        echo "  config.toml: WARN: obsolete agent-pane-state.sh hooks found"
+        legacy_rc=1
+    else
+        remove_obsolete_hooks "$CODEX_CONFIG_DEST"
+        echo "  config.toml: removed obsolete agent-pane-state.sh hooks"
+    fi
+else
+    echo "  config.toml: ✓ no obsolete hooks"
+fi
+
 # --- codex CLI install ---
 if ! command -v npm >/dev/null 2>&1; then
     echo -e "  ${YELLOW}npm not found, skipping codex install${NC}"
@@ -35,7 +92,7 @@ fi
 
 # --- hooks.json symlink ---
 HOOKS_SRC="$SCRIPT_DIR/hooks.json"
-HOOKS_DEST="$HOME/.codex/hooks.json"
+HOOKS_DEST="${CODEX_HOOKS_DEST:-$HOME/.codex/hooks.json}"
 
 if [[ ! -f "$HOOKS_SRC" ]]; then
     echo "  hooks.json: SKIP (source not found: $HOOKS_SRC)"
@@ -50,7 +107,7 @@ if $DRY_RUN; then
     else
         echo "  hooks.json: WARN: not linked ($HOOKS_DEST)"
     fi
-    exit 0
+    exit "$legacy_rc"
 fi
 
 mkdir -p "$HOME/.codex"

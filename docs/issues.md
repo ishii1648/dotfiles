@@ -1835,3 +1835,23 @@ Ghostty / herdr / Claude Code をシステムの外観設定に追随させた�
 - [ ] 実機: ライトモードの ghostty / herdr ペインで nvim を起動すると Catppuccin Latte で開く（TUI の OSC 11 判定が herdr 経由で通ることの確認）
 - [ ] 実機: ダークモードでは従来どおり Dracula で開く
 - [ ] 実機: セッション起動中に外観を切り替えたときの挙動を確認する。Claude Code（ADR-093）と同じく端末のテーマ変更通知が herdr 経由で届かない場合は追随しない見込みで、その場合は開き直すか `:set background=light` で切り替える
+
+---
+
+### Codex の obsolete hook が exit 127 を繰り返す
+
+**コンポーネント**: codex / herdr
+
+herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/config.toml` に残り、
+削除済みスクリプトの実行で全ライフサイクルイベントが exit 127 になっていた。また、
+`~/.codex/hooks.json` は dotfiles への symlink のため、複数端末で
+`herdr integration install codex` を実行するたびに端末固有の `/Users/<name>/...` が
+同じファイルへ蓄積し、`SessionStart` で他端末の存在しないパスもすべて実行されていた。
+
+**受け入れ条件**:
+
+- [x] `configs/codex/hooks.json` の herdr `SessionStart` hook が機械非依存の `~/.codex/herdr-agent-state.sh session` 1 件だけになる
+- [x] `configs/herdr/setup.sh` が herdr の再 install 後も Codex hook を機械非依存の 1 件へ正規化し、別端末の絶対パスを蓄積しない
+- [x] `configs/codex/setup.sh` が `~/.codex/config.toml` から `agent-pane-state.sh` を呼ぶ obsolete hook group だけを削除し、ユーザー設定と hook trust state を保持する
+- [x] `--dry-run` は obsolete hook を検出して非ゼロ終了し、設定ファイルを書き換えない
+- [x] セットアップ後、Codex の全 hook command が存在するスクリプトだけを参照し、exit 127 を再現しない（実機の `configs/herdr/setup.sh --dry-run` と hook command の直接実行が exit 0）

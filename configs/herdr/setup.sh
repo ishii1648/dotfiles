@@ -23,6 +23,56 @@ if [[ "${1:-}" == "--dry-run" ]]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CODEX_HOOKS_FILE="${CODEX_HOOKS_FILE:-$HOME/.codex/hooks.json}"
+CODEX_HERDR_COMMAND='~/.codex/herdr-agent-state.sh session'
+
+codex_wiring_is_normalized() {
+    [[ -f "$CODEX_HOOKS_FILE" ]] || return 1
+    jq -e --arg command "$CODEX_HERDR_COMMAND" '
+        [
+            .hooks.SessionStart[]?.hooks[]?
+            | select((.command // "") | contains("herdr-agent-state.sh"))
+        ] as $wiring
+        | ($wiring | length) == 1
+          and $wiring[0].command == $command
+          and $wiring[0].type == "command"
+          and $wiring[0].timeout == 10
+    ' "$CODEX_HOOKS_FILE" >/dev/null 2>&1
+}
+
+normalize_codex_wiring() {
+    [[ -f "$CODEX_HOOKS_FILE" ]] || return 0
+    local tmp
+    tmp="$(mktemp "${TMPDIR:-/tmp}/codex-hooks.XXXXXX")"
+    jq --arg command "$CODEX_HERDR_COMMAND" '
+        .hooks //= {}
+        | .hooks.SessionStart = (
+            [
+                (.hooks.SessionStart // [])[]
+                | .hooks = [
+                    (.hooks // [])[]
+                    | select(((.command // "") | contains("herdr-agent-state.sh")) | not)
+                ]
+                | select((.hooks | length) > 0)
+            ]
+            + [{
+                "hooks": [{
+                    "command": $command,
+                    "timeout": 10,
+                    "type": "command"
+                }]
+            }]
+        )
+    ' "$CODEX_HOOKS_FILE" >"$tmp"
+
+    if ! cmp -s "$tmp" "$CODEX_HOOKS_FILE"; then
+        # cp follows ~/.codex/hooks.json when it is the dotfiles symlink; replacing
+        # the symlink itself would break configs/codex/setup.sh ownership.
+        cp "$tmp" "$CODEX_HOOKS_FILE"
+        echo "  herdr integration codex: normalized portable hook wiring"
+    fi
+    rm -f "$tmp"
+}
 
 # launchd agent（ADR-090: blocked 通知 watcher）。configs/fish/setup.sh の
 # worktree-auto-cleanup と同型だが、常駐（KeepAlive）なので plist が同一なら
@@ -115,13 +165,17 @@ is_current() {
 wiring_file() {
     case "$1" in
         claude) printf '%s' "$HOME/.claude/settings.json" ;;
-        codex)  printf '%s' "$HOME/.codex/hooks.json" ;;
+        codex)  printf '%s' "$CODEX_HOOKS_FILE" ;;
         *)      printf '' ;;
     esac
 }
 
 has_wiring() {
-    local f
+    local agent="$1" f
+    if [[ "$agent" == "codex" ]]; then
+        codex_wiring_is_normalized
+        return
+    fi
     f="$(wiring_file "$1")"
     [[ -n "$f" && -f "$f" ]] && grep -q 'herdr-agent-state' "$f"
 }
@@ -157,6 +211,12 @@ fi
 
 # current かつ配線あり なら何もしない（install は毎回 JSON を書き直すため、symlink 経由で
 # dotfiles の configs/codex/hooks.json に無用な差分が出る）
+# 旧端末の絶対パスが既にある場合は、install の要否を判定する前に portable な 1 件へ
+# 正規化する。herdr が current でも設定ファイルの蓄積だけを修復できる。
+if [[ " ${AGENTS[*]} " == *" codex "* && -f "$CODEX_HOOKS_FILE" ]]; then
+    normalize_codex_wiring
+fi
+
 status_out="$(herdr integration status 2>/dev/null || true)"
 for agent in "${AGENTS[@]}"; do
     if is_current "$agent" "$status_out" && has_wiring "$agent"; then
@@ -171,6 +231,9 @@ for agent in "${AGENTS[@]}"; do
     install_out=""
     if install_out="$(herdr integration install "$agent" 2>&1)"; then
         echo "  herdr integration ${agent}: installed"
+        if [[ "$agent" == "codex" ]]; then
+            normalize_codex_wiring
+        fi
         # herdr は JSON を書き戻す際に末尾改行を落とすため補う（差分ノイズ抑制）
         for f in "$HOME/.codex/hooks.json" "$HOME/.claude/settings.json"; do
             [[ -f "$f" && -n "$(tail -c 1 "$f")" ]] && printf '\n' >>"$f"
