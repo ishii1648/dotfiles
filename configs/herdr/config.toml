@@ -60,7 +60,12 @@ new_tab = ""
 # x として扱い close_pane（prefix+x）が発火してしまう（close_workspace の項を参照）。
 # prefix+w は workspace_picker を prefix+s に移したことで空いている。
 close_tab = "prefix+w"
-rename_tab = "prefix+shift+t"
+# ghostty: super+shift+t=text:\x00t（prefix+t、リテラル小文字 t）。既定の prefix+shift+t の
+# ままだと ghostty から到達できない（herdr はリテラル大文字を shift 付きとして解釈しないため、
+# \x00T を送っても prefix+t と等価になる。close_workspace の項を参照）。Cmd+R は ghostty 自身の
+# reload_config に使っているので Cmd+Shift+T を充てた。prefix+t は herdr 既定・本 config とも未使用。
+# 物理キー経路も prefix+shift+t → prefix+t に変わる。
+rename_tab = "prefix+t"
 switch_tab = "prefix+1..9"              # Cmd+1~9 → ghostty が prefix+<digit> を送出（配線済み）
 next_tab = "ctrl+tab"                   # tmux: bind-key -n C-Tab next-window（prefix 不要の直接バインド）
 previous_tab = "ctrl+shift+tab"         # tmux: bind-key -n C-BTab previous-window

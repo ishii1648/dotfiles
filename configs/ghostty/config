@@ -69,6 +69,10 @@ keybind = super+u=text:\x00u
 keybind = super+t=text:\x00c
 keybind = super+w=text:\x00x
 keybind = super+shift+w=close_surface
+# herdr: rename_tab（prefix+t）。Cmd+R は上の reload_config（ghostty 自身の設定リロード）に
+# 使っているため Cmd+Shift+T を充てる。\x00T は使えない（herdr がリテラル大文字を shift 付きと
+# して解釈しないため prefix+t と等価になる）ので、そのまま小文字 t を送る。
+keybind = super+shift+t=text:\x00t
 # herdr: workspace_picker（prefix+s、"Select space" ピッカー）。
 # 一時 close_workspace を割り当てていたが、close_workspace は Cmd+D へ移したため picker に戻した。
 keybind = super+s=text:\x00s

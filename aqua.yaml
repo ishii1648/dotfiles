@@ -39,3 +39,9 @@ packages:
 - name: getsops/sops@v3.13.0
 - name: FiloSottile/age@v1.3.1
 - name: abhinav/git-spice@v0.31.2
+  # v0.23.0 までは registry が `gs` で入れていたが、v0.31.1 以降は upstream の
+  # リリースアーカイブに合わせて `git-spice` になった。upstream の README も
+  # stacked PR まわりのツールも `gs` 前提なので alias を張る。
+  command_aliases:
+  - command: git-spice
+    alias: gs
