@@ -90,35 +90,41 @@ else
     echo -e "  ${GREEN}codex${NC}\tinstalled"
 fi
 
-# --- hooks.json symlink ---
-HOOKS_SRC="$SCRIPT_DIR/hooks.json"
-HOOKS_DEST="${CODEX_HOOKS_DEST:-$HOME/.codex/hooks.json}"
+# --- managed file symlinks ---
+link_managed_file() {
+    local src="$1" dest="$2" label="$3"
 
-if [[ ! -f "$HOOKS_SRC" ]]; then
-    echo "  hooks.json: SKIP (source not found: $HOOKS_SRC)"
-    exit 0
-fi
-
-if $DRY_RUN; then
-    if [[ -L "$HOOKS_DEST" && "$(readlink "$HOOKS_DEST")" == "$HOOKS_SRC" ]]; then
-        echo "  hooks.json: ✓ OK"
-    elif [[ -e "$HOOKS_DEST" ]]; then
-        echo "  hooks.json: WARN: $HOOKS_DEST exists but is not the expected symlink"
-    else
-        echo "  hooks.json: WARN: not linked ($HOOKS_DEST)"
+    if [[ ! -f "$src" ]]; then
+        echo "  ${label}: SKIP (source not found: $src)"
+        return 0
     fi
-    exit "$legacy_rc"
-fi
 
-mkdir -p "$HOME/.codex"
-if [[ -L "$HOOKS_DEST" && "$(readlink "$HOOKS_DEST")" == "$HOOKS_SRC" ]]; then
-    echo "  hooks.json: ✓ OK"
-elif [[ -e "$HOOKS_DEST" ]]; then
-    cp "$HOOKS_DEST" "${HOOKS_DEST}.bk"
-    rm -f "$HOOKS_DEST"
-    ln -s "$HOOKS_SRC" "$HOOKS_DEST"
-    echo "  hooks.json: linked → $HOOKS_DEST [backup: ${HOOKS_DEST}.bk]"
-else
-    ln -s "$HOOKS_SRC" "$HOOKS_DEST"
-    echo "  hooks.json: linked → $HOOKS_DEST"
-fi
+    if $DRY_RUN; then
+        if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
+            echo "  ${label}: ✓ OK"
+        elif [[ -e "$dest" ]]; then
+            echo "  ${label}: WARN: $dest exists but is not the expected symlink"
+        else
+            echo "  ${label}: WARN: not linked ($dest)"
+        fi
+        return 0
+    fi
+
+    mkdir -p "$(dirname "$dest")"
+    if [[ -L "$dest" && "$(readlink "$dest")" == "$src" ]]; then
+        echo "  ${label}: ✓ OK"
+    elif [[ -e "$dest" ]]; then
+        cp "$dest" "${dest}.bk"
+        rm -f "$dest"
+        ln -s "$src" "$dest"
+        echo "  ${label}: linked → $dest [backup: ${dest}.bk]"
+    else
+        ln -s "$src" "$dest"
+        echo "  ${label}: linked → $dest"
+    fi
+}
+
+link_managed_file "$SCRIPT_DIR/hooks.json" "${CODEX_HOOKS_DEST:-$HOME/.codex/hooks.json}" "hooks.json"
+link_managed_file "$SCRIPT_DIR/AGENTS.md" "${CODEX_AGENTS_DEST:-$HOME/.codex/AGENTS.md}" "AGENTS.md"
+
+exit "$legacy_rc"
