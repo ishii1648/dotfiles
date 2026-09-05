@@ -35,3 +35,19 @@
 - 最終 diff を 1 回だけ見直し、上記ルールに反するコメント・ドキュメントと、
   どの要求にも紐づかない変更を削除する。このパスでは何も追加せず、
   さらなる改善も行わない。
+
+# GitHub操作
+
+- sandbox内で、network接続を必要とする`gh`の認証確認やAPI操作が失敗しても、その結果だけで認証エラーと判断しないこと。認証情報が無効だと報告したり、ユーザーへ再ログインを求めたりする前に、同じ読み取り専用の確認をnetwork権限の昇格付きで再実行すること。
+- pushする前に、設定されている`origin` URLと`url.*.insteadOf`規則を確認すること。実際に使用されるGit transportを`gh config get git_protocol --host github.com`の設定と一致させること。
+- globalなcommit署名で対話的な秘密情報が必要になり、それを利用できない場合は、リポジトリの指示で署名付きcommitが必須とされていない限り、Codexが作成する当該commitに限って`git -c commit.gpgsign=false commit ...`を使用すること。ユーザーのglobalな署名設定を無効化しないこと。
+
+<!-- agent-loop:rules:start version=1 -->
+# codex-issue-loop Issue作成ルール
+
+- 変更依頼では、最初に対象repositoryを確定し、そのrootまたはdefault branchにある `.agent-loop.yaml` を確認する。
+- `.agent-loop.yaml` があり、現在のセッションがagent-loop implementation workerでなければ、自ら実装しない。open Issueとの重複を確認してからIssueを起票する。設定がなければ通常どおり作業する。
+- Issue起票時は、対象repositoryの `.agent-loop.yaml` の `github.ready_labels` に設定されたready labelだけを使用する。作成後のIssueを再取得してlabelを確認する。不明または不足があれば推測やlabel作成をせず、その状態を報告する。
+- agent-loop implementation workerは、割り当てられたIssueを実装し、同じ依頼のIssueを新たに起票しない。
+- 説明、レビュー、調査などの読み取り専用タスクではIssueを起票しない。ユーザーがagent-loopを使わないよう明示した場合は、変更依頼を直接実装してよい。
+<!-- agent-loop:rules:end -->
