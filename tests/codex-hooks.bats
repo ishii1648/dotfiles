@@ -91,6 +91,62 @@ EOF
   [ "$(cat "$config")" = "$before" ]
 }
 
+@test "codex setup syncs only the top-level default model" {
+  local config="$FAKE_HOME/.codex/config.toml"
+  cat >"$config" <<'EOF'
+model = "gpt-5.6-sol"
+model_reasoning_effort = "high"
+approval_policy = "on-request"
+
+[profiles.fast]
+model = "gpt-5.6-luna"
+EOF
+
+  run env HOME="$FAKE_HOME" PATH="$TEST_PATH" CODEX_CONFIG_DEST="$config" \
+    CODEX_HOOKS_DEST="$FAKE_HOME/.codex/hooks.json" bash "$CODEX_SETUP"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"default model synced to gpt-6-astra"* ]]
+  [ "$(sed -n '1p' "$config")" = 'model = "gpt-6-astra"' ]
+  grep -q 'model_reasoning_effort = "high"' "$config"
+  grep -q 'model = "gpt-5.6-luna"' "$config"
+  grep -q 'approval_policy = "on-request"' "$config"
+}
+
+@test "codex setup dry-run reports a model difference without writing" {
+  local config="$FAKE_HOME/.codex/config.toml" before
+  printf 'model = "gpt-5.6-sol"\nmodel_reasoning_effort = "medium"\n' >"$config"
+  before="$(cat "$config")"
+
+  run env HOME="$FAKE_HOME" PATH="$TEST_PATH" CODEX_CONFIG_DEST="$config" \
+    CODEX_HOOKS_DEST="$FAKE_HOME/.codex/hooks.json" bash "$CODEX_SETUP" --dry-run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"default model is not gpt-6-astra"* ]]
+  [ "$(cat "$config")" = "$before" ]
+}
+
+@test "codex setup adds a missing top-level model before tables" {
+  local config="$FAKE_HOME/.codex/config.toml"
+  printf 'approval_policy = "on-request"\n\n[profiles.fast]\nmodel = "gpt-5.6-luna"\n' >"$config"
+
+  run env HOME="$FAKE_HOME" PATH="$TEST_PATH" CODEX_CONFIG_DEST="$config" \
+    CODEX_HOOKS_DEST="$FAKE_HOME/.codex/hooks.json" bash "$CODEX_SETUP"
+  [ "$status" -eq 0 ]
+  awk '
+    /^\[/ { exit(top == "gpt-6-astra" ? 0 : 1) }
+    /^model = / { value = $0; sub(/^model = "/, "", value); sub(/"$/, "", value); top = value }
+  ' "$config"
+  grep -q 'model = "gpt-5.6-luna"' "$config"
+}
+
+@test "codex setup creates a missing config with the default model" {
+  local config="$FAKE_HOME/.codex/config.toml"
+
+  run env HOME="$FAKE_HOME" PATH="$TEST_PATH" CODEX_CONFIG_DEST="$config" \
+    CODEX_HOOKS_DEST="$FAKE_HOME/.codex/hooks.json" bash "$CODEX_SETUP"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$config")" = 'model = "gpt-6-astra"' ]
+}
+
 @test "herdr setup normalizes stale Codex paths and preserves the symlink" {
   local source="$BATS_TEST_TMPDIR/hooks.json"
   write_stale_herdr_hooks "$source"

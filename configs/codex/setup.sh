@@ -21,6 +21,52 @@ YELLOW='\033[0;33m'
 NC='\033[0m'
 
 CODEX_CONFIG_DEST="${CODEX_CONFIG_DEST:-$HOME/.codex/config.toml}"
+CODEX_DEFAULT_MODEL="gpt-6-astra"
+
+has_default_model() {
+    [[ -f "$1" ]] && awk -v expected="$CODEX_DEFAULT_MODEL" '
+        /^[[:space:]]*\[/ { exit 1 }
+        /^[[:space:]]*model[[:space:]]*=/ {
+            value = $0
+            sub(/^[[:space:]]*model[[:space:]]*=[[:space:]]*"/, "", value)
+            sub(/".*$/, "", value)
+            exit(value == expected ? 0 : 1)
+        }
+        END { if (!value) exit 1 }
+    ' "$1"
+}
+
+sync_default_model() {
+    local config_file="$1" tmp mode
+    mkdir -p "$(dirname "$config_file")"
+    tmp="$(mktemp "${config_file}.tmp.XXXXXX")"
+
+    if [[ -f "$config_file" ]]; then
+        awk -v expected="$CODEX_DEFAULT_MODEL" '
+            BEGIN { top_level = 1; written = 0 }
+            top_level && /^[[:space:]]*\[/ {
+                if (!written) print "model = \"" expected "\""
+                top_level = 0
+                written = 1
+            }
+            top_level && /^[[:space:]]*model[[:space:]]*=/ {
+                if (!written) print "model = \"" expected "\""
+                written = 1
+                next
+            }
+            { print }
+            END { if (!written) print "model = \"" expected "\"" }
+        ' "$config_file" >"$tmp"
+    else
+        printf 'model = "%s"\n' "$CODEX_DEFAULT_MODEL" >"$tmp"
+    fi
+
+    if [[ -f "$config_file" ]]; then
+        mode="$(stat -c '%a' "$config_file" 2>/dev/null || stat -f '%Lp' "$config_file")"
+        chmod "$mode" "$tmp"
+    fi
+    mv "$tmp" "$config_file"
+}
 
 has_obsolete_hooks() {
     [[ -f "$1" ]] && grep -q 'agent-pane-state\.sh' "$1"
@@ -59,22 +105,32 @@ remove_obsolete_hooks() {
         END { flush_group() }
     ' "$config_file" >"$tmp"
 
-    mode="$(stat -f '%Lp' "$config_file" 2>/dev/null || stat -c '%a' "$config_file")"
+    mode="$(stat -c '%a' "$config_file" 2>/dev/null || stat -f '%Lp' "$config_file")"
     chmod "$mode" "$tmp"
     mv "$tmp" "$config_file"
 }
 
-legacy_rc=0
+config_rc=0
 if has_obsolete_hooks "$CODEX_CONFIG_DEST"; then
     if $DRY_RUN; then
         echo "  config.toml: WARN: obsolete agent-pane-state.sh hooks found"
-        legacy_rc=1
+        config_rc=1
     else
         remove_obsolete_hooks "$CODEX_CONFIG_DEST"
         echo "  config.toml: removed obsolete agent-pane-state.sh hooks"
     fi
 else
     echo "  config.toml: ✓ no obsolete hooks"
+fi
+
+if has_default_model "$CODEX_CONFIG_DEST"; then
+    echo "  config.toml: ✓ default model is ${CODEX_DEFAULT_MODEL}"
+elif $DRY_RUN; then
+    echo "  config.toml: WARN: default model is not ${CODEX_DEFAULT_MODEL}"
+    config_rc=1
+else
+    sync_default_model "$CODEX_CONFIG_DEST"
+    echo "  config.toml: default model synced to ${CODEX_DEFAULT_MODEL}"
 fi
 
 # --- codex CLI install ---
@@ -127,4 +183,4 @@ link_managed_file() {
 link_managed_file "$SCRIPT_DIR/hooks.json" "${CODEX_HOOKS_DEST:-$HOME/.codex/hooks.json}" "hooks.json"
 link_managed_file "$SCRIPT_DIR/AGENTS.md" "${CODEX_AGENTS_DEST:-$HOME/.codex/AGENTS.md}" "AGENTS.md"
 
-exit "$legacy_rc"
+exit "$config_rc"

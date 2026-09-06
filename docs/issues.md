@@ -1855,3 +1855,20 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 - [x] `configs/codex/setup.sh` が `~/.codex/config.toml` から `agent-pane-state.sh` を呼ぶ obsolete hook group だけを削除し、ユーザー設定と hook trust state を保持する
 - [x] `--dry-run` は obsolete hook を検出して非ゼロ終了し、設定ファイルを書き換えない
 - [x] セットアップ後、Codex の全 hook command が存在するスクリプトだけを参照し、exit 127 を再現しない（実機の `configs/herdr/setup.sh --dry-run` と hook command の直接実行が exit 0）
+
+---
+
+### Codex の既定モデルを GPT-6 Astra に統一する
+
+**コンポーネント**: codex
+
+端末ごとの `~/.codex/config.toml` で既定モデルが異なり、dotfiles のセットアップでも
+モデル設定を同期していない。既存の端末固有設定を保持したまま、既定モデルだけを
+`gpt-6-astra` に統一する。
+
+**受け入れ条件**:
+
+- [x] `configs/codex/setup.sh` が `~/.codex/config.toml` のトップレベル `model` を `gpt-6-astra` に同期できる
+- [x] 同期時に `model_reasoning_effort` とその他の既存設定を保持できる
+- [x] `--dry-run` がモデル差分を検出し、設定ファイルを書き換えずに非ゼロ終了できる
+- [ ] この環境と Mac mini の両方で、セットアップ後の既定モデルが `gpt-6-astra` になる
