@@ -1871,4 +1871,4 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 - [x] `configs/codex/setup.sh` が `~/.codex/config.toml` のトップレベル `model` を `gpt-6-astra` に同期できる
 - [x] 同期時に `model_reasoning_effort` とその他の既存設定を保持できる
 - [x] `--dry-run` がモデル差分を検出し、設定ファイルを書き換えずに非ゼロ終了できる
-- [ ] この環境と Mac mini の両方で、セットアップ後の既定モデルが `gpt-6-astra` になる
+- [x] この環境と Mac mini の両方で、セットアップ後の既定モデルが `gpt-6-astra` になる
