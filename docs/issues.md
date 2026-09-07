@@ -84,6 +84,7 @@
 | ✔ | ○ | git | git の global ignore が dotfiles 管理外 — `~/.config/git/ignore` が端末ローカルの実ファイルで、Claude Code 由来の無視パターン（worktree・調査出力）が新端末に配布されない | — |
 | - | ○ | claude | approve 系 PreToolUse hook が permission system をバイパスする — `;` / `&&` 以降やリダイレクトを検査せず `git log; rm -rf …` まで allow するため、default mode を使う端末ほど危険。redirect 側も助言として誤ったルールを抱えている | [ADR-091](adr/091-remove-approve-hooks-and-prune-redirect-rules.md) |
 | - | ○ | herdr / ghostty | Claude Code のペインで日本語入力に切り替わらないことがある — `switch_ascii_input_source_in_prefix` が prefix のたびに入力ソースを ABC へ切替・復元し、復元されても Google 日本語入力の内部モードが半角英数に落ちる | — |
+| - | ○ | git / gh / codex-issue-loop | GitHub の自動操作が広権限のユーザートークンを共有する — ghtkn で権限と有効期間を限定する | [ADR-094](adr/094-ghtkn-github-app-authentication.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1872,3 +1873,19 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 - [x] 同期時に `model_reasoning_effort` とその他の既存設定を保持できる
 - [x] `--dry-run` がモデル差分を検出し、設定ファイルを書き換えずに非ゼロ終了できる
 - [x] この環境と Mac mini の両方で、セットアップ後の既定モデルが `gpt-6-astra` になる
+
+
+### ADR-094: ghtkn による GitHub 認証の最小権限化
+
+**コンポーネント**: git / gh / codex-issue-loop
+
+採用方針は ADR-094 に記録済み。以下は実装時に確認する未完了の条件。
+
+**受け入れ条件**:
+
+- [ ] 通常操作と loop が、用途・対象リポジトリを限定した GitHub App の User Access Token で動作できる
+- [ ] loop の必要なAPI操作、Git push、回答者の本人確認を専用権限で実行できる
+- [ ] アクセストークンの期限をまたいでも、各 gh 呼び出し時の取得と agent の自動更新で運転を継続できる
+- [ ] agent のロックや認証失効時に GitHub 操作が失敗し、既存の広権限認証へ自動で戻らないことを確認できる
+- [ ] 再起動後は手動アンロックと必要な再認証により運転を復旧できる
+- [ ] 秘密情報を dotfiles やログに保存せず、自動実行環境から従来の広権限認証を取得できる経路を解消できる
