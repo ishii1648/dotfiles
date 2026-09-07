@@ -1,0 +1,11 @@
+#!/bin/bash
+set -euo pipefail
+
+unset GH_TOKEN GITHUB_TOKEN GHTKN_GITHUB_TOKEN
+export GHTKN_BACKEND=agent
+# loop registration probes --version and otherwise falls back to an unwrapped gh.
+if [[ $# -eq 1 && "$1" == --version ]]; then
+    exec aqua -c "${XDG_CONFIG_HOME:-$HOME/.config}/aquaproj-aqua/aqua.yaml" exec -- gh "$@"
+fi
+exec ghtkn exec -e "GH_TOKEN:${GHTKN_APP:-read}" -- \
+    aqua -c "${XDG_CONFIG_HOME:-$HOME/.config}/aquaproj-aqua/aqua.yaml" exec -- gh "$@"

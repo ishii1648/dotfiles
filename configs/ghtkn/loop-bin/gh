@@ -1,0 +1,6 @@
+#!/bin/bash
+set -euo pipefail
+
+export GHTKN_APP=loop
+export GHTKN_GIT_APP=loop
+exec "$HOME/.local/bin/gh" "$@"

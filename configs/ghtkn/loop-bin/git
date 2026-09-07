@@ -1,0 +1,9 @@
+#!/bin/bash
+set -euo pipefail
+
+unset GH_TOKEN GITHUB_TOKEN GHTKN_GITHUB_TOKEN
+export GHTKN_BACKEND=agent
+export GHTKN_APP=loop
+export GHTKN_GIT_APP=loop
+export GIT_TERMINAL_PROMPT=0
+exec /usr/bin/git "$@"

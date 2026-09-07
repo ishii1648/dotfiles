@@ -1,0 +1,10 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/suzuki-shunsuke/ghtkn/v0.4.0/json-schema/ghtkn.json
+backend:
+  type: agent
+apps:
+  - name: read
+    client_id: REPLACE_WITH_READ_APP_CLIENT_ID
+  - name: write
+    client_id: REPLACE_WITH_WRITE_APP_CLIENT_ID
+  - name: loop
+    client_id: REPLACE_WITH_LOOP_APP_CLIENT_ID

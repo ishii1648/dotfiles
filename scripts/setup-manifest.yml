@@ -19,6 +19,7 @@ profiles:
     - herdr
     - aqua
     - git
+    - ghtkn
     - vim
   remote:
     - fish
@@ -27,6 +28,7 @@ profiles:
     - herdr
     - aqua
     - git
+    - ghtkn
     - vim
   linux:
     - fish
@@ -125,6 +127,9 @@ components:
       - link: ~/.config/aquaproj-aqua/aqua.yaml
         target: aqua.yaml
         nix_managed: true
+
+  ghtkn:
+    setup: configs/ghtkn/setup.sh
 
   vim:
     symlinks:

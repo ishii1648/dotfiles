@@ -12,6 +12,7 @@
 | Claude Code スクリプト | `configs/claude/scripts/` | 通知・リダイレクト・worktree ガードなどの補助スクリプト |
 | Claude Code skills | `configs/claude/skills/` | codex-sync（skill を Codex CLI にも展開） |
 | Claude Code permissions ベースライン | `configs/claude/permissions-baseline.json` | どの端末でも必要な deny と推奨 allow の定義。配布物ではなく検査基準で、`setup.sh` が欠落を指摘する（`--fix` で追加のみ実行、[ADR-092](adr/092-permissions-baseline-check.md)） |
+| GitHub 認証 | `configs/ghtkn/` | ghtkn agent と用途別 GitHub App（[ADR-094](adr/094-ghtkn-github-app-authentication.md)） |
 | aqua 設定 | `aqua.yaml` | CLIツールバージョン管理 |
 | Nix (home-manager) | `flake.nix` / `nix/` | 静的 symlink 配置と OS レベルパッケージの宣言（Spike 中、[ADR-084](adr/084-nix-home-manager-package-symlink-layer.md)） |
 
@@ -35,6 +36,40 @@
 | package manager (OS レベル) | Homebrew → Nix (home-manager) へ移行中 | `nix/home.nix` / `scripts/lib/deps-macos.sh` |
 | VCS | Git (SSH署名) | `configs/git/gitconfig` |
 | stacked PR | git-spice（コマンド名は `git-spice`。`gs` は fish の abbr で展開する。v0.25.0 で公式配布物から `gs` バイナリが削除された） | `aqua.yaml` / `configs/fish/conf.d/aliases.fish` |
+
+## GitHub 認証（ghtkn）
+
+macOS の full / remote profile は `configs/ghtkn/setup.sh` を実行する。事前に
+`configs/ghtkn/ghtkn.yaml.example` を `~/.config/ghtkn/ghtkn.yaml` へコピーし、
+read / write / loop の異なる GitHub App Client ID を設定する。`XDG_CONFIG_HOME` を使う場合は
+その配下へ配置する。未設定では認証の切り替え前にセットアップが失敗する。
+
+App は Device Flow と User Access Token の有効期限を有効にし、Webhook を無効にする。
+インストール先は必要なリポジトリだけに限定する。read は必要な読み取り権限、write / loop は
+Issues・Pull requests・Contents を中心とする必要な書き込み権限を付与し、CI確認などの
+追加権限は利用するAPIに合わせて確定する。loop の現在のCI確認には Checks と Commit statuses の
+read 権限が必要になる。Metadata は read、Workflows の write は workflow ファイルの変更を
+許可する場合だけ追加する。Client Secret・秘密鍵は作成しない。
+
+`aqua install` 後に `bash configs/ghtkn/setup.sh` を実行すると、launchd agent、
+`~/.local/bin/gh`、GitHub専用の HTTPS credential helper が設定される。
+`~/.local/bin` と aqua の bin を PATH に含め、`command -v gh` がラッパーを指すことを確認する。
+既存 clone の SSH remote URL と個別の pushurl は別途 HTTPS に変更する。コミット署名用のSSH鍵は継続して使う。
+
+初回とagent再起動後は `ghtkn agent unlock --enable-refresh` を手動実行し、
+必要なら `ghtkn auth read`、`ghtkn auth write`、`ghtkn auth loop` で認証する。
+`ghtkn info` で状態を確認できる。トークンそのものを表示する `ghtkn get` は使わない。
+通常の `gh` は read、変更時は `GHTKN_APP=write gh ...` を使う。Git は既定で write を使い、
+`GHTKN_APP` / `GHTKN_GIT_APP` で切り替えられる。`git_owner` は環境変数より優先されるので設定しない。
+
+loop の登録・再登録時は `~/.local/libexec/ghtkn-loop` を PATH の先頭に置き、
+登録される gh / git とサービスの PATH がそのディレクトリを指すことを確認する。
+稼働中loopへの反映は作業状態を確認してから行う。ラッパーはloop用Appを明示してAPI操作ごとに
+トークンを取得し、Gitもloop用Appを選択する。GitHub Connectorなど `gh` を使わない経路は対象外。
+
+ラッパー導入だけでは保存済みOAuthトークンやSSH認証鍵へのアクセスは除去されない。
+専用Appでの動作を確認してから、旧認証の失効・削除と自動実行環境からのアクセス除去を行う。
+導入完了の判定は [ADR-094 の受け入れ条件](issues.md#adr-094-ghtkn-による-github-認証の最小権限化)による。
 
 ## ライト / ダークの追随
 
