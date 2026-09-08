@@ -192,11 +192,7 @@ command = "~/.local/bin/herdr-new-default-worktree workspace"
 description = "new workspace at default worktree"
 
 [ui]
-# 既定 26 桁だと下の terminal_title_stripped が全角 13 文字ほどで切れて読めない。
-# sidebar は常時展開（sidebar_start_collapsed 未設定 = false）なので、
-# 横を食う代わりにセッション要約が読める幅にする（既定の max は 36）。
-sidebar_width = 34
-sidebar_max_width = 44
+sidebar_width = 26
 copy_on_select = true
 # close_workspace を Cmd+D（押しやすいキー）に割り当てているため、確認プロンプトは必須。
 # 既定値だが、既定が変わっても誤爆しないよう明示する。
@@ -213,17 +209,7 @@ agent_panel_sort = "spaces"
 
 [ui.sidebar.agents]
 # tmux-sidebar の window 行（[c]💬 のような agent タグ + 状態バッジ）に相当する表示。
-# 既定（claude 以外）は 2 行目に agent 名を出す。
-rows = [["state_icon", "workspace", "tab"], ["agent"]]
-
-[ui.sidebar.agents.rows_by_agent]
-# claude のペインは agent 名を出しても全部 "claude" で情報量がゼロなので、
-# 2 行目を Claude Code が terminal title に出すセッション要約に差し替える。
-# 3 行 + agent 行だと一覧の縦密度が落ちるため、行数は 2 行に保つ。
-claude = [
-  ["state_icon", "workspace", "tab"],
-  [{ token = "terminal_title_stripped", dim = false }],
-]
+rows = [["state_icon", "workspace", "tab"], ["terminal_title_stripped"], ["agent"]]
 
 [ui.sidebar.spaces]
 # tmux-sidebar の session 見出しに相当（branch/git_status で pinned 相当の文脈情報を補う）
