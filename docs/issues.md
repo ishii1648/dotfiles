@@ -1885,6 +1885,7 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 
 - [ ] 通常操作と loop が、用途・対象リポジトリを限定した GitHub App の User Access Token で動作できる
 - [x] Codex の AGENTS.md に、Issue 起票時は `GHTKN_APP=write gh issue create ...` で `ishii1648-ghtkn-write` を使用するルールが記載されている
+- [x] Claude Code の CLAUDE.md が `@~/.codex/AGENTS.md` を import し、共通の GitHub 操作ルールを参照できる
 - [ ] loop の必要なAPI操作、Git push、回答者の本人確認を専用権限で実行できる
 - [ ] アクセストークンの期限をまたいでも、各 gh 呼び出し時の取得と agent の自動更新で運転を継続できる
 - [ ] agent のロックや認証失効時に GitHub 操作が失敗し、既存の広権限認証へ自動で戻らないことを確認できる
