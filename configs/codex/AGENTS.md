@@ -38,6 +38,7 @@
 
 # GitHub操作
 
+- Issue起票時は `GHTKN_APP=write gh issue create ...` を使用し、GitHub App `ishii1648-ghtkn-write` を明示的に選択する。`gh` の既定は読み取り専用の `ishii1648-ghtkn-read` なので、起票には使用しない。
 - sandbox内で、network接続を必要とする`gh`の認証確認やAPI操作が失敗しても、その結果だけで認証エラーと判断しないこと。認証情報が無効だと報告したり、ユーザーへ再ログインを求めたりする前に、同じ読み取り専用の確認をnetwork権限の昇格付きで再実行すること。
 - pushする前に、設定されている`origin` URLと`url.*.insteadOf`規則を確認すること。実際に使用されるGit transportを`gh config get git_protocol --host github.com`の設定と一致させること。
 - globalなcommit署名で対話的な秘密情報が必要になり、それを利用できない場合は、リポジトリの指示で署名付きcommitが必須とされていない限り、Codexが作成する当該commitに限って`git -c commit.gpgsign=false commit ...`を使用すること。ユーザーのglobalな署名設定を無効化しないこと。
