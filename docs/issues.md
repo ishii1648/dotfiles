@@ -1891,3 +1891,9 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 - [ ] agent のロックや認証失効時に GitHub 操作が失敗し、既存の広権限認証へ自動で戻らないことを確認できる
 - [ ] 再起動後は手動アンロックと必要な再認証により運転を復旧できる
 - [ ] 秘密情報を dotfiles やログに保存せず、自動実行環境から従来の広権限認証を取得できる経路を解消できる
+
+### AGENTS.md / CLAUDE.md の共通化
+
+**受け入れ条件**:
+
+- [x] 個人設定と dotfiles の CLAUDE.md が AGENTS.md の共通ルールを import し、対話・環境・開発手順の重複を持たず Claude Code 固有の指示を保持できる

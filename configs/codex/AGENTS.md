@@ -1,3 +1,15 @@
+# 対話方針
+
+- ユーザが意見を求めた場合、忖度せず批判的に検討したうえで回答すること
+- 確認が必要な事項は、作業の途中で小刻みに聞かず、着手前にまとめて聞くこと
+- 中断された外向きの操作（push 等）を無断で再試行しない。ユーザが別タスクへ誘導したら、それを終えてから再開の可否を確認する
+
+# ユーザ環境
+
+- シェルは **fish**。ユーザ向けのコマンド例は fish 構文で書く（heredoc `<<EOF` は使えないので `printf` + `tee` を使う）
+- macOS (BSD) 環境。GNU 専用フラグを使わない（例: `cat -A` は無効 → `cat -e` / `cat -v`）
+- `~/.codex/` と `~/.claude/` の dotfiles 管理ファイルは参照専用。編集は `~/ghq/github.com/ishii1648/dotfiles/configs/` 内の対応する実体に対して行う（ADR-084）
+
 # 実装スコープ
 
 - 明示された要求を満たす最小の一貫した変更を行う。
@@ -38,10 +50,11 @@
 
 # GitHub操作
 
+- ステージするファイルはパスを明示する。`git add -A` / `git commit -a` で他セッションの編集中ファイルを巻き込まない。
 - Issue起票時は `GHTKN_APP=write gh issue create ...` を使用し、GitHub App `ishii1648-ghtkn-write` を明示的に選択する。`gh` の既定は読み取り専用の `ishii1648-ghtkn-read` なので、起票には使用しない。
 - sandbox内で、network接続を必要とする`gh`の認証確認やAPI操作が失敗しても、その結果だけで認証エラーと判断しないこと。認証情報が無効だと報告したり、ユーザーへ再ログインを求めたりする前に、同じ読み取り専用の確認をnetwork権限の昇格付きで再実行すること。
 - pushする前に、設定されている`origin` URLと`url.*.insteadOf`規則を確認すること。実際に使用されるGit transportを`gh config get git_protocol --host github.com`の設定と一致させること。
-- globalなcommit署名で対話的な秘密情報が必要になり、それを利用できない場合は、リポジトリの指示で署名付きcommitが必須とされていない限り、Codexが作成する当該commitに限って`git -c commit.gpgsign=false commit ...`を使用すること。ユーザーのglobalな署名設定を無効化しないこと。
+- globalなcommit署名で対話的な秘密情報が必要になり、それを利用できない場合は、リポジトリの指示で署名付きcommitが必須とされていない限り、エージェントが作成する当該commitに限って`git -c commit.gpgsign=false commit ...`を使用すること。ユーザーのglobalな署名設定を無効化しないこと。
 
 <!-- agent-loop:rules:start version=1 -->
 # codex-issue-loop Issue作成ルール
