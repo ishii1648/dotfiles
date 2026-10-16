@@ -1924,12 +1924,12 @@ Orca には prefix（chord）が無いため、herdr を ghostty の Cmd キー�
 herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決されず、ghostty 内蔵の JetBrains Mono に `font-thicken` をかけて描かれている（日本語のみ BIZ UDGothic）。Orca の設定はアプリ内部の SQLite（`profile-state.db` の `settings`）にあり dotfiles で管理できないため、フォント本体だけを nix で配り、値は DB に書き込む。
 
 - Orca には font-thicken が無いため、JetBrains Mono Medium（weight 500）で近似する
-- サイズは Orca の既定 14 から 2 段階上げた 16、行の高さは ghostty の `adjust-cell-height = 20%` に合わせて 1.2
+- サイズは Orca の既定 14 から 3 段階上げた 17、行の高さは ghostty の `adjust-cell-height = 20%` に合わせて 1.2
 
 **受け入れ条件**:
 
 - [x] `home-manager switch` 後に JetBrains Mono が `~/Library/Fonts/HomeManager` に入り、システムから使える
-- [x] Orca の `terminalFontFamily` が JetBrains Mono、`terminalFontSize` が 16、`terminalFontWeight` が 500、`terminalLineHeight` が 1.2 になっている
+- [x] Orca の `terminalFontFamily` が JetBrains Mono、`terminalFontSize` が 17、`terminalFontWeight` が 500、`terminalLineHeight` が 1.2 になっている
 - [ ] 実機: Orca のターミナルの字形・太さが herdr と見比べて揃っている
 
 ---
