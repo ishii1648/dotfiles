@@ -1928,8 +1928,8 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 
 **受け入れ条件**:
 
-- [ ] `home-manager switch` 後に JetBrains Mono が `~/Library/Fonts/HomeManager` に入り、システムから使える
-- [ ] Orca の `terminalFontFamily` が JetBrains Mono、`terminalFontSize` が 16、`terminalFontWeight` が 500、`terminalLineHeight` が 1.2 になっている
+- [x] `home-manager switch` 後に JetBrains Mono が `~/Library/Fonts/HomeManager` に入り、システムから使える
+- [x] Orca の `terminalFontFamily` が JetBrains Mono、`terminalFontSize` が 16、`terminalFontWeight` が 500、`terminalLineHeight` が 1.2 になっている
 - [ ] 実機: Orca のターミナルの字形・太さが herdr と見比べて揃っている
 
 ---
