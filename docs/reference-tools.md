@@ -83,7 +83,7 @@
 | toshimaru/nyan | v1.2.5 |
 | nodejs/node | v22.7.0 |
 | hashicorp/terraform | v1.10.3 |
-| cli/cli | v2.69.0 |
+| cli/cli | v2.102.0 |
 | docker/buildx | v0.32.1 |
 | mike-engel/jwt-cli | 6.2.0 |
 | knative/client | knative-v1.14.0 |

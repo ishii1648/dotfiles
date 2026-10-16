@@ -1897,3 +1897,16 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 **受け入れ条件**:
 
 - [x] 個人設定と dotfiles の CLAUDE.md が AGENTS.md の共通ルールを import し、対話・環境・開発手順の重複を持たず Claude Code 固有の指示を保持できる
+
+---
+
+### gh を v2.102.0 に上げて `gh skill` を使えるようにする
+
+**コンポーネント**: aqua | **ADR**: —
+
+`gh skill` サブコマンドは v2.90.0 で追加されたが、`aqua.yaml` が `cli/cli@v2.69.0` に固定されているため `gh skill install` が `unknown command "skill"` で失敗する。
+
+**受け入れ条件**:
+
+- [x] `aqua.yaml` と `docs/reference-tools.md` の `cli/cli` が v2.102.0 になっている
+- [x] 実機: `gh --version` が v2.102.0 を返し、`gh skill --help` が成功する
