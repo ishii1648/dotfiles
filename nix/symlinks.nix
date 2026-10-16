@@ -58,6 +58,11 @@ in
       # launchd agent（ADR-090）から呼ばれる blocked 通知 watcher
       ".local/bin/herdr-agent-notify".source = link "configs/herdr/agent-notify.py";
 
+      # --- orca ---
+      # Orca の設定 UI でショートカットを変えると tmp→rename で書き込むため、この symlink は
+      # 実ファイルに置き換わる。UI では変えず configs/orca/keybindings.json を編集する。
+      ".orca/keybindings.json".source = link "configs/orca/keybindings.json";
+
       # --- aqua ---
       # 設定ファイルの配置だけを Nix が持つ。ツール本体の導入（`aqua install -l`）は
       # 引き続き configs/aqua/setup.sh が担当する（ADR-084 設計案 A-5 の棲み分け）。

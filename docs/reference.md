@@ -29,6 +29,7 @@
 |---------|--------|-------------|
 | terminal | Ghostty | `configs/ghostty/config` |
 | multiplexer | herdr | `configs/herdr/config.toml` |
+| agent IDE | Orca | `configs/orca/keybindings.json`（キーバインドのみ。herdr の Cmd 系に揃える） |
 | editor | Neovim (lazy.nvim) | `configs/nvim/` |
 | shell | Fish | `configs/fish/` |
 | coding agent | Claude Code | `configs/claude/` |

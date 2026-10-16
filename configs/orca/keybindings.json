@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "keybindings": {
+    "tab.selectByIndex": ["Mod+1"],
+    "workspace.selectByIndex": ["Mod+Shift+1"],
+    "tab.close": ["Mod+W", "Mod+Shift+X"],
+    "tab.rename": ["Mod+Shift+T"],
+    "tab.reopenClosed": [],
+    "terminal.splitRight": ["Mod+N"],
+    "terminal.splitDown": ["Mod+Shift+N"],
+    "workspace.create": ["Mod+Shift+S"],
+    "worktree.palette": ["Mod+S"],
+    "editor.save": ["Mod+Alt+S"],
+    "terminal.focusNextPane": ["Mod+BracketRight", "Mod+Shift+L", "Mod+Shift+J"],
+    "terminal.focusPreviousPane": ["Mod+BracketLeft", "Mod+Shift+H", "Mod+Shift+K"],
+    "dashboard.toggle": ["Mod+A"],
+    "terminal.selectAll": [],
+    "sidebar.left.toggle": ["Mod+Shift+E"],
+    "sidebar.explorer.toggle": ["Mod+B"],
+    "tab.nextAllTypes": ["Mod+Shift+BracketRight", "Ctrl+Tab"],
+    "tab.previousAllTypes": ["Mod+Shift+BracketLeft", "Ctrl+Shift+Tab"],
+    "tab.previousRecent": []
+  },
+  "platforms": {
+    "darwin": {},
+    "linux": {},
+    "win32": {}
+  }
+}

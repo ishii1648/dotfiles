@@ -85,6 +85,7 @@
 | - | ○ | claude | approve 系 PreToolUse hook が permission system をバイパスする — `;` / `&&` 以降やリダイレクトを検査せず `git log; rm -rf …` まで allow するため、default mode を使う端末ほど危険。redirect 側も助言として誤ったルールを抱えている | [ADR-091](adr/091-remove-approve-hooks-and-prune-redirect-rules.md) |
 | - | ○ | herdr / ghostty | Claude Code のペインで日本語入力に切り替わらないことがある — `switch_ascii_input_source_in_prefix` が prefix のたびに入力ソースを ABC へ切替・復元し、復元されても Google 日本語入力の内部モードが半角英数に落ちる | — |
 | - | ○ | git / gh / codex-issue-loop | GitHub の自動操作が広権限のユーザートークンを共有する — ghtkn で権限と有効期間を限定する | [ADR-094](adr/094-ghtkn-github-app-authentication.md) |
+| - | ○ | herdr / ghostty | Orca を併用するとキーバインドが herdr（ghostty の Cmd キー経由）と食い違い、指が迷う — Orca の `~/.orca/keybindings.json` を dotfiles 管理して Cmd 系の割り当てを herdr に揃える | — |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1897,3 +1898,21 @@ herdr 移行前の `agent-pane-state.sh` を呼ぶ inline hook が `~/.codex/con
 **受け入れ条件**:
 
 - [x] 個人設定と dotfiles の CLAUDE.md が AGENTS.md の共通ルールを import し、対話・環境・開発手順の重複を持たず Claude Code 固有の指示を保持できる
+
+### Orca のキーバインドを herdr に揃える
+
+**コンポーネント**: herdr / ghostty
+
+Orca には prefix（chord）が無いため、herdr を ghostty の Cmd キー経由で呼んでいる体系（`configs/ghostty/config` の `text:\x00X`）を再現する。Orca の global スコープのショートカットはメインプロセスがエディタより先に横取りする（`resolveWindowShortcutAction`）ため、同じキーの editor / terminal 側の既定はどちらかを外す。
+
+- Cmd+S は herdr に合わせて worktree 切替にし、エディタの保存は Cmd+Alt+S に移す
+- Cmd+A は herdr に合わせて Agent Dashboard にし、ターミナルの全選択は外す
+- Cmd+D（herdr の close_workspace）に相当する Orca の操作は worktree 自体を消す Delete Workspace なので、割り当てない
+- 方向指定のペイン移動が Orca に無いため、Cmd+Shift+L/J を次のペイン、Cmd+Shift+H/K を前のペインで近似する
+- copy mode（Cmd+I）・PR 一覧（Cmd+U）・ページスクロール（Cmd+K/J）は Orca に対応するアクションが無いので見送る
+
+**受け入れ条件**:
+
+- [ ] `configs/orca/keybindings.json` が nix の symlink で `~/.orca/keybindings.json` に配置される
+- [x] Orca のパーサで読み込んでも診断エラー（不正なキー・衝突による無視）が出ない
+- [ ] Cmd+1〜9 / Cmd+T / Cmd+W / Cmd+Shift+X / Cmd+Shift+T / Cmd+N / Cmd+Shift+N / Cmd+S / Cmd+Shift+S / Cmd+A / Cmd+Shift+E / Ctrl+Tab / Ctrl+Shift+Tab が herdr と同じ意味の操作になる
