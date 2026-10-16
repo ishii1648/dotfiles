@@ -1916,3 +1916,16 @@ Orca には prefix（chord）が無いため、herdr を ghostty の Cmd キー�
 - [x] `configs/orca/keybindings.json` が nix の symlink で `~/.orca/keybindings.json` に配置される
 - [x] Orca のパーサで読み込んでも診断エラー（不正なキー・衝突による無視）が出ない
 - [ ] Cmd+1〜9 / Cmd+T / Cmd+W / Cmd+Shift+X / Cmd+Shift+T / Cmd+N / Cmd+Shift+N / Cmd+S / Cmd+Shift+S / Cmd+A / Cmd+Shift+E / Ctrl+Tab / Ctrl+Shift+Tab が herdr と同じ意味の操作になる
+
+---
+
+### gh を v2.102.0 に上げて `gh skill` を使えるようにする
+
+**コンポーネント**: aqua | **ADR**: —
+
+`gh skill` サブコマンドは v2.90.0 で追加されたが、`aqua.yaml` が `cli/cli@v2.69.0` に固定されているため `gh skill install` が `unknown command "skill"` で失敗する。
+
+**受け入れ条件**:
+
+- [x] `aqua.yaml` と `docs/reference-tools.md` の `cli/cli` が v2.102.0 になっている
+- [x] 実機: `gh --version` が v2.102.0 を返し、`gh skill --help` が成功する
