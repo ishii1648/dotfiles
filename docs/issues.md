@@ -1913,6 +1913,6 @@ Orca には prefix（chord）が無いため、herdr を ghostty の Cmd キー�
 
 **受け入れ条件**:
 
-- [ ] `configs/orca/keybindings.json` が nix の symlink で `~/.orca/keybindings.json` に配置される
+- [x] `configs/orca/keybindings.json` が nix の symlink で `~/.orca/keybindings.json` に配置される
 - [x] Orca のパーサで読み込んでも診断エラー（不正なキー・衝突による無視）が出ない
 - [ ] Cmd+1〜9 / Cmd+T / Cmd+W / Cmd+Shift+X / Cmd+Shift+T / Cmd+N / Cmd+Shift+N / Cmd+S / Cmd+Shift+S / Cmd+A / Cmd+Shift+E / Ctrl+Tab / Ctrl+Shift+Tab が herdr と同じ意味の操作になる
