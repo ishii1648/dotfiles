@@ -33,5 +33,9 @@
     # aqua 標準 registry に無く、GitHub Releases 直配布は x86_64 のみ（Rosetta 無し環境で
     # 動かない）ため nixpkgs 版（arm64 ネイティブ実測確認済み）を使う。
     terminal-notifier
+    # herdr（ghostty）の英数字は ghostty 内蔵の JetBrains Mono で描かれている
+    # （`ghostty +show-face` で確認）。Orca のターミナルを同じ見た目にするにはシステムに
+    # 入っている必要があり、home-manager が ~/Library/Fonts/HomeManager に配置する。
+    jetbrains-mono
   ];
 }
