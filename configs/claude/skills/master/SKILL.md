@@ -14,6 +14,12 @@ allowed-tools: Bash, SendMessage, ListAgents, Agent
 
 起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>` と書く。
 
+## 開き方
+
+1. Orca で起点のリポジトリの main のカードを開き、その端末で `claude --name master --permission-mode auto` を実行する。ワーカーは `master` 宛てに SendMessage を送るので、`--name master` は必須
+2. `/master` を実行する
+3. 再起動したときは、下の reconcile から始める
+
 ## ターンを短く保つ
 
 - ワーカーからのメッセージはツール呼び出しの合間にしか読まれない。長いツール呼び出しや長い調べ物をすると、その間ほかのワーカーと人が待たされる
