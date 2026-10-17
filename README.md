@@ -116,6 +116,20 @@ bash scripts/setup.sh --profile remote
 
 worktree 管理は [docs/reference.md](docs/reference.md) を参照。
 
+### board（master / worker セッション）
+
+人は 1 つのマスターのセッションとだけ話し、実作業は Issue ごとの worktree で動くワーカーのセッションに任せる（[ADR-095](docs/adr/095-board-master-worker-sessions.md)）。起点のリポジトリは `scripts/setup-manifest.local.yml` の `components.board.setup_args`（`repo` / `repo_path`）で指定し、setup.sh を実行すると `board` CLI と LaunchAgent `com.user.board` が入る。
+
+マスターの開き方:
+
+```bash
+# Orca で起点のリポジトリの main のカードを開き、その端末で
+claude --name master --permission-mode auto
+# 起動したら /master を実行する
+```
+
+`--name master` は必須（ワーカーが `master` 宛てに報告を送る）。進捗は Orca のブラウザで `http://127.0.0.1:7342/` を開いて見る。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) を参照。
+
 ### Docker サンドボックス
 
 Docker コンテナ内で Claude Code を `--dangerously-skip-permissions` 付きで安全に自律実行する。詳細は [docs/claude-docker-sandbox.md](docs/claude-docker-sandbox.md) を参照。
