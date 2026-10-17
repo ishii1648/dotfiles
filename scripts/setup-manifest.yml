@@ -21,6 +21,8 @@ profiles:
     - aqua
     - git
     - ghtkn
+    # aqua の go でビルドし、ghtkn 経由の gh を使うので aqua / ghtkn の後（ADR-095）
+    - board
     - vim
   remote:
     - fish
@@ -116,6 +118,13 @@ components:
       - link: ~/.claude/skills/codex-sync
         target: configs/claude/skills/codex-sync
         nix_managed: true
+      # board の master / worker セッションの手順（ADR-095）
+      - link: ~/.claude/skills/master
+        target: configs/claude/skills/master
+        nix_managed: true
+      - link: ~/.claude/skills/worker
+        target: configs/claude/skills/worker
+        nix_managed: true
     copies:
       - src: configs/claude/settings.json
         dest: ~/.claude/settings.json
@@ -137,6 +146,11 @@ components:
 
   ghtkn:
     setup: configs/ghtkn/setup.sh
+
+  # ADR-095: master / worker セッションのタスク board。起点のリポジトリは
+  # setup-manifest.local.yml の components.board.setup_args（repo / repo_path）で渡す
+  board:
+    setup: configs/board/setup.sh
 
   vim:
     symlinks:
