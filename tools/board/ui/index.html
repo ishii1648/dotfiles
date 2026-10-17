@@ -203,10 +203,10 @@ function renderTasks() {
   const chip = (id, label) => `<button class="chip ${ui.chip === id ? "on" : ""}" data-chip="${id}">${label}</button>`;
   let body = "";
   for (const r of rows) {
-    body += `<tr>${titleCell(r, false)}${stateCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}${actionCell(r)}</tr>`;
+    body += `<tr>${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}</tr>`;
     if (r.kind === "epic" && !ui.collapsed[r.number]) {
       for (const c of r.children || []) {
-        body += `<tr class="child">${titleCell(c, true)}${stateCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}${actionCell(c)}</tr>`;
+        body += `<tr class="child">${actionCell(c)}${titleCell(c, true)}${stateCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}</tr>`;
       }
     }
   }
@@ -228,7 +228,7 @@ function renderTasks() {
       <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "確認待ち")}</div>
     </div>
     ${rows.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>Epic / Task</th><th>状態</th><th>今日</th><th>最終進捗</th><th>進み具合</th><th>操作</th></tr></thead>
+      <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>今日</th><th>最終進捗</th><th>進み具合</th></tr></thead>
       <tbody>${body}</tbody></table></div>
       <div class="foot">Epic ${epics} · 単独Task ${rows.length - epics}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
 }
