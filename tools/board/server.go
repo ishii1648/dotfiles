@@ -44,8 +44,14 @@ type server struct {
 	attempts    map[int]time.Time
 	notices     map[int]string
 	dispatching bool
-	snapshot    []byte
-	subs        map[chan []byte]struct{}
+	cleaning    bool
+	cleaned     map[int]bool
+	cleanTried  map[int]time.Time
+	// notified remembers the event that last raised a notification per Issue;
+	// nil until the first snapshot, so a restart does not re-notify.
+	notified map[int]time.Time
+	snapshot []byte
+	subs     map[chan []byte]struct{}
 }
 
 func newServer(cfg Config) (*server, error) {
@@ -54,13 +60,15 @@ func newServer(cfg Config) (*server, error) {
 		return nil, err
 	}
 	return &server{
-		cfg:      cfg,
-		token:    hex.EncodeToString(b),
-		tail:     &tailer{path: eventsPath()},
-		applied:  map[string]card{},
-		attempts: map[int]time.Time{},
-		notices:  map[int]string{},
-		subs:     map[chan []byte]struct{}{},
+		cfg:        cfg,
+		token:      hex.EncodeToString(b),
+		tail:       &tailer{path: eventsPath()},
+		applied:    map[string]card{},
+		attempts:   map[int]time.Time{},
+		notices:    map[int]string{},
+		cleaned:    map[int]bool{},
+		cleanTried: map[int]time.Time{},
+		subs:       map[chan []byte]struct{}{},
 	}, nil
 }
 
@@ -192,7 +200,31 @@ func (s *server) refresh() {
 			s.attempts[n] = now
 		}
 	}
+	alerts := s.waitingAlerts(snap)
+	var closed []int
+	if s.issues != nil && s.githubErr == "" && s.orcaErr == "" && !s.cleaning {
+		for n, i := range issues {
+			if i.Open() || s.cleaned[n] || worktreeFor(wts, s.cfg.Short(), n) == nil {
+				continue
+			}
+			if t, ok := s.cleanTried[n]; ok && now.Sub(t) < retryAfter {
+				continue
+			}
+			s.cleanTried[n] = now
+			closed = append(closed, n)
+		}
+		if len(closed) > 0 {
+			s.cleaning = true
+		}
+	}
 	s.mu.Unlock()
+
+	for _, a := range alerts {
+		notify(a.number, a.title, a.message)
+	}
+	if len(closed) > 0 {
+		go s.autoCleanup(closed)
+	}
 
 	for path, c := range cards {
 		s.mu.Lock()
@@ -212,6 +244,63 @@ func (s *server) refresh() {
 	if len(ready) > 0 {
 		go s.autoDispatch(ready)
 	}
+}
+
+type alert struct {
+	number         int
+	title, message string
+}
+
+// waitingAlerts returns the rows that became 確認待ち since the last call.
+// Called with s.mu held.
+func (s *server) waitingAlerts(snap Snapshot) []alert {
+	idx := indexEvents(s.events, snap.Generated)
+	current := map[int]time.Time{}
+	var rows []Row
+	for _, r := range snap.Rows {
+		rows = append(rows, r)
+		rows = append(rows, r.Children...)
+	}
+	var out []alert
+	for _, r := range rows {
+		if r.State != stWaiting || r.Kind != "task" {
+			continue
+		}
+		var at time.Time
+		if ie := idx[r.Number]; ie != nil && ie.last != nil {
+			at = ie.last.At
+		}
+		current[r.Number] = at
+		if s.notified == nil {
+			continue
+		}
+		if prev, ok := s.notified[r.Number]; ok && prev.Equal(at) {
+			continue
+		}
+		out = append(out, alert{number: r.Number, title: r.Title, message: r.Reason})
+	}
+	if s.issues != nil {
+		s.notified = current
+	}
+	return out
+}
+
+func (s *server) autoCleanup(ns []int) {
+	for _, n := range ns {
+		_, err := cleanup(s.cfg, n)
+		s.mu.Lock()
+		if err != nil {
+			s.notices[n] = "close 後の片付けが止まった: " + err.Error()
+			log.Printf("board: cleanup #%d: %v", n, err)
+		} else {
+			s.cleaned[n] = true
+			delete(s.notices, n)
+		}
+		s.mu.Unlock()
+	}
+	s.mu.Lock()
+	s.cleaning = false
+	s.mu.Unlock()
 }
 
 func (s *server) autoDispatch(ns []int) {
@@ -259,6 +348,7 @@ func (s *server) handler() http.Handler {
 	})
 	mux.HandleFunc("/events", s.handleSSE)
 	mux.HandleFunc("/api/dispatch/", s.handleDispatch)
+	mux.HandleFunc("/api/open/", s.handleOpen)
 	// Host is checked on every request: a DNS-rebound page could otherwise read
 	// GET / and with it the dispatch token.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -306,10 +396,10 @@ func (s *server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkDispatchRequest guards the only write API. The server listens on
-// 127.0.0.1, but any page open in a browser can still POST to localhost, so
-// the request must come from the board page itself and carry its token.
-func (s *server) checkDispatchRequest(r *http.Request) (int, error) {
+// checkActionRequest guards the action APIs (dispatch and open). The server
+// listens on 127.0.0.1, but any page open in a browser can still POST to
+// localhost, so the request must come from the board page and carry its token.
+func (s *server) checkActionRequest(r *http.Request, prefix string) (int, error) {
 	if r.Method != http.MethodPost {
 		return 0, errors.New("POST only")
 	}
@@ -323,7 +413,7 @@ func (s *server) checkDispatchRequest(r *http.Request) (int, error) {
 	if subtle.ConstantTimeCompare([]byte(r.Header.Get("X-Board-Token")), []byte(s.token)) != 1 {
 		return 0, errors.New("bad token")
 	}
-	n, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, "/api/dispatch/"))
+	n, err := strconv.Atoi(strings.TrimPrefix(r.URL.Path, prefix))
 	if err != nil || n <= 0 {
 		return 0, errors.New("bad issue number")
 	}
@@ -331,7 +421,7 @@ func (s *server) checkDispatchRequest(r *http.Request) (int, error) {
 }
 
 func (s *server) handleDispatch(w http.ResponseWriter, r *http.Request) {
-	n, err := s.checkDispatchRequest(r)
+	n, err := s.checkActionRequest(r, "/api/dispatch/")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusForbidden)
 		return
@@ -370,4 +460,17 @@ func (s *server) handleDispatch(w http.ResponseWriter, r *http.Request) {
 	s.refresh()
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]any{"issue": n, "worktree": path})
+}
+
+func (s *server) handleOpen(w http.ResponseWriter, r *http.Request) {
+	n, err := s.checkActionRequest(r, "/api/open/")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusForbidden)
+		return
+	}
+	if err := openWorker(s.cfg, n); err != nil {
+		http.Error(w, err.Error(), http.StatusConflict)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
 }

@@ -116,19 +116,19 @@ bash scripts/setup.sh --profile remote
 
 worktree 管理は [docs/reference.md](docs/reference.md) を参照。
 
-### board（master / worker セッション）
+### Control room（board と master / worker セッション）
 
-人は 1 つのマスターのセッションとだけ話し、実作業は Issue ごとの worktree で動くワーカーのセッションに任せる（[ADR-095](docs/adr/095-board-master-worker-sessions.md)）。起点のリポジトリは `scripts/setup-manifest.local.yml` の `components.board.setup_args`（`repo` / `repo_path`）で指定し、setup.sh を実行すると `board` CLI と LaunchAgent `com.user.board` が入る。
+実作業は Issue ごとの worktree で動くワーカーのセッションに任せ、どこで何が起きているかは Control room（Orca のブラウザで開く board）で見る。人の判断が要るワーカーは確認待ちとして並び、通知も届くので、そこから開いて直接答える。マスターのセッションは起票と計画の窓口だけを担う（[ADR-095](docs/adr/095-board-master-worker-sessions.md)）。起点のリポジトリは `scripts/setup-manifest.local.yml` の `components.board.setup_args`（`repo` / `repo_path`）で指定し、setup.sh を実行すると `board` CLI と LaunchAgent `com.user.board` が入る。
 
 マスターの開き方:
 
 ```bash
 # Orca で起点のリポジトリの main のカードを開き、その端末で
-claude --name master --permission-mode auto
+claude --permission-mode auto
 # 起動したら /master を実行する
 ```
 
-`--name master` は必須（ワーカーが `master` 宛てに報告を送る）。進捗は Orca のブラウザで `http://127.0.0.1:7342/` を開いて見る。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) を参照。
+Control room は Orca のブラウザで `http://127.0.0.1:7342/` を開く。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) と [worker skill](configs/claude/skills/worker/SKILL.md) を参照。
 
 ### Docker サンドボックス
 

@@ -1,6 +1,6 @@
-// Command board tracks tasks that a master Claude Code session hands to
-// worker sessions: an append-only event log, a live board for the Orca
-// browser, and the commands both sessions use to dispatch and report.
+// Command board tracks Issues handed to worker Claude Code sessions: an
+// append-only event log, the Control room page for the Orca browser, and the
+// commands sessions use to dispatch and report.
 package main
 
 import (
@@ -21,6 +21,7 @@ const usage = `usage:
                                       append an event (types: dispatched started
                                       question answer blocked unblocked pr revise
                                       result accepted)
+  board open <N>                      bring the worker terminal of Issue N to the front
   board tasks                         print the board snapshot as JSON
   board cleanup <N>                   after Issue N is closed: remove .repos/*
                                       and unlock its worktree
@@ -155,6 +156,21 @@ func run(args []string) error {
 			return err
 		}
 		return appendEvent(Event{Issue: n, By: byOf(opts), Type: pos[1], Text: strings.Join(pos[2:], " "), URL: opts["url"]})
+
+	case "open":
+		_, pos, err := splitArgs(rest)
+		if err != nil {
+			return err
+		}
+		n, err := issueArg(pos, 0, false)
+		if err != nil {
+			return err
+		}
+		cfg, err := loadConfig()
+		if err != nil {
+			return err
+		}
+		return openWorker(cfg, n)
 
 	case "tasks":
 		cfg, err := loadConfig()

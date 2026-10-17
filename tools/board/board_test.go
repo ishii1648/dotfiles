@@ -182,7 +182,7 @@ func TestDispatchRequestGuard(t *testing.T) {
 			r.Header.Set("Sec-Fetch-Site", c.site)
 		}
 		r.Header.Set("X-Board-Token", c.token)
-		n, err := s.checkDispatchRequest(r)
+		n, err := s.checkActionRequest(r, "/api/dispatch/")
 		if (err == nil) != c.ok || (c.ok && n != 42) {
 			t.Errorf("%s: n=%d err=%v", c.name, n, err)
 		}
@@ -221,4 +221,21 @@ func indexOf(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+func TestWaitingAlertsOncePerEvent(t *testing.T) {
+	s := &server{issues: map[int]*Issue{42: issue(42)}}
+	s.events = []Event{ev(42, "dispatched", now), ev(42, "question", now)}
+	snap := build(s.issues, s.events, nil, "hub", now)
+	if got := s.waitingAlerts(snap); len(got) != 0 {
+		t.Fatalf("first snapshot must not notify: %v", got)
+	}
+	s.events = append(s.events, ev(42, "answer", now.Add(time.Minute)), ev(42, "question", now.Add(2*time.Minute)))
+	snap = build(s.issues, s.events, nil, "hub", now.Add(2*time.Minute))
+	if got := s.waitingAlerts(snap); len(got) != 1 || got[0].number != 42 {
+		t.Fatalf("new question should notify once: %v", got)
+	}
+	if got := s.waitingAlerts(snap); len(got) != 0 {
+		t.Fatalf("same event must not notify again: %v", got)
+	}
 }

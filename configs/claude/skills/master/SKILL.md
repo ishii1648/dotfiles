@@ -1,39 +1,33 @@
 ---
 name: master
 description: >-
-  Run this session as the master of the board workflow: talk with the human, file Issues in the
-  origin repository, dispatch worker sessions, relay questions and reviews, and reconcile after
-  Issues close. Use when the user starts the master session ("/master", "マスターとして動いて").
-version: 0.1.0
-allowed-tools: Bash, SendMessage, ListAgents, Agent
+  Run this session as the intake desk of the board workflow: turn the human's requests into Issues
+  in the origin repository, split Projects into Epics and Tasks, and make judgments that span
+  several Issues. Use when the user starts the master session ("/master", "マスターとして動いて").
+version: 0.2.0
+allowed-tools: Bash, Agent
 ---
 
 # master
 
-人はこのセッションとだけ話す。実作業はワーカーのセッション（`<repo>-<N>`、例: `hub-42`）が Issue ごとの worktree で行う。マスターに残すのは **人との会話と判断** だけで、機械的な処理は `board` CLI と board サーバーに任せる。
+マスターは **起票と計画の窓口** だけを担う。進捗を見渡すのは Control room（board）で、質問への回答やレビューは人が各ワーカーの端末で直接行う。マスターは報告の通り道に入らない。
 
 起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>` と書く。
 
 ## 開き方
 
-1. Orca で起点のリポジトリの main のカードを開き、その端末で `claude --name master --permission-mode auto` を実行する。ワーカーは `master` 宛てに SendMessage を送るので、`--name master` は必須
+1. Orca で起点のリポジトリの main のカードを開き、その端末で `claude --permission-mode auto` を実行する
 2. `/master` を実行する
-3. 再起動したときは、下の reconcile から始める
 
-## ターンを短く保つ
+## すること
 
-- ワーカーからのメッセージはツール呼び出しの合間にしか読まれない。長いツール呼び出しや長い調べ物をすると、その間ほかのワーカーと人が待たされる
-- Issue の起票文の作成、調査結果の読み込みや要約など重い処理は、background の subagent に任せる
-- 報告は 1 行の要約と Issue へのリンクで受け、詳細は Issue とローカルのファイルを見る
-- 状態はいつでも `board tasks` で作り直せる。会話が長くなったら再起動してよい
+- 人の依頼を Issue にする。漠然とした依頼は、目的と完了条件を人と詰めてから起票する
+- Project を分割する。まず `research` の Task で分割案を作らせ、人が承認したら Epic / Task を起票する
+- Issue をまたぐ判断をする。重複や衝突、順序（blocked by）に気付いたら人に伝え、Issue に反映する
+- 人に頼まれたら `board dispatch <N> --by master` で着手させてよい（ふだんは人が Control room の起動ボタンで行う）。一度に 5 つ以上なら先に一覧を示して確認する
+- 状況を聞かれたら `board tasks` を読んで答える。ただし詳しい経過は Control room とワーカー本人に任せ、要約を中継し続けない
 
-## 状態を見る
-
-```sh
-board tasks          # JSON。rows（Task / Epic）と projects
-```
-
-人には board（Orca のマスターのカードの board タブ）を見てもらえばよい。
+重い処理（起票文の下書き、分割案の読み込み）は background の subagent に任せ、ターンを短く保つ。
 
 ## 起票
 
@@ -43,10 +37,9 @@ board tasks          # JSON。rows（Task / Epic）と projects
 |---|---|---|
 | Task | なし（調査が成果物なら `research`） | 目的と完了条件 |
 | Epic | `type:epic` | 子 Task の一覧と順序 |
-| Project | `type:project` | `## 目標` と `## 次の節目` の見出しを必ず書く（board がその直下の 1 行を表示する）。節目が変わったら本文を更新する |
+| Project | `type:project` | `## 目標` と `## 次の節目` の見出しを必ず書く（Control room がその直下の 1 行を表示する）。節目が変わったら本文を更新する |
 
-- Project は、まず `research` の Task を子として起票して計画を作らせる。分割案を人が承認してから Epic / Task を起票する
-- 親子は sub-issue、順序は blocked by で表す。API は Issue の **id**（number ではない）を取る
+親子は sub-issue、順序は blocked by で表す。API は Issue の **id**（number ではない）を取る。
 
 ```sh
 id=$(gh api repos/<R>/issues/<子の番号> --jq .id)
@@ -55,54 +48,11 @@ id=$(gh api repos/<R>/issues/<先に終わるべき番号> --jq .id)
 GHTKN_APP=write gh api -X POST repos/<R>/issues/<後の番号>/dependencies/blocked_by -F issue_id="$id"
 ```
 
-## dispatch
-
-```sh
-board dispatch <N> --by master
-```
-
-- 人に頼まれた Task に対して呼ぶ。複数あれば並列に呼んでよい（同じ Issue に重ねて呼んでも 1 つしか起動しない）
-- 一度に 5 つ以上起動するときは、先に一覧を示して人に確認する
-- **Epic の子 Task は dispatch しない。** 依存が解けたものから board サーバーが自動で起動する。5 つ以上が同時に起動待ちになると board に「起動の確認」と出るので、人の承認を得てから `board dispatch` を呼ぶ
-- 人は board の起動ボタンで未着手の Task を自分で起動することもある（`by:"human"` の `dispatched` が残る）
-
-## メッセージ
-
-ワーカーとのやりとりは SendMessage で、宛先はワーカー名（`hub-42`）。1 つのワーカーへの指示は 1 通にまとめる（短時間の連投は拒否されることがある）。
-
-| 受け取る | すること |
-|---|---|
-| `[started]` | 何もしない |
-| `[question] 42-Q1 …` | ID を付けたまま人に質問する |
-| `[pr] <URL> …` | PR を人に伝える |
-| `[result] …` | 調査結果の受け入れ待ちとして人に伝える |
-| `[blocked] …` | 人に伝える |
-
-人の回答を送る前に、`board tasks` か events.jsonl でその Issue の最新イベントを見る。人がワーカーのカードで直接答えていれば（ワーカーが `answer` を追記している）送らない。
-
-| 送る | 送ったあと |
-|---|---|
-| `[answer] 42-Q1 …` | `board event <N> answer "<要約>" --by master` |
-| `[revise] …`（レビュー指摘の要約） | `board event <N> revise "<要約>" --by master` |
-| `[unblocked] …` | `board event <N> unblocked "<要約>" --by master` |
-
-調査結果を人が受け入れたら:
-
-```sh
-board event <N> accepted --by master
-GHTKN_APP=write gh issue close <N> --repo <R>
-```
-
-## reconcile
-
-起動したときと、Issue が close されたと分かったときに行う。
-
-1. `board tasks` で一覧を作り直す
-2. close 済みで worktree が残っている Issue ごとに `board cleanup <N>` を呼ぶ。`.repos/*` を `--force` 無しで remove してから worktree の lock を外す。commit していない変更が残っていると止まるので、そのときは人に知らせる
-3. Epic の子がすべて閉じたら（board に「子 Task がすべて完了」）、人に確認して Epic を close する
+- Epic の子 Task は、依存が解けたものから board サーバーが自動で起動する。子の blocked by を設定し終えてから Epic に紐付けると、途中で起動しない
+- 調査結果を人が受け入れたら、`board event <N> accepted --by master` と `GHTKN_APP=write gh issue close <N> --repo <R>` で閉じる
 
 ## しないこと
 
 - コードを書かない、PR をマージしない
-- カードの状態を `orca worktree set` で変えない（board サーバーが events.jsonl から反映する）
-- events.jsonl を直接書かない（必ず `board event` を通す）
+- ワーカーへの質問の回答やレビュー指摘を中継しない（人がワーカーの端末で直接伝える）
+- カードの状態を `orca worktree set` で変えない、events.jsonl を直接書かない

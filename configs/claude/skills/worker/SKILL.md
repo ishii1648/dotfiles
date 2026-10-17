@@ -1,19 +1,19 @@
 ---
 name: worker
 description: >-
-  Work on one Issue as a worker session of the board workflow: report progress to the master,
-  ask questions, open the PR or produce research results. Started by `board dispatch` with
-  "/worker <N>"; not for manual use.
-version: 0.1.0
-allowed-tools: Bash, SendMessage, Read, Edit, Write, Grep, Glob
+  Work on one Issue as a worker session of the board workflow: record progress for the Control
+  room, ask the human directly in this terminal, open the PR or produce research results. Started
+  by `board dispatch` with "/worker <N>"; not for manual use.
+version: 0.2.0
+allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 argument-hint: "<Issue number>"
 ---
 
 # worker
 
-このセッションは Issue #$ARGUMENTS だけを担当するワーカー。名前は `$BOARD_BY`（例: `hub-42`）、マスターの名前は `master`。起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>`、Issue 番号を `<N>` と書く。
+このセッションは Issue #$ARGUMENTS だけを担当するワーカー。名前は `$BOARD_BY`（例: `hub-42`）。起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>`、Issue 番号を `<N>` と書く。
 
-`board event` は `$BOARD_BY` を書き手として記録するので `--by` は要らない。
+人はこの端末で直接話しかけてくる。人は Control room（board）で全体を見ていて、確認待ちになったこのワーカーを「開く」ボタンや通知から開く。`board event` を記録しないと Control room に出ないので、状態が変わるたびに必ず記録する。
 
 ## 着手
 
@@ -28,60 +28,50 @@ argument-hint: "<Issue number>"
      git -C ~/ghq/github.com/<owner>/<repo> worktree lock --reason "<R>#<N> open" "$PWD/.repos/<repo>"
      ```
 
-3. 報告する
+3. `board event <N> started "branch=<branch> repo=<repo>"`
 
-   ```sh
-   board event <N> started "branch=<branch> repo=<repo>"
-   ```
+`board event` は `$BOARD_BY` を書き手として記録するので `--by` は要らない。
 
-   SendMessage で `master` に `[started] branch=<branch> repo=<repo>` を送る。
+## 人の判断が要るとき
 
-## 報告のしかた
+1. `board event <N> <type> "<1 行の要約>"` を記録する（Control room とカードに確認待ちとして出て、人に通知が届く）
+2. Issue コメント `GHTKN_APP=write gh issue comment <N> --repo <R> --body "..."` で経過を残す
+3. この端末で、人への問いや報告を書いてターンを終え、返事を待つ
 
-状態が変わるたびに **3 つ** を行う。
-
-1. `board event <N> <type> "<1 行の要約>"`（board とカードの表示はこれで決まる）
-2. SendMessage で `master` に `[<type>] <1 行の要約>`（マスターが止まっていても 1 はログに残る）
-3. Issue コメント `GHTKN_APP=write gh issue comment <N> --repo <R> --body "..."`（GitHub に経過を残す。`[started]` と `[revise]` 以外）
-
-要約は 1 行に収め、詳細は Issue コメントかファイルに置く。
-
-| 場面 | type | 送る内容 |
+| 場面 | type | 端末に書くこと |
 |---|---|---|
-| 判断が必要 | `question` | ID を付ける: `[question] <N>-Q1 出力先は history/ でよいか` |
+| 判断が必要 | `question` | 何を決めてほしいか、選択肢、自分の推奨 |
 | 続行できない | `blocked` | 理由と、何があれば進めるか |
-| PR を作った | `pr` | `board event <N> pr "<要約>" --url <PR の URL>` |
-| 調査結果がまとまった | `result` | 要約とローカルのパス |
+| PR を作った | `pr`（`--url <PR の URL>` を付ける） | 変更の要約とレビューしてほしい点 |
+| 調査結果がまとまった | `result` | 結論の要約とローカルのパス |
 
-質問と blocked のあとは、回答が来るまでその件は進めない（別の部分は進めてよい）。
+要約は 1 行に収め、詳細は端末と Issue コメントに書く。
 
-## 人から直接言われたとき
+## 返事を受けたら
 
-人がこのワーカーの端末で直接答えたり、レビュー指摘を伝えたりすることがある。その場合は自分で記録する。
+人の返事で作業に戻るときは、まず記録する。
 
 ```sh
-board event <N> answer "<回答の要約>"     # 質問への直接の回答
-board event <N> revise "<指摘の要約>"     # 直接のレビュー指摘
+board event <N> answer "<回答の要約>"       # 質問への回答
+board event <N> unblocked "<解決の要約>"    # blocked が解けた
+board event <N> revise "<指摘の要約>"       # PR へのレビュー指摘
 ```
-
-マスターから `[answer]` `[revise]` `[unblocked]` が届いた場合は、マスターが記録済みなので追記しない。
 
 ## PR
 
 - push は `-u` 付き（upstream を設定する）
 - `GHTKN_APP=write gh pr create ...` で、PR は作業したリポジトリに立てる
-- 本文に `Closes <R>#<N>` を書く。マージ時に Issue が閉じる
+- 本文に `Closes <R>#<N>` を書く。マージ時に Issue が閉じ、board サーバーが worktree の片付けを行う
 - マージは人が行う。自分でマージしない
 
 ## 調査が成果物の Task（label `research`）
 
 - 結果は `~/.local/state/board/research/<N>/` に Markdown で書く。結論は `summary.md` に置く（同期で長さの上限を超えたとき、`summary.md` だけが Issue に載る）
-- `question` `blocked` `result` を送るときに `board sync-research <N>` を呼び、Issue の同期用コメントを更新する。30 分ごとの同期は hook が行う
-- 受け入れと Issue の close はマスターが行う
+- `question` `blocked` `result` を記録するときに `board sync-research <N>` を呼び、Issue の同期用コメントを更新する。30 分ごとの同期は hook が行う
+- 受け入れと Issue の close は人（またはマスター）が行う
 
 ## しないこと
 
 - 担当以外の Issue に触れない、他のワーカーを dispatch しない
 - Issue を close しない、PR をマージしない
-- カードの状態を `orca worktree set` で変えない
-- events.jsonl を直接書かない（必ず `board event` を通す）
+- カードの状態を `orca worktree set` で変えない、events.jsonl を直接書かない
