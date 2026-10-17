@@ -19,8 +19,8 @@
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.5 "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; }
-.wrap { max-width: 1120px; margin: 0 auto; padding: 16px; }
-.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.wrap { padding: 16px; min-height: 100vh; display: flex; flex-direction: column; }
+.card { flex: 1; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .top { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px 0; }
 .top h1 { margin: 0; font-size: 18px; }
 .meta { margin-left: auto; color: var(--muted); font-size: 11.5px; display: flex; gap: 10px; align-items: center; }
