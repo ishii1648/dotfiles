@@ -22,6 +22,7 @@
 
 ### 案A: board CLI と常駐サーバーを dotfiles に置く（採用）
 
+- マスターは起点のリポジトリの main のカードで `claude --name master --permission-mode auto` として開き、`/master` を実行する。ワーカーは `master` という名前に宛てて報告する
 - 状態の正本はローカルの追記専用ログ `~/.local/state/board/events.jsonl`。マスターとワーカーは `board event` で直接追記し、互いを待たない。Issue の内容と open / close は GitHub から読む
 - `board serve`（LaunchAgent `com.user.board`）がログを 1 秒ごとに読み、GitHub（60 秒ごと）と `orca worktree ps`（10 秒ごと）と合わせて board を作り、`127.0.0.1:7342` から SSE で配信する
 - Orca のカードは board サーバーだけが書く。カードと board の表示が同じ規則で決まり、ずれない
