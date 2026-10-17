@@ -81,6 +81,8 @@ in
       # skills はディレクトリごと張らない: Claude Code とプラグインが同じディレクトリに
       # 書き込むため、dotfiles 由来の skill だけを個別に張る（configs/claude/setup.sh と同じ）。
       ".claude/skills/codex-sync".source = link "configs/claude/skills/codex-sync";
+      ".claude/skills/master".source = link "configs/claude/skills/master";
+      ".claude/skills/worker".source = link "configs/claude/skills/worker";
 
       # --- git ---
       # ~/.gitconfig は含めない: user.email / 署名鍵など端末ごとに書き換える値を持つため、

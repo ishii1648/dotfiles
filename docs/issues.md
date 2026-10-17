@@ -86,6 +86,7 @@
 | - | ○ | herdr / ghostty | Claude Code のペインで日本語入力に切り替わらないことがある — `switch_ascii_input_source_in_prefix` が prefix のたびに入力ソースを ABC へ切替・復元し、復元されても Google 日本語入力の内部モードが半角英数に落ちる | — |
 | - | ○ | git / gh / codex-issue-loop | GitHub の自動操作が広権限のユーザートークンを共有する — ghtkn で権限と有効期間を限定する | [ADR-094](adr/094-ghtkn-github-app-authentication.md) |
 | - | ○ | herdr / ghostty | Orca を併用するとキーバインドが herdr（ghostty の Cmd キー経由）と食い違い、指が迷う — Orca の `~/.orca/keybindings.json` を dotfiles 管理して Cmd 系の割り当てを herdr に揃える | — |
+| - | ○ | claude / orca / gh | マスターの Claude Code セッションから複数のワーカーセッションに Issue を任せたいが、dispatch・状態・進捗の表示がマスターの手作業になり並列性が出ない — 追記専用ログと board サーバーで分担する | [ADR-095](adr/095-board-master-worker-sessions.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1944,3 +1945,20 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 
 - [x] `aqua.yaml` と `docs/reference-tools.md` の `cli/cli` が v2.102.0 になっている
 - [x] 実機: `gh --version` が v2.102.0 を返し、`gh skill --help` が成功する
+
+---
+
+### ADR-095: master / worker セッションのタスク board
+
+**コンポーネント**: claude / orca / gh | **ADR**: [ADR-095](adr/095-board-master-worker-sessions.md)
+
+**受け入れ条件**:
+
+- [ ] `setup-manifest.local.yml` に `components.board.setup_args`（repo / repo_path）を書いて setup.sh を実行すると、`~/.local/bin/board`、`~/.config/board/config.json`、LaunchAgent `com.user.board` が配置される
+- [ ] Orca のブラウザで `http://127.0.0.1:7342/` を開くと、Task / Epic タブと Project タブが表示され、`board event` の追記が再読み込みなしで反映される
+- [ ] `board dispatch <N>` で worktree が作られて lock され、Orca の端末で `/worker <N>` のワーカーが起動し、同じ Issue に重ねて呼んでも 2 つ目は起動しない
+- [ ] board の状態（作業中・確認待ち・依存待ち・未着手・完了）が Orca のカードの status / comment / unread に反映される
+- [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
+- [ ] 起動ボタンの `POST /api/dispatch/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
+- [ ] `board sync-research <N>` が `research/<N>/*.md` を Issue の目印付きコメント 1 つに書き、2 回目以降は同じコメントを更新する
+- [ ] `board cleanup <N>` が、close 済みの Issue の `.repos/*` を `--force` 無しで remove してから worktree の lock を外し、commit していない変更があれば止まる

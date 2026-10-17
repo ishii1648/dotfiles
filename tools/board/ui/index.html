@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hub board</title>
+<style>
+:root {
+  --bg: #f4f5f7; --surface: #fff; --fg: #1b2130; --muted: #5c6575; --line: #d5dae2;
+  --accent: #0f7a6c; --warn: #b4610f; --link: #3b5bc7; --err: #b3364a;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161d; --surface: #1a2029; --fg: #e3e7ee; --muted: #9aa3b2; --line: #39424f;
+    --accent: #3cc4b0; --warn: #f0a050; --link: #9ea2ff; --err: #ef7b8c;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 13px/1.5 "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 16px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.top { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px 0; }
+.top h1 { margin: 0; font-size: 18px; }
+.meta { margin-left: auto; color: var(--muted); font-size: 11.5px; display: flex; gap: 10px; align-items: center; }
+.live { display: inline-flex; align-items: center; gap: 5px; }
+.live i { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); display: inline-block; }
+.live.on i { background: var(--accent); }
+.tabs { display: flex; gap: 22px; padding: 8px 18px 0; border-bottom: 1px solid var(--line); }
+.tabs button { all: unset; cursor: pointer; padding: 4px 2px 7px; color: var(--muted); }
+.tabs button.on { color: var(--accent); font-weight: 700; border-bottom: 2px solid var(--accent); }
+.ctl { display: grid; gap: 10px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+select, input[type=search] { font: inherit; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 5px; padding: 4px 8px; }
+input[type=search] { margin-left: auto; min-width: 200px; }
+.chip { all: unset; cursor: pointer; border: 1px solid var(--line); border-radius: 5px; padding: 2px 12px; }
+.chip.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: transparent; color: var(--accent); font-weight: 700; }
+.alert { margin: 0 0 12px; padding: 8px 12px; border-left: 3px solid var(--err); background: var(--surface); border-radius: 4px; font-size: 12px; }
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font-size: 11.5px; color: var(--muted); font-weight: 500; background: var(--bg); }
+td.title { white-space: normal; min-width: 260px; }
+.n { color: var(--muted); font-family: ui-monospace, Menlo, monospace; margin-right: 6px; }
+.par { color: var(--muted); font-size: 11.5px; margin-left: 12px; }
+.reason { display: block; color: var(--muted); font-size: 11.5px; white-space: normal; }
+.child td.title { padding-left: 44px; }
+.child td.title::before { content: "└ "; color: var(--muted); margin-left: -16px; }
+.tog { all: unset; cursor: pointer; width: 14px; display: inline-block; color: var(--muted); }
+.s::before { content: "●"; margin-right: 6px; }
+.s.working { color: var(--accent); font-weight: 700; }
+.s.waiting { color: var(--warn); font-weight: 700; }
+.s.blocked { color: var(--warn); }
+.s.todo, .s.done { color: var(--muted); }
+.hot { color: var(--warn); font-weight: 700; }
+.now { color: var(--accent); font-weight: 700; }
+.prog { display: inline-flex; align-items: center; gap: 8px; }
+.prog i { width: 110px; height: 6px; border-radius: 3px; background: var(--line); display: inline-block; overflow: hidden; }
+.prog i b { display: block; height: 100%; background: var(--accent); }
+.go { all: unset; cursor: pointer; border: 1px solid var(--link); color: var(--link); border-radius: 5px; padding: 0 10px; font-size: 11.5px; font-weight: 700; }
+.go:disabled { opacity: .5; cursor: progress; }
+.foot { padding: 8px 12px; color: var(--muted); font-size: 11.5px; }
+a { color: inherit; text-decoration: none; }
+a:hover { text-decoration: underline; }
+.pj { padding: 14px 18px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
+.pj-h { display: flex; align-items: baseline; gap: 8px; }
+.pj-h b { font-size: 15px; }
+.pj-h .m { margin-left: auto; font-size: 12px; }
+.ph { display: grid; grid-template-columns: auto 1fr auto 1fr auto 1fr auto; align-items: center; gap: 8px; padding: 0 24px; }
+.ph span { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.ph span::before { content: ""; width: 12px; height: 12px; border-radius: 50%; border: 1.5px solid var(--muted); box-sizing: border-box; }
+.ph .done::before { background: var(--muted); }
+.ph .cur { color: var(--accent); font-weight: 700; }
+.ph .cur::before { width: 16px; height: 16px; background: var(--accent); border-color: var(--accent); }
+.ph hr { border: 0; border-top: 1px solid var(--line); margin: 0; }
+.pj-b { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+dl { display: grid; grid-template-columns: 96px 1fr; gap: 6px 12px; margin: 0; }
+dt { font-weight: 700; } dd { margin: 0; }
+.pj-r { border-left: 1px solid var(--line); padding-left: 24px; display: grid; gap: 6px; align-content: start; }
+.pj-r .h { font-weight: 700; font-size: 12px; }
+.it { display: flex; gap: 10px; align-items: baseline; border: 1px solid var(--line); border-radius: 5px; padding: 5px 10px; }
+.it .k { color: var(--link); font-weight: 700; }
+.it .m { margin-left: auto; }
+.lk { all: unset; cursor: pointer; color: var(--link); text-decoration: underline; font-size: 12px; }
+.empty { padding: 24px 18px; color: var(--muted); }
+@media (max-width: 720px) { .pj-b { grid-template-columns: 1fr; } .pj-r { border-left: 0; padding-left: 0; } .ph { padding: 0; } input[type=search] { margin-left: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="alerts"></div>
+  <div class="card">
+    <div class="top">
+      <h1>Hub board</h1>
+      <div class="meta"><span class="live" id="live"><i></i><span>接続中</span></span><span id="ghat"></span></div>
+    </div>
+    <div class="tabs">
+      <button data-tab="tasks" class="on">Task / Epic</button>
+      <button data-tab="projects">Project</button>
+    </div>
+    <div id="view"></div>
+  </div>
+</div>
+<script>
+const TOKEN = "{{TOKEN}}";
+const KIND_LABEL = { epic: "Epic", task: "Task", project: "Project" };
+const STATE_LABEL = { working: "作業中", waiting: "確認待ち", blocked: "依存待ち", todo: "未着手", done: "完了" };
+const STATE_ORDER = { waiting: 0, working: 1, blocked: 2, todo: 3, done: 4 };
+const PHASES = ["調査", "分割案の確認", "実行", "目標の確認"];
+
+let snap = null;
+const ui = load({ tab: "tasks", show: "open", target: "all", project: "all", sort: "today", q: "", chip: "all",
+  phase: "all", psort: "stale", pq: "", pchip: "all", collapsed: {} });
+
+function load(def) {
+  try { return Object.assign(def, JSON.parse(localStorage.getItem("board-ui") || "{}")); } catch { return def; }
+}
+function save() { try { localStorage.setItem("board-ui", JSON.stringify(ui)); } catch {} }
+
+function esc(s) { return String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+
+function ago(iso) {
+  const t = new Date(iso);
+  if (isNaN(t) || t.getFullYear() < 2000) return "—";
+  const now = new Date();
+  const day = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const days = Math.round((day(now) - day(t)) / 86400000);
+  if (days <= 0) return "今日";
+  if (days < 7) return `${days}日前`;
+  return `${t.getMonth() + 1}/${t.getDate()}`;
+}
+
+function lastCell(r) {
+  const label = ago(r.lastProgress);
+  const cls = label === "今日" ? "now" : r.stale ? "hot" : "";
+  return `<td class="${cls}">${label}</td>`;
+}
+
+function todayCell(r) {
+  if (r.kind === "epic") return `<td>${r.todayCount ? `子Task ${r.todayCount}件` : "—"}</td>`;
+  return r.todayCount ? `<td class="now">今日</td>` : "<td>—</td>";
+}
+
+function progCell(r) {
+  if (r.progress && r.progress.total) {
+    const pct = Math.round(100 * r.progress.done / r.progress.total);
+    return `<td><span class="prog"><i><b style="width:${pct}%"></b></i>完了 ${r.progress.done}/${r.progress.total}</span></td>`;
+  }
+  if (r.note) return `<td>${esc(r.note)}</td>`;
+  if (r.stale && r.state === "todo") return `<td class="hot">進捗なし</td>`;
+  return "<td>—</td>";
+}
+
+function stateCell(r) {
+  const reason = r.reason ? `<span class="reason">${esc(r.reason)}</span>` : "";
+  return `<td><span class="s ${r.state}">${STATE_LABEL[r.state] || r.state}</span>${reason}</td>`;
+}
+
+function actionCell(r) {
+  if (!r.canDispatch) return "<td></td>";
+  return `<td><button class="go" data-dispatch="${r.number}">▶ 起動</button></td>`;
+}
+
+function titleCell(r, isChild) {
+  const tog = r.kind === "epic" && r.children && r.children.length
+    ? `<button class="tog" data-toggle="${r.number}">${ui.collapsed[r.number] ? "›" : "⌄"}</button> ` : "";
+  const par = isChild ? "" : `<span class="par">${esc(r.parentTitle || (r.kind === "epic" ? "" : "単独Task"))}</span>`;
+  const research = r.research ? `<span class="par">research</span>` : "";
+  const title = r.kind === "epic" ? `<b>${esc(r.title)}</b>` : isChild ? esc(r.title) : `<b>${esc(r.title)}</b>`;
+  return `<td class="title">${tog}<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="n">#${r.number}</span>${title}</a>${par}${research}</td>`;
+}
+
+function matchChip(r, chip) {
+  if (chip === "today") return r.todayCount > 0;
+  if (chip === "stale") return r.stale;
+  if (chip === "waiting") return r.state === "waiting";
+  return true;
+}
+
+function renderTasks() {
+  const rows = snap.rows.filter(r => {
+    if (ui.show === "open" && r.state === "done") return false;
+    if (ui.target === "epic" && r.kind !== "epic") return false;
+    if (ui.target === "task" && r.kind !== "task") return false;
+    if (ui.project !== "all" && String(r.project || 0) !== ui.project) return false;
+    if (ui.q) {
+      const q = ui.q.toLowerCase();
+      const hit = x => x.title.toLowerCase().includes(q) || String(x.number) === q.replace("#", "");
+      if (!hit(r) && !(r.children || []).some(hit)) return false;
+    }
+    if (ui.chip !== "all" && !matchChip(r, ui.chip) && !(r.children || []).some(c => matchChip(c, ui.chip))) return false;
+    return true;
+  });
+  const by = {
+    today: (a, b) => (b.todayCount > 0) - (a.todayCount > 0) || STATE_ORDER[a.state] - STATE_ORDER[b.state] || b.number - a.number,
+    state: (a, b) => STATE_ORDER[a.state] - STATE_ORDER[b.state] || b.number - a.number,
+    stale: (a, b) => new Date(a.lastProgress) - new Date(b.lastProgress),
+    number: (a, b) => b.number - a.number,
+  }[ui.sort];
+  rows.sort(by);
+  const projects = snap.projects.map(p => `<option value="${p.number}" ${ui.project === String(p.number) ? "selected" : ""}>#${p.number} ${esc(p.title)}</option>`).join("");
+  const chip = (id, label) => `<button class="chip ${ui.chip === id ? "on" : ""}" data-chip="${id}">${label}</button>`;
+  let body = "";
+  for (const r of rows) {
+    body += `<tr>${titleCell(r, false)}${stateCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}${actionCell(r)}</tr>`;
+    if (r.kind === "epic" && !ui.collapsed[r.number]) {
+      for (const c of r.children || []) {
+        body += `<tr class="child">${titleCell(c, true)}${stateCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}${actionCell(c)}</tr>`;
+      }
+    }
+  }
+  const epics = rows.filter(r => r.kind === "epic").length;
+  return `
+    <div class="ctl">
+      <div class="row">
+        <select data-k="show"><option value="open" ${ui.show === "open" ? "selected" : ""}>表示：未完了</option><option value="all" ${ui.show === "all" ? "selected" : ""}>表示：すべて</option></select>
+        <select data-k="target"><option value="all" ${ui.target === "all" ? "selected" : ""}>対象：すべて</option><option value="epic" ${ui.target === "epic" ? "selected" : ""}>対象：Epic</option><option value="task" ${ui.target === "task" ? "selected" : ""}>対象：単独Task</option></select>
+        <select data-k="project"><option value="all">所属Project：すべて</option><option value="0" ${ui.project === "0" ? "selected" : ""}>所属Project：なし</option>${projects}</select>
+        <select data-k="sort">
+          <option value="today" ${ui.sort === "today" ? "selected" : ""}>並び順：今日やるものを先頭</option>
+          <option value="state" ${ui.sort === "state" ? "selected" : ""}>並び順：状態</option>
+          <option value="stale" ${ui.sort === "stale" ? "selected" : ""}>並び順：最終進捗が古い順</option>
+          <option value="number" ${ui.sort === "number" ? "selected" : ""}>並び順：新しい Issue 順</option>
+        </select>
+        <input type="search" data-k="q" placeholder="名前で検索" value="${esc(ui.q)}">
+      </div>
+      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "確認待ち")}</div>
+    </div>
+    ${rows.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th>Epic / Task</th><th>状態</th><th>今日</th><th>最終進捗</th><th>進み具合</th><th>操作</th></tr></thead>
+      <tbody>${body}</tbody></table></div>
+      <div class="foot">Epic ${epics} · 単独Task ${rows.length - epics}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
+}
+
+function renderProjects() {
+  let ps = snap.projects.filter(p => {
+    if (ui.phase !== "all" && String(p.phase) !== ui.phase) return false;
+    if (ui.pq && !p.title.toLowerCase().includes(ui.pq.toLowerCase())) return false;
+    if (ui.pchip === "today" && !p.todayCount) return false;
+    if (ui.pchip === "stale" && !p.stale) return false;
+    if (ui.pchip === "waiting" && !p.waiting) return false;
+    return true;
+  });
+  ps.sort(ui.psort === "stale" ? (a, b) => new Date(a.lastProgress) - new Date(b.lastProgress) : (a, b) => b.number - a.number);
+  const chip = (id, label) => `<button class="chip ${ui.pchip === id ? "on" : ""}" data-pchip="${id}">${label}</button>`;
+  const phaseOpts = PHASES.map((l, i) => `<option value="${i}" ${ui.phase === String(i) ? "selected" : ""}>フェーズ：${l}</option>`).join("");
+  const cards = ps.map(p => {
+    const steps = PHASES.map((l, i) => `<span class="${i < p.phase ? "done" : i === p.phase ? "cur" : ""}">${l}</span>`).join("<hr>");
+    const head = p.stale ? `<span class="m hot">${ago(p.lastProgress).replace("前", "")}進捗なし</span>` : `<span class="m now">最終進捗：${ago(p.lastProgress)}</span>`;
+    const itemsTitle = p.phase >= 2 ? "分解済みのEpic / Task" : "計画を進めるTask";
+    const items = p.items.length ? p.items.map(it => {
+      const right = it.progress && it.progress.total ? `完了 ${it.progress.done}/${it.progress.total}` : `<span class="s ${it.state}">${STATE_LABEL[it.state]}</span>`;
+      return `<div class="it"><span class="k">${KIND_LABEL[it.kind]}</span><span>#${it.number} ${esc(it.title)}</span><span class="m">${right}</span></div>`;
+    }).join("") : `<div class="reason">まだない</div>`;
+    return `<div class="pj">
+      <div class="pj-h"><a href="${esc(p.url)}" target="_blank" rel="noopener"><span class="n">#${p.number}</span><b>${esc(p.title)}</b></a>${head}</div>
+      <div class="ph">${steps}</div>
+      <div class="pj-b">
+        <dl><dt>目標</dt><dd>${esc(p.goal) || '<span class="reason">本文に「## 目標」が無い</span>'}</dd>
+            <dt>${esc(p.nextLabel || "次の節目")}</dt><dd>${esc(p.next) || '<span class="reason">本文に「## 次の節目」が無い</span>'}</dd></dl>
+        <div class="pj-r"><span class="h">${itemsTitle}</span>${items}<button class="lk" data-goproject="${p.number}">関連するTask / Epicを見る</button></div>
+      </div></div>`;
+  }).join("");
+  return `
+    <div class="ctl">
+      <div class="row">
+        <select data-k="phase"><option value="all">フェーズ：すべて</option>${phaseOpts}</select>
+        <select data-k="psort"><option value="stale" ${ui.psort === "stale" ? "selected" : ""}>並び順：最終進捗が古い順</option><option value="number" ${ui.psort === "number" ? "selected" : ""}>並び順：新しい Issue 順</option></select>
+        <input type="search" data-k="pq" placeholder="Projectを検索" value="${esc(ui.pq)}">
+      </div>
+      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "確認待ち")}</div>
+    </div>
+    ${cards || `<div class="empty">該当する Project はない</div>`}`;
+}
+
+function render() {
+  document.querySelectorAll(".tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === ui.tab));
+  const alerts = [];
+  if (snap) {
+    if (snap.githubError) alerts.push(`GitHub の取得に失敗: ${snap.githubError}`);
+    if (snap.orcaError) alerts.push(`Orca に接続できない: ${snap.orcaError}`);
+    for (const n of snap.notices || []) alerts.push(n);
+    document.getElementById("ghat").textContent = snap.githubAt && !snap.githubAt.startsWith("0001")
+      ? `GitHub ${new Date(snap.githubAt).toLocaleTimeString("ja-JP")} に取得` : "";
+  }
+  document.getElementById("alerts").innerHTML = alerts.map(a => `<div class="alert">${esc(a)}</div>`).join("");
+  const focused = document.activeElement && document.activeElement.dataset.k;
+  document.getElementById("view").innerHTML = !snap ? `<div class="empty">読み込み中…</div>` : ui.tab === "tasks" ? renderTasks() : renderProjects();
+  if (focused) {
+    const el = document.querySelector(`[data-k="${focused}"]`);
+    if (el) { el.focus(); if (el.setSelectionRange) el.setSelectionRange(el.value.length, el.value.length); }
+  }
+}
+
+document.addEventListener("click", async e => {
+  const t = e.target.closest("button");
+  if (!t) return;
+  if (t.dataset.tab) { ui.tab = t.dataset.tab; }
+  else if (t.dataset.chip) { ui.chip = t.dataset.chip; }
+  else if (t.dataset.pchip) { ui.pchip = t.dataset.pchip; }
+  else if (t.dataset.toggle) { ui.collapsed[t.dataset.toggle] = !ui.collapsed[t.dataset.toggle]; }
+  else if (t.dataset.goproject) { ui.tab = "tasks"; ui.project = t.dataset.goproject; ui.chip = "all"; }
+  else if (t.dataset.dispatch) { await dispatchIssue(t); return; }
+  else return;
+  save(); render();
+});
+
+document.addEventListener("input", e => {
+  const k = e.target.dataset.k;
+  if (!k) return;
+  ui[k] = e.target.value;
+  save(); render();
+});
+
+async function dispatchIssue(btn) {
+  btn.disabled = true;
+  btn.textContent = "起動中…";
+  try {
+    const res = await fetch(`/api/dispatch/${btn.dataset.dispatch}`, { method: "POST", headers: { "X-Board-Token": TOKEN } });
+    if (!res.ok) throw new Error(await res.text());
+  } catch (err) {
+    document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.dispatch)} を起動できなかった: ${esc(err.message)}</div>`);
+    btn.disabled = false;
+    btn.textContent = "▶ 起動";
+  }
+}
+
+function connect() {
+  const live = document.getElementById("live");
+  const es = new EventSource("/events");
+  es.onopen = () => { live.classList.add("on"); live.lastChild.textContent = "live"; };
+  es.onmessage = m => { try { snap = JSON.parse(m.data); render(); } catch {} };
+  es.onerror = () => { live.classList.remove("on"); live.lastChild.textContent = "再接続中"; };
+}
+
+// A destroyed webview reloads the page, and a hidden tab may have missed
+// messages; refetch the whole snapshot whenever the page becomes visible.
+document.addEventListener("visibilitychange", async () => {
+  if (document.visibilityState !== "visible") return;
+  try { snap = await (await fetch("/api/tasks")).json(); render(); } catch {}
+});
+
+render();
+connect();
+</script>
+</body>
+</html>

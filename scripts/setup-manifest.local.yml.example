@@ -8,3 +8,8 @@ components:
       ghq_root: ~/src
       auth_key: ~/.ssh/id_ed25519_github
       sign_key: ~/.ssh/id_ed25519_github_sign
+  # ADR-095: board の起点のリポジトリ（Issue を起票し、worktree を切るリポジトリ）
+  board:
+    setup_args:
+      repo: owner/name
+      repo_path: ~/ghq/github.com/owner/name
