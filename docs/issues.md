@@ -1958,6 +1958,7 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] `setup-manifest.local.yml` に `components.board.setup_args`（repo / repo_path）を書いて setup.sh を実行すると、`~/.local/bin/board`、`~/.config/board/config.json`、LaunchAgent `com.user.board` が配置される
 - [ ] Orca のブラウザで `http://127.0.0.1:7342/` を開くと、Task / Epic タブと Project タブが表示され、起動や PR の作成が再読み込みなしで反映される
 - [ ] `board dispatch <N>` で worktree が作られて lock され、Orca の端末で `/worker <N>` のワーカーが起動し、同じ Issue に重ねて呼んでも 2 つ目は起動しない
+- [ ] 起動済みの Task の worktree を手で消すと、1 分以内に「未着手（worktree が見つからない）」と「▶ 再開」が出て、再開すると同じ path・同じ branch に worktree が戻り、ワーカーが元の Claude セッションを続ける
 - [ ] board の状態（作業中・レビュー待ち・完了）が Orca のカードの status に反映され、board はカードの未読とワーカーのカードのコメントを書き換えない
 - [ ] Issue を `Closes` で参照する open な PR（別リポジトリの PR を含む、draft を除く）があると、その Task が「レビュー待ち」になる
 - [ ] Task / Epic タブの PR 列に、Task を閉じる PR（open・draft・merged）が並び、同じ PR が閉じるほかの Task と、Epic では子 Task の PR の件数が出る

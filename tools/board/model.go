@@ -21,6 +21,9 @@ const (
 	// autoDispatchHold: this many or more Epic children becoming ready at once
 	// waits for the human instead of starting automatically.
 	autoDispatchHold = 5
+	// dispatchGrace covers the delay before the board's next Orca poll (10s)
+	// sees a freshly dispatched worktree.
+	dispatchGrace = time.Minute
 )
 
 type Progress struct {
@@ -45,6 +48,7 @@ type Row struct {
 	Progress     *Progress `json:"progress,omitempty"`
 	Note         string    `json:"note,omitempty"`
 	CanDispatch  bool      `json:"canDispatch,omitempty"`
+	Resume       bool      `json:"resume,omitempty"`
 	Worktree     string    `json:"worktree,omitempty"`
 	PRs          []RowPR   `json:"prs,omitempty"`
 	Children     []Row     `json:"children,omitempty"`
@@ -97,8 +101,9 @@ type Snapshot struct {
 }
 
 type issueEvents struct {
-	lastAt     time.Time
-	dispatched bool
+	lastAt       time.Time
+	dispatched   bool
+	dispatchedAt time.Time
 }
 
 func indexEvents(evs []Event) map[int]*issueEvents {
@@ -115,6 +120,9 @@ func indexEvents(evs []Event) map[int]*issueEvents {
 		}
 		if e.Type == "dispatched" {
 			ie.dispatched = true
+			if e.At.After(ie.dispatchedAt) {
+				ie.dispatchedAt = e.At
+			}
 		}
 	}
 	return m
@@ -314,9 +322,16 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 	taskRow := func(i *Issue) Row {
 		ie := idx[i.Number]
 		wt := worktreeFor(wts, repoShort, i.Number)
-		st, reason, note := taskState(i, (ie != nil && ie.dispatched) || wt != nil)
+		dispatched := ie != nil && ie.dispatched
+		// A dispatched Task whose worktree is gone has no worker left; dispatching
+		// it again brings the worktree back and resumes the worker's session.
+		lost := dispatched && wt == nil && i.Open() && now.Sub(ie.dispatchedAt) >= dispatchGrace
+		st, reason, note := taskState(i, wt != nil || (dispatched && !lost))
 		if st == stTodo && held[i.Number] {
 			st, reason = stDecide, "起動の確認"
+		}
+		if st == stTodo && lost {
+			reason = "worktree が見つからない"
 		}
 		r := Row{
 			Number: i.Number, Title: i.Title, URL: i.URL, Kind: "task",
@@ -331,7 +346,8 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 			r.TodayCount = 1
 		}
 		r.Stale = st != stDone && now.Sub(r.LastProgress) >= staleAfter
-		r.CanDispatch = st == stTodo && i.Open()
+		r.CanDispatch = st == stTodo && i.Open() || lost
+		r.Resume = lost
 		if wt != nil {
 			r.Worktree = wt.Path
 		}

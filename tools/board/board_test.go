@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"net/http/httptest"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -55,7 +57,8 @@ func TestTaskStates(t *testing.T) {
 	}
 	wts := []OrcaWorktree{{Path: "/w/7", Repo: "hub", LinkedIssue: json.RawMessage("7"), LastActivityAt: now.Add(-4 * 24 * time.Hour).UnixMilli()}}
 	snap := build(issues, evs, wts, "hub", now)
-	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWorking, 5: stReview, 6: stWorking, 7: stWorking, 8: stWorking}
+	// #6 was dispatched days ago and its worktree is gone.
+	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWorking, 5: stReview, 6: stTodo, 7: stWorking, 8: stWorking}
 	for n, want := range cases {
 		if got := findRow(t, snap.Rows, n).State; got != want {
 			t.Errorf("#%d state = %s, want %s", n, got, want)
@@ -66,6 +69,12 @@ func TestTaskStates(t *testing.T) {
 	}
 	if !findRow(t, snap.Rows, 3).CanDispatch || findRow(t, snap.Rows, 4).CanDispatch || findRow(t, snap.Rows, 7).CanDispatch {
 		t.Error("only untouched open tasks can be dispatched")
+	}
+	if r := findRow(t, snap.Rows, 6); !r.CanDispatch || !r.Resume || r.Reason != "worktree が見つからない" {
+		t.Errorf("lost worktree row = %+v", r)
+	}
+	if r := findRow(t, snap.Rows, 4); r.Resume {
+		t.Error("#4 was dispatched just now; its worktree may not be listed yet")
 	}
 	if findRow(t, snap.Rows, 4).TodayCount != 1 {
 		t.Error("#4 moved today")
@@ -249,6 +258,34 @@ func TestDispatchRequestGuard(t *testing.T) {
 	}
 	if s.allowedHost("evil.example:7342") || !s.allowedHost("localhost:7342") {
 		t.Error("host check")
+	}
+}
+
+func TestForgetMissingWorktrees(t *testing.T) {
+	repo, wt := t.TempDir(), filepath.Join(t.TempDir(), "issue-1")
+	git := func(args ...string) {
+		t.Helper()
+		cmd := exec.Command("git", append([]string{"-C", repo, "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false"}, args...)...)
+		if b, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v: %s", args, err, b)
+		}
+	}
+	git("init", "-q")
+	git("commit", "-q", "--allow-empty", "-m", "init")
+	git("worktree", "add", "-q", "-b", "issue-1", wt)
+	git("worktree", "lock", wt)
+	if err := os.RemoveAll(wt); err != nil {
+		t.Fatal(err)
+	}
+	if err := forgetMissingWorktrees(repo, "issue-1"); err != nil {
+		t.Fatal(err)
+	}
+	out, _ := exec.Command("git", "-C", repo, "worktree", "list", "--porcelain").Output()
+	if strings.Contains(string(out), "issue-1") {
+		t.Errorf("registration of the removed worktree remains:\n%s", out)
+	}
+	if !branchExists(repo, "issue-1") {
+		t.Error("the branch must survive")
 	}
 }
 

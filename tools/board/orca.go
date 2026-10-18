@@ -87,7 +87,14 @@ func orcaPS() ([]OrcaWorktree, error) {
 	if err := json.Unmarshal(out, &resp); err != nil {
 		return nil, fmt.Errorf("parse orca worktree ps: %w", err)
 	}
-	return resp.Result.Worktrees, nil
+	// Orca keeps listing a worktree whose directory was removed by hand.
+	var wts []OrcaWorktree
+	for _, w := range resp.Result.Worktrees {
+		if _, err := os.Stat(w.Path); err == nil {
+			wts = append(wts, w)
+		}
+	}
+	return wts, nil
 }
 
 // worktreeFor finds the dispatched worktree of issue n in repo.
