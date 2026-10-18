@@ -47,7 +47,10 @@ td.title { white-space: normal; min-width: 260px; }
 .reason { display: block; color: var(--muted); font-size: 11.5px; white-space: normal; }
 .child td.title { padding-left: 44px; }
 .child td.title::before { content: "└ "; color: var(--muted); margin-left: -16px; }
-.tog { all: unset; cursor: pointer; width: 14px; display: inline-block; color: var(--muted); }
+.tog { all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; margin-right: 8px; padding: 1px 7px 1px 3px; border: 1px solid var(--line); border-radius: 5px; color: var(--fg); font-size: 11.5px; vertical-align: 1px; }
+.tog:hover { background: var(--bg); }
+.tog svg { width: 16px; height: 16px; transition: transform .15s; }
+.tog.open svg { transform: rotate(90deg); }
 .s::before { content: "●"; margin-right: 6px; }
 .s.working { color: var(--accent); font-weight: 700; }
 .s.decide, .s.review { color: var(--warn); font-weight: 700; }
@@ -191,7 +194,7 @@ function actionCell(r) {
 
 function titleCell(r, isChild) {
   const tog = r.kind === "epic" && r.children && r.children.length
-    ? `<button class="tog" data-toggle="${r.number}">${ui.collapsed[r.number] ? "›" : "⌄"}</button> ` : "";
+    ? `<button class="tog ${ui.collapsed[r.number] ? "" : "open"}" data-toggle="${r.number}" aria-expanded="${!ui.collapsed[r.number]}" title="子 Task を${ui.collapsed[r.number] ? "開く" : "閉じる"}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>${r.children.length}</button>` : "";
   const par = isChild ? "" : `<span class="par">${esc(r.parentTitle || (r.kind === "epic" ? "" : "単独Task"))}</span>`;
   const research = r.research ? `<span class="par">research</span>` : "";
   const title = r.kind === "epic" ? `<b>${esc(r.title)}</b>` : isChild ? esc(r.title) : `<b>${esc(r.title)}</b>`;
