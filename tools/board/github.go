@@ -54,9 +54,12 @@ func (i *Issue) HasLabel(l string) bool {
 }
 
 const (
-	labelEpic     = "type:epic"
-	labelProject  = "type:project"
-	labelResearch = "research"
+	labelEpic    = "type:epic"
+	labelProject = "type:project"
+	labelSpike   = "spike"
+	// A spike's conclusion: whether the plan after it has to be redone.
+	labelSpikeRework = "spike:rework"
+	labelSpikeOK     = "spike:ok"
 )
 
 func (i *Issue) Kind() string {

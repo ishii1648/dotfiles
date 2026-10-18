@@ -2,9 +2,9 @@
 name: worker
 description: >-
   Work on one Issue as a worker session of the board workflow: ask the human directly in this
-  terminal, keep the Orca card comment current, and open the PR (research results included). Started
+  terminal, keep the Orca card comment current, and open the PR or report a spike's conclusion. Started
   by `board dispatch` with "/worker <N>"; not for manual use.
-version: 0.4.0
+version: 0.5.0
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 argument-hint: "<Issue number>"
 ---
@@ -57,11 +57,22 @@ orca worktree set --worktree current --comment "<今の状況を 1 行で>"
 - 本文に `Closes <R>#<N>` を書く。Control Room はこの参照で Issue を「レビュー待ち」にし、マージで Issue が閉じると board サーバーが worktree の片付けを行う
 - マージは人が行う。自分でマージしない
 
-## 調査が成果物の Task（label `research`）
+## 検証が目的の Task（label `spike`）
 
-- 結果は調査の対象にかかわらず、起点のリポジトリの今いる worktree の `docs/<topic>/` に Markdown で書く。`<topic>` は Issue の内容を表す kebab-case の名前にし、同じ topic のディレクトリが既にあればそこに追記・更新する
-- 結論は `docs/<topic>/README.md` に置き、詳細は同じディレクトリの別ファイルに分ける
-- commit して通常の Task と同じく PR を作る。人がマージすると受け入れになり、Issue が閉じる
+spike は、Issue に書かれた前提を確かめ、その後の計画に手戻りが出るかを判定する。
+
+- 検証のために書いたコードは作業したブランチに commit してよいが、push と PR はしない（main に入れない）。残す価値のある変更ができたときだけ、通常どおり PR を作る
+- 結論が出たら、Issue コメントに次を書く
+  - 結論: 手戻りあり / 手戻りなし
+  - 根拠: 何を試して何が分かったか
+  - 手戻りありなら、影響する Issue と計画の直し方の案
+- 結論のラベルを付ける。Control Room はこれで spike を「レビュー待ち」にし、手戻りありなら、この spike に blocked された Task を自動で起動せず「手戻りの確認」にする
+
+  ```sh
+  GHTKN_APP=write gh issue edit <N> --repo <R> --add-label spike:rework   # 手戻りなしなら spike:ok
+  ```
+
+- 端末に結論を書いてターンを終える。Issue は人が close する
 
 ## しないこと
 

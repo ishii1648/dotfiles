@@ -88,6 +88,7 @@
 | - | ○ | herdr / ghostty | Orca を併用するとキーバインドが herdr（ghostty の Cmd キー経由）と食い違い、指が迷う — Orca の `~/.orca/keybindings.json` を dotfiles 管理して Cmd 系の割り当てを herdr に揃える | — |
 | - | ○ | claude / orca / gh | マスターの Claude Code セッションから複数のワーカーセッションに Issue を任せたいが、dispatch・状態・進捗の表示がマスターの手作業になり並列性が出ない — 追記専用ログと board サーバーで分担する | [ADR-095](adr/095-board-master-worker-sessions.md) |
 | - | ○ | ghtkn / fish / aqua | 起点のリポジトリでは Issue・PR・push を日常的に行うのに、毎回 `GHTKN_APP=write` を付ける必要がある — ghtkn にはディレクトリ単位の設定が無いため、direnv で切り替える | [ADR-096](adr/096-direnv-per-directory-ghtkn-app.md) |
+| - | ○ | claude / gh | board の research Task は成果物の違いで類型を分けているだけで、計画に手戻りが出るかが分からず、前提が崩れても後続 Task が自動で起動する — research を廃止し、手戻りの有無を結論にする spike を置く | [ADR-097](adr/097-board-spike-instead-of-research.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1965,7 +1966,6 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
 - [ ] 起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
 - [ ] ワーカーが端末で問いかけてターンを終えると Orca が通知し、通知か Control Room の「開く」ボタンからそのワーカーの端末に移れる
-- [ ] research Task の PR が出ると Project タブが「分割案の確認」になり、マージで Issue が閉じる
 - [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control Room に表示する
 
 ---
@@ -1979,3 +1979,17 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] setup.sh で direnv が aqua から入り、fish で `direnv hook` が有効になる
 - [ ] `components.direnv.setup_args.whitelist_prefix` を書いて setup.sh を実行すると、`~/.config/direnv/direnv.toml` の `[whitelist] prefix` が生成される
 - [ ] 起点のリポジトリとその worktree に入ると、`direnv allow` 無しで `GHTKN_APP=write` と `GHTKN_GIT_APP=write` が設定され、出ると外れる
+
+---
+
+### ADR-097: board の research Task を廃止して spike Task を置く
+
+**コンポーネント**: claude / gh | **ADR**: [ADR-097](adr/097-board-spike-instead-of-research.md)
+
+**受け入れ条件**:
+
+- [ ] `spike:rework` か `spike:ok` のラベルが付いた open な spike が「レビュー待ち」になり、行に結論が表示される
+- [ ] `spike:rework` で閉じた spike に blocked された Task が自動で dispatch されず、「判断待ち（手戻りの確認）」になり、起動ボタンから起動できる
+- [ ] `spike:ok` で閉じた spike に blocked された Epic の子 Task は、従来どおり自動で dispatch される
+- [ ] Project タブのフェーズが、子が無ければ「計画」、子が残っていれば「実行」、すべて閉じれば「目標の確認」になる
+- [ ] worker skill が spike の結論を Issue コメントと結論のラベルで残し、Issue を close しない

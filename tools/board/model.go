@@ -12,7 +12,7 @@ import (
 // agent and notifies (ADR-095).
 const (
 	stDecide   = "decide"  // 判断待ち: an Issue-level decision only the board shows
-	stReview   = "review"  // レビュー待ち: an open, non-draft PR closes the Issue
+	stReview   = "review"  // レビュー待ち: an open, non-draft PR closes the Issue, or a spike has its conclusion
 	stWorking  = "working" // 作業中
 	stBlocked  = "blocked" // 依存待ち
 	stTodo     = "todo"    // 未着手
@@ -36,7 +36,7 @@ type Row struct {
 	Title        string    `json:"title"`
 	URL          string    `json:"url"`
 	Kind         string    `json:"kind"`
-	Research     bool      `json:"research,omitempty"`
+	Spike        string    `json:"spike,omitempty"` // pending, rework or ok
 	State        string    `json:"state"`
 	Reason       string    `json:"reason,omitempty"`
 	Parent       int       `json:"parent,omitempty"`
@@ -75,7 +75,7 @@ type ProjectView struct {
 	Number       int           `json:"number"`
 	Title        string        `json:"title"`
 	URL          string        `json:"url"`
-	Phase        int           `json:"phase"` // 0 調査, 1 分割案の確認, 2 実行, 3 目標の確認
+	Phase        int           `json:"phase"` // 0 計画, 1 実行, 2 目標の確認
 	Goal         string        `json:"goal,omitempty"`
 	NextLabel    string        `json:"nextLabel,omitempty"`
 	Next         string        `json:"next,omitempty"`
@@ -144,8 +144,33 @@ func openBlockers(i *Issue) []int {
 	return ns
 }
 
+func spikeOf(i *Issue) string {
+	switch {
+	case !i.HasLabel(labelSpike):
+		return ""
+	case i.HasLabel(labelSpikeRework):
+		return "rework"
+	case i.HasLabel(labelSpikeOK):
+		return "ok"
+	}
+	return "pending"
+}
+
+// reworkBlockers lists the closed spikes blocking i that concluded the plan
+// has to be redone.
+func reworkBlockers(issues map[int]*Issue, i *Issue) []int {
+	var ns []int
+	for _, b := range i.BlockedBy {
+		if bi := issues[b.Number]; bi != nil && !bi.Open() && spikeOf(bi) == "rework" {
+			ns = append(ns, b.Number)
+		}
+	}
+	return ns
+}
+
 // taskState decides a Task's board state from GitHub and whether a worker was
-// started. Closed wins, then open blockers, then an open PR ready for review.
+// started. Closed wins, then open blockers, then an open PR ready for review
+// or a spike's conclusion waiting for the human.
 func taskState(i *Issue, started bool) (state, reason, note string) {
 	if !i.Open() {
 		return stDone, "", ""
@@ -161,6 +186,9 @@ func taskState(i *Issue, started bool) (state, reason, note string) {
 		if p.State == "OPEN" && !p.IsDraft {
 			return stReview, "", ""
 		}
+	}
+	if sp := spikeOf(i); sp == "rework" || sp == "ok" {
+		return stReview, "", ""
 	}
 	if started {
 		return stWorking, "", ""
@@ -305,7 +333,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		if ie := idx[i.Number]; ie != nil && ie.dispatched {
 			continue
 		}
-		if len(openBlockers(i)) > 0 || worktreeFor(wts, repoShort, i.Number) != nil {
+		if len(openBlockers(i)) > 0 || len(reworkBlockers(issues, i)) > 0 || worktreeFor(wts, repoShort, i.Number) != nil {
 			continue
 		}
 		snap.AutoDispatch = append(snap.AutoDispatch, i.Number)
@@ -327,6 +355,16 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		// it again brings the worktree back and resumes the worker's session.
 		lost := dispatched && wt == nil && i.Open() && now.Sub(ie.dispatchedAt) >= dispatchGrace
 		st, reason, note := taskState(i, wt != nil || (dispatched && !lost))
+		rework := false
+		if st == stTodo && !lost {
+			if bs := reworkBlockers(issues, i); len(bs) > 0 {
+				parts := make([]string, len(bs))
+				for k, b := range bs {
+					parts[k] = fmt.Sprintf("#%d", b)
+				}
+				st, reason, note, rework = stDecide, "手戻りの確認", strings.Join(parts, "・")+" の spike で手戻りあり", true
+			}
+		}
 		if st == stTodo && held[i.Number] {
 			st, reason = stDecide, "起動の確認"
 		}
@@ -335,7 +373,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		}
 		r := Row{
 			Number: i.Number, Title: i.Title, URL: i.URL, Kind: "task",
-			Research: i.HasLabel(labelResearch), State: st, Reason: reason, Note: note,
+			Spike: spikeOf(i), State: st, Reason: reason, Note: note,
 			Parent: i.Parent, Project: projectOf(i), LastProgress: lastProgress(i),
 			PRs: rowPRs(i),
 		}
@@ -346,7 +384,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 			r.TodayCount = 1
 		}
 		r.Stale = st != stDone && now.Sub(r.LastProgress) >= staleAfter
-		r.CanDispatch = st == stTodo && i.Open() || lost
+		r.CanDispatch = (st == stTodo || rework) && i.Open() || lost
 		r.Resume = lost
 		if wt != nil {
 			r.Worktree = wt.Path
@@ -436,8 +474,8 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		pv := ProjectView{Number: i.Number, Title: i.Title, URL: i.URL, LastProgress: lastProgress(i)}
 		_, pv.Goal = heading(i.Body, "目標")
 		pv.NextLabel, pv.Next = heading(i.Body, "次の節目", "次に決めること")
-		var research, work []ProjectItem
-		researchWaiting := false
+		pv.Items = []ProjectItem{}
+		allClosed := true
 		for _, c := range children[i.Number] {
 			r, ok := rowByNumber[c.Number]
 			if !ok {
@@ -451,33 +489,18 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 			if r.State == stDecide || r.State == stReview {
 				pv.Waiting = true
 			}
-			if c.Kind() == "task" && c.HasLabel(labelResearch) {
-				research = append(research, item)
-				if r.State == stReview {
-					researchWaiting = true
-				}
-			} else {
-				work = append(work, item)
-			}
-		}
-		allClosed := len(work) > 0
-		for _, w := range work {
-			if w.State != stDone {
+			if r.State != stDone {
 				allClosed = false
 			}
+			pv.Items = append(pv.Items, item)
 		}
 		switch {
-		case len(work) > 0 && allClosed:
-			pv.Phase, pv.Items = 3, work
-		case len(work) > 0:
-			pv.Phase, pv.Items = 2, work
-		case researchWaiting:
-			pv.Phase, pv.Items = 1, research
+		case len(pv.Items) == 0:
+			pv.Phase = 0
+		case allClosed:
+			pv.Phase = 2
 		default:
-			pv.Phase, pv.Items = 0, research
-		}
-		if pv.Items == nil {
-			pv.Items = []ProjectItem{}
+			pv.Phase = 1
 		}
 		pv.Stale = i.Open() && now.Sub(pv.LastProgress) >= staleAfter
 		if i.Open() {

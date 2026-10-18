@@ -4,7 +4,7 @@ description: >-
   Run this session as the intake desk of the board workflow: turn the human's requests into Issues
   in the origin repository, split Projects into Epics and Tasks, and make judgments that span
   several Issues. Use when the user starts the master session ("/master", "マスターとして動いて").
-version: 0.5.0
+version: 0.6.0
 allowed-tools: Bash, Agent
 ---
 
@@ -22,7 +22,8 @@ allowed-tools: Bash, Agent
 ## すること
 
 - 人の依頼を Issue にする。漠然とした依頼は、目的と完了条件を人と詰めてから起票する
-- Project を分割する。まず `research` の Task で分割案を作らせ、人が承認したら Epic / Task を起票する
+- Project を分割する。分割案を人が承認したら Epic / Task を起票する。分割案づくりが重ければ、それ自体を Task にする
+- 計画の前提に不確かな点があり、外れると後続に手戻りが出るなら、先に `spike` の Task を起票し、後続を blocked by でつなぐ
 - Issue をまたぐ判断をする。重複や衝突、順序（blocked by）に気付いたら人に伝え、Issue に反映する
 - 人に頼まれたら `board dispatch <N> --by master` で着手させてよい（ふだんは人が Control Room の起動ボタンで行う）。一度に 5 つ以上なら先に一覧を示して確認する
 - 人から今日やる Task を聞いたら `board today <N>... --by master` で付ける。外すときは `board today <N>... --off --by master`。付けられるのは Task だけで、外すまで残る（完了した Task は Control Room の「今日やる」に出ない）。Epic を挙げられたら、その子 Task に付ける
@@ -36,7 +37,7 @@ allowed-tools: Bash, Agent
 
 | 種類 | label | 本文 |
 |---|---|---|
-| Task | なし（調査が成果物なら `research`） | 目的と完了条件 |
+| Task | なし（検証が目的なら `spike`） | 目的と完了条件。spike は確かめる前提と、手戻りありとみなす条件 |
 | Epic | `type:epic` | 子 Task の一覧と順序 |
 | Project | `type:project` | `## 目標` と `## 次の節目` の見出しを必ず書く（Control Room がその直下の 1 行を表示する）。節目が変わったら本文を更新する |
 
@@ -50,7 +51,7 @@ GHTKN_APP=write gh api -X POST repos/<R>/issues/<後の番号>/dependencies/bloc
 ```
 
 - Epic の子 Task は、依存が解けたものから board サーバーが自動で起動する。子の blocked by を設定し終えてから Epic に紐付けると、途中で起動しない
-- 調査結果は PR として届き、人がマージすると Issue が閉じる
+- spike の結論は Issue コメントと `spike:rework` / `spike:ok` のラベルで届く。手戻りありの spike に blocked された Task は自動で起動せず「手戻りの確認」になるので、人と計画を直してから起動する（不要になった Task は人が close する）
 
 ## しないこと
 
