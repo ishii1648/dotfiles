@@ -2,9 +2,9 @@
 name: worker
 description: >-
   Work on one Issue as a worker session of the board workflow: record progress for the Control
-  room, ask the human directly in this terminal, open the PR or produce research results. Started
+  room, ask the human directly in this terminal, and open the PR (research results included). Started
   by `board dispatch` with "/worker <N>"; not for manual use.
-version: 0.2.0
+version: 0.3.0
 allowed-tools: Bash, Read, Edit, Write, Grep, Glob
 argument-hint: "<Issue number>"
 ---
@@ -43,7 +43,6 @@ argument-hint: "<Issue number>"
 | 判断が必要 | `question` | 何を決めてほしいか、選択肢、自分の推奨 |
 | 続行できない | `blocked` | 理由と、何があれば進めるか |
 | PR を作った | `pr`（`--url <PR の URL>` を付ける） | 変更の要約とレビューしてほしい点 |
-| 調査結果がまとまった | `result` | 結論の要約とローカルのパス |
 
 要約は 1 行に収め、詳細は端末と Issue コメントに書く。
 
@@ -66,9 +65,9 @@ board event <N> revise "<指摘の要約>"       # PR へのレビュー指摘
 
 ## 調査が成果物の Task（label `research`）
 
-- 結果は `~/.local/state/board/research/<N>/` に Markdown で書く。結論は `summary.md` に置く（同期で長さの上限を超えたとき、`summary.md` だけが Issue に載る）
-- `question` `blocked` `result` を記録するときに `board sync-research <N>` を呼び、Issue の同期用コメントを更新する。30 分ごとの同期は hook が行う
-- 受け入れと Issue の close は人（またはマスター）が行う
+- 結果は調査の対象にかかわらず、起点のリポジトリの今いる worktree の `docs/<topic>/` に Markdown で書く。`<topic>` は Issue の内容を表す kebab-case の名前にし、同じ topic のディレクトリが既にあればそこに追記・更新する
+- 結論は `docs/<topic>/README.md` に置き、詳細は同じディレクトリの別ファイルに分ける
+- commit して通常の Task と同じく PR を作り、`pr` を記録する。人がマージすると受け入れになり、Issue が閉じる
 
 ## しないこと
 

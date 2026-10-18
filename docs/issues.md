@@ -1962,7 +1962,7 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
 - [ ] 起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
 - [ ] Task が確認待ちになると macOS 通知が 1 回出て、通知か「開く」ボタンからそのワーカーの端末に移れる
-- [ ] `board sync-research <N>` が `research/<N>/*.md` を Issue の目印付きコメント 1 つに書き、2 回目以降は同じコメントを更新する
+- [ ] research Task の PR が出ると Project タブが「分割案の確認」になり、マージで Issue が閉じる
 - [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control room に表示する
 
 ---

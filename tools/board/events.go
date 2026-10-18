@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
 	"strings"
 	"time"
 )
@@ -25,7 +24,6 @@ var eventTypes = map[string]bool{
 	"question": true, "answer": true,
 	"blocked": true, "unblocked": true,
 	"pr": true, "revise": true,
-	"result": true, "accepted": true,
 }
 
 const maxEventText = 500
@@ -161,5 +159,5 @@ func hasDispatched(evs []Event, n int) bool {
 }
 
 func ensureStateDir() error {
-	return os.MkdirAll(filepath.Join(stateDir(), "research"), 0o755)
+	return os.MkdirAll(stateDir(), 0o755)
 }
