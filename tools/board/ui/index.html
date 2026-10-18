@@ -73,6 +73,9 @@ tr.hl td, .pr.hl { background: color-mix(in srgb, var(--warn) 14%, transparent);
 .prog i b { display: block; height: 100%; background: var(--accent); }
 .go { all: unset; cursor: pointer; border: 1px solid var(--link); color: var(--link); border-radius: 5px; padding: 0 10px; font-size: 11.5px; font-weight: 700; }
 .go:disabled { opacity: .5; cursor: progress; }
+.day { all: unset; cursor: pointer; border: 1px solid var(--line); color: var(--muted); border-radius: 5px; padding: 0 8px; font-size: 11.5px; margin-left: 4px; }
+.day.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: transparent; color: var(--accent); font-weight: 700; }
+.day:disabled { opacity: .5; cursor: progress; }
 .foot { padding: 8px 12px; color: var(--muted); font-size: 11.5px; }
 a { color: inherit; text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -147,7 +150,7 @@ function ago(iso) {
 function lastCell(r) {
   const label = ago(r.lastProgress);
   const cls = label === "今日" && r.state !== "done" ? "now" : r.stale ? "hot" : "";
-  const sub = r.kind === "epic" && r.todayCount ? `<span class="reason">子Task ${r.todayCount}件が今日</span>`
+  const sub = r.kind === "epic" && r.todayCount ? `<span class="reason">今日やる子Task ${r.todayCount}件</span>`
     : r.stale ? `<span class="reason">3日以上進捗なし</span>` : "";
   return `<td><span class="${cls}">${label}</span>${sub}</td>`;
 }
@@ -187,9 +190,13 @@ function prURLs(r) {
 }
 
 function actionCell(r) {
-  if (r.canDispatch) return `<td><button class="go" data-dispatch="${r.number}">${r.resume ? "▶ 再開" : "▶ 起動"}</button></td>`;
-  if (r.worktree && r.kind === "task" && r.state !== "done") return `<td><button class="go" data-open="${r.number}">開く</button></td>`;
-  return "<td></td>";
+  let main = "";
+  if (r.canDispatch) main = `<button class="go" data-dispatch="${r.number}">${r.resume ? "▶ 再開" : "▶ 起動"}</button>`;
+  else if (r.worktree && r.kind === "task" && r.state !== "done") main = `<button class="go" data-open="${r.number}">開く</button>`;
+  const today = r.todayCount > 0;
+  const day = r.kind === "task" && r.state !== "done"
+    ? `<button class="day ${today ? "on" : ""}" data-today="${r.number}" data-on="${today}" title="${today ? "今日やるを外す" : "今日やるにする"}">${today ? "★ 今日" : "☆ 今日"}</button>` : "";
+  return `<td>${main}${day}</td>`;
 }
 
 function titleCell(r, isChild) {
@@ -333,6 +340,7 @@ document.addEventListener("click", async e => {
   else if (t.dataset.goproject) { ui.tab = "tasks"; ui.project = t.dataset.goproject; ui.chip = "all"; }
   else if (t.dataset.dispatch) { await dispatchIssue(t); return; }
   else if (t.dataset.open) { await openIssue(t); return; }
+  else if (t.dataset.today) { await toggleToday(t); return; }
   else return;
   save(); render();
 });
@@ -387,6 +395,18 @@ async function openIssue(btn) {
     if (!res.ok) throw new Error(await res.text());
   } catch (err) {
     document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.open)} を開けなかった: ${esc(err.message)}</div>`);
+  }
+}
+
+async function toggleToday(btn) {
+  const off = btn.dataset.on === "true";
+  btn.disabled = true;
+  try {
+    const res = await action(`/api/${off ? "today-off" : "today"}/${btn.dataset.today}`);
+    if (!res.ok) throw new Error(await res.text());
+  } catch (err) {
+    document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.today)} の今日やるを変えられなかった: ${esc(err.message)}</div>`);
+    btn.disabled = false;
   }
 }
 

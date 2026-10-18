@@ -104,6 +104,7 @@ type issueEvents struct {
 	lastAt       time.Time
 	dispatched   bool
 	dispatchedAt time.Time
+	today        bool
 }
 
 func indexEvents(evs []Event) map[int]*issueEvents {
@@ -114,6 +115,11 @@ func indexEvents(evs []Event) map[int]*issueEvents {
 		if ie == nil {
 			ie = &issueEvents{}
 			m[e.Issue] = ie
+		}
+		// Marking a Task for today is planning, not progress.
+		if e.Type == "today" || e.Type == "today-off" {
+			ie.today = e.Type == "today"
+			continue
 		}
 		if e.At.After(ie.lastAt) {
 			ie.lastAt = e.At
@@ -126,12 +132,6 @@ func indexEvents(evs []Event) map[int]*issueEvents {
 		}
 	}
 	return m
-}
-
-func sameDay(a, b time.Time) bool {
-	ay, am, ad := a.In(b.Location()).Date()
-	by, bm, bd := b.Date()
-	return ay == by && am == bm && ad == bd
 }
 
 func openBlockers(i *Issue) []int {
@@ -342,7 +342,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		if p := issues[i.Parent]; p != nil {
 			r.ParentTitle = p.Title
 		}
-		if st != stDone && sameDay(r.LastProgress, now) {
+		if st != stDone && ie != nil && ie.today {
 			r.TodayCount = 1
 		}
 		r.Stale = st != stDone && now.Sub(r.LastProgress) >= staleAfter

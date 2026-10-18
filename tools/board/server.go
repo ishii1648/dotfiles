@@ -312,6 +312,8 @@ func (s *server) handler() http.Handler {
 	mux.HandleFunc("/events", s.handleSSE)
 	mux.HandleFunc("/api/dispatch/", s.handleDispatch)
 	mux.HandleFunc("/api/open/", s.handleOpen)
+	mux.HandleFunc("/api/today/", s.handleToday("/api/today/", "today"))
+	mux.HandleFunc("/api/today-off/", s.handleToday("/api/today-off/", "today-off"))
 	// Host is checked on every request: a DNS-rebound page could otherwise read
 	// GET / and with it the dispatch token.
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -359,7 +361,7 @@ func (s *server) handleSSE(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// checkActionRequest guards the action APIs (dispatch and open). The server
+// checkActionRequest guards the action APIs (dispatch, open and today). The server
 // listens on 127.0.0.1, but any page open in a browser can still POST to
 // localhost, so the request must come from the board page and carry its token.
 func (s *server) checkActionRequest(r *http.Request, prefix string) (int, error) {
@@ -436,4 +438,28 @@ func (s *server) handleOpen(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (s *server) handleToday(prefix, typ string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		n, err := s.checkActionRequest(r, prefix)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		s.mu.Lock()
+		i := s.issues[n]
+		s.mu.Unlock()
+		if i == nil || i.Kind() != "task" {
+			http.Error(w, fmt.Sprintf("#%d は Task ではない", n), http.StatusConflict)
+			return
+		}
+		if err := appendEvent(Event{Issue: n, By: "human", Type: typ}); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		s.pollEvents()
+		s.refresh()
+		w.WriteHeader(http.StatusNoContent)
+	}
 }

@@ -4,7 +4,7 @@ description: >-
   Run this session as the intake desk of the board workflow: turn the human's requests into Issues
   in the origin repository, split Projects into Epics and Tasks, and make judgments that span
   several Issues. Use when the user starts the master session ("/master", "マスターとして動いて").
-version: 0.4.0
+version: 0.5.0
 allowed-tools: Bash, Agent
 ---
 
@@ -25,6 +25,7 @@ allowed-tools: Bash, Agent
 - Project を分割する。まず `research` の Task で分割案を作らせ、人が承認したら Epic / Task を起票する
 - Issue をまたぐ判断をする。重複や衝突、順序（blocked by）に気付いたら人に伝え、Issue に反映する
 - 人に頼まれたら `board dispatch <N> --by master` で着手させてよい（ふだんは人が Control Room の起動ボタンで行う）。一度に 5 つ以上なら先に一覧を示して確認する
+- 人から今日やる Task を聞いたら `board today <N>... --by master` で付ける。外すときは `board today <N>... --off --by master`。付けられるのは Task だけで、外すまで残る（完了した Task は Control Room の「今日やる」に出ない）。Epic を挙げられたら、その子 Task に付ける
 - 状況を聞かれたら `board tasks` を読んで答える。ただし詳しい経過は Control Room とワーカー本人に任せ、要約を中継し続けない
 
 重い処理（起票文の下書き、分割案の読み込み）は background の subagent に任せ、ターンを短く保つ。

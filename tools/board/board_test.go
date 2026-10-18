@@ -76,16 +76,49 @@ func TestTaskStates(t *testing.T) {
 	if r := findRow(t, snap.Rows, 4); r.Resume {
 		t.Error("#4 was dispatched just now; its worktree may not be listed yet")
 	}
-	if findRow(t, snap.Rows, 4).TodayCount != 1 {
-		t.Error("#4 moved today")
-	}
 
 	// Recent activity in the worktree or on GitHub counts as progress.
 	wts[0].LastActivityAt = now.Add(-time.Hour).UnixMilli()
 	issues[6].UpdatedAt = now.Add(-time.Hour)
 	snap = build(issues, evs, wts, "hub", now)
-	if findRow(t, snap.Rows, 6).Stale || findRow(t, snap.Rows, 7).Stale || findRow(t, snap.Rows, 7).TodayCount != 1 {
+	if findRow(t, snap.Rows, 6).Stale || findRow(t, snap.Rows, 7).Stale {
 		t.Error("#6 and #7 moved today")
+	}
+}
+
+func TestToday(t *testing.T) {
+	epic := issue(10, labelEpic)
+	done := issue(13)
+	done.State = "CLOSED"
+	done.ClosedAt = &now
+	issues := map[int]*Issue{10: epic, 13: done}
+	for n := 11; n <= 13; n++ {
+		if issues[n] == nil {
+			issues[n] = issue(n)
+		}
+		issues[n].Parent = 10
+		epic.SubIssues = append(epic.SubIssues, IssueRef{Number: n, State: issues[n].State})
+	}
+	issues[20] = issue(20)
+	issues[21] = issue(21)
+	issues[21].CreatedAt = now.Add(-5 * 24 * time.Hour)
+	evs := []Event{
+		ev(11, "today", now.Add(-3*24*time.Hour)),
+		ev(12, "today", now),
+		ev(12, "today-off", now),
+		ev(13, "today", now),
+		ev(20, "dispatched", now),
+		ev(21, "today", now),
+	}
+	snap := build(issues, evs, nil, "hub", now)
+	want := map[int]int{11: 1, 12: 0, 13: 0, 20: 0, 21: 1, 10: 1}
+	for n, w := range want {
+		if got := findRow(t, snap.Rows, n).TodayCount; got != w {
+			t.Errorf("#%d todayCount = %d, want %d", n, got, w)
+		}
+	}
+	if r := findRow(t, snap.Rows, 21); !r.Stale {
+		t.Error("marking #21 for today is not progress")
 	}
 }
 
@@ -258,6 +291,40 @@ func TestDispatchRequestGuard(t *testing.T) {
 	}
 	if s.allowedHost("evil.example:7342") || !s.allowedHost("localhost:7342") {
 		t.Error("host check")
+	}
+}
+
+func TestTodayAPI(t *testing.T) {
+	t.Setenv("BOARD_STATE_DIR", t.TempDir())
+	s, err := newServer(Config{Repo: "me/hub", RepoPath: "/r", Port: 7342})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// An Orca error keeps refresh from touching cards or dispatching.
+	s.issues, s.orcaErr = map[int]*Issue{4: issue(4), 10: issue(10, labelEpic)}, "test"
+	post := func(path string) int {
+		r := httptest.NewRequest("POST", "http://127.0.0.1:7342"+path, nil)
+		r.Header.Set("Origin", "http://127.0.0.1:7342")
+		r.Header.Set("X-Board-Token", s.token)
+		w := httptest.NewRecorder()
+		s.handler().ServeHTTP(w, r)
+		return w.Code
+	}
+	today := func() int {
+		var snap Snapshot
+		if err := json.Unmarshal(s.snapshot, &snap); err != nil {
+			t.Fatal(err)
+		}
+		return findRow(t, snap.Rows, 4).TodayCount
+	}
+	if c := post("/api/today/4"); c != 204 || today() != 1 {
+		t.Fatalf("today: code %d count %d", c, today())
+	}
+	if c := post("/api/today-off/4"); c != 204 || today() != 0 {
+		t.Fatalf("today-off: code %d count %d", c, today())
+	}
+	if c := post("/api/today/10"); c != 409 {
+		t.Errorf("an Epic cannot be marked: code %d", c)
 	}
 }
 

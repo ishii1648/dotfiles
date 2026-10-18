@@ -20,6 +20,8 @@ const usage = `usage:
                                       when its worktree is gone
   board event <N> <type> [text] [--by NAME]
                                       append an event (types: dispatched started)
+  board today <N>... [--off] [--by NAME]
+                                      mark Tasks to do today, or unmark them with --off
   board open <N>                      bring the worker terminal of Issue N to the front
   board room                          bring the Control Room tab to the front in Orca
   board tasks                         print the board snapshot as JSON
@@ -52,7 +54,7 @@ func splitArgs(args []string, flags ...string) (map[string]string, []string, err
 				return nil, nil, fmt.Errorf("unknown flag --%s", name)
 			}
 			if !hasVal {
-				if name == "print" {
+				if name == "print" || name == "off" {
 					val = "true"
 				} else {
 					if i+1 >= len(args) {
@@ -154,6 +156,33 @@ func run(args []string) error {
 			return err
 		}
 		return appendEvent(Event{Issue: n, By: byOf(opts), Type: pos[1], Text: strings.Join(pos[2:], " ")})
+
+	case "today":
+		opts, pos, err := splitArgs(rest, "off", "by")
+		if err != nil {
+			return err
+		}
+		if len(pos) == 0 {
+			return errors.New("usage: board today <N>... [--off] [--by NAME]")
+		}
+		typ := "today"
+		if opts["off"] == "true" {
+			typ = "today-off"
+		}
+		var ns []int
+		for i := range pos {
+			n, err := issueArg(pos, i, false)
+			if err != nil {
+				return err
+			}
+			ns = append(ns, n)
+		}
+		for _, n := range ns {
+			if err := appendEvent(Event{Issue: n, By: byOf(opts), Type: typ}); err != nil {
+				return err
+			}
+		}
+		return nil
 
 	case "open":
 		_, pos, err := splitArgs(rest)
