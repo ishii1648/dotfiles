@@ -26,7 +26,7 @@
 - Control Room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR（draft を除く）から判定する。PR と Task は多対多なので、Task の行には紐付く PR（open・draft・merged）をすべて並べ、同じ PR が閉じるほかの Issue も示す。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
 - 進捗の時刻は、board の event、Issue と紐付く PR の updatedAt、Orca のワークツリーの lastActivityAt のうち最も新しいものとする
 - マスターは起票と計画の窓口だけを担う（起票、Project の分割、Issue をまたぐ判断）。報告の通り道には入らない。起点のリポジトリの main のカードで `claude --permission-mode auto` として開き、`/master` を実行する
-- Issue の内容・open / close・PR は GitHub を正とする。ローカルの追記専用ログ `~/.local/state/board/events.jsonl` には、ワーカーを起動した事実（`dispatched` / `started`）だけを `board event` / `board dispatch` で追記する
+- Issue の内容・open / close・PR は GitHub を正とする。ローカルの追記専用ログ `~/.local/state/board/events.jsonl` には、ワーカーを起動した事実（`dispatched` / `started`）を `board event` / `board dispatch` で、人や master が「今日やる」と決めた Task（`today` / `today-off`）を `board today` か Control Room のボタンで追記する。「今日やる」は進捗に数えない
 - `board serve`（LaunchAgent `com.user.board`）がログを 1 秒ごとに読み、GitHub（60 秒ごと）と `orca worktree ps`（10 秒ごと）と合わせて board を作り、`127.0.0.1:7342` から SSE で配信する
 - Orca のカードの status は board サーバーだけが書く。未読は Orca が付けるものなので board は触らず、ワーカーのカードのコメントはワーカー自身が書く
 - dispatch は `board dispatch <N>` の 1 コマンド。worktree の作成と lock、Orca の端末でのワーカー起動、`dispatched` の追記を行い、ロックファイルで直列化して 1 つの Issue に 2 つのワーカーが起動しないようにする。ワーカーの Claude セッション ID は board が決めて `claude --session-id` で渡し、`dispatched` に記録する

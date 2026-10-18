@@ -20,7 +20,8 @@ type Event struct {
 	Session string `json:"session,omitempty"`
 }
 
-var eventTypes = map[string]bool{"dispatched": true, "started": true}
+// today and today-off mark a Task as one to do today, until it is unmarked.
+var eventTypes = map[string]bool{"dispatched": true, "started": true, "today": true, "today-off": true}
 
 const maxEventText = 500
 
