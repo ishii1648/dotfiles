@@ -76,7 +76,10 @@ tr.hl td, .pr.hl { background: color-mix(in srgb, var(--warn) 14%, transparent);
 .day { all: unset; cursor: pointer; border: 1px solid var(--line); color: var(--muted); border-radius: 5px; padding: 0 8px; font-size: 11.5px; margin-left: 4px; }
 .day.on { background: color-mix(in srgb, var(--accent) 14%, transparent); border-color: transparent; color: var(--accent); font-weight: 700; }
 .day:disabled { opacity: .5; cursor: progress; }
-.foot { padding: 8px 12px; color: var(--muted); font-size: 11.5px; }
+.foot { padding: 8px 12px; color: var(--muted); font-size: 11.5px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.pager { display: flex; gap: 8px; align-items: center; margin-left: auto; }
+.pager button { all: unset; cursor: pointer; border: 1px solid var(--line); border-radius: 5px; padding: 0 10px; color: var(--fg); }
+.pager button:disabled { opacity: .4; cursor: default; }
 a { color: inherit; text-decoration: none; }
 a:hover { text-decoration: underline; }
 .pj { padding: 14px 18px; border-bottom: 1px solid var(--line); display: grid; gap: 12px; }
@@ -124,9 +127,12 @@ const KIND_LABEL = { epic: "Epic", task: "Task", project: "Project" };
 const STATE_LABEL = { decide: "判断待ち", review: "レビュー待ち", working: "作業中", blocked: "依存待ち", todo: "未着手", done: "完了" };
 const STATE_ORDER = { decide: 0, review: 1, working: 2, blocked: 3, todo: 4, done: 5 };
 const PHASES = ["調査", "分割案の確認", "実行", "目標の確認"];
+// Counts top-level rows; an Epic's children stay on the same page as the Epic.
+const PAGE_SIZE = 50;
+const TASK_FILTERS = ["show", "target", "project", "sort", "q"];
 
 let snap = null;
-const ui = load({ tab: "tasks", show: "open", target: "all", project: "all", sort: "today", q: "", chip: "all",
+const ui = load({ tab: "tasks", show: "open", target: "all", project: "all", sort: "today", q: "", chip: "all", page: 1,
   phase: "all", psort: "stale", pq: "", pchip: "all", collapsed: {} });
 
 function load(def) {
@@ -236,10 +242,13 @@ function renderTasks() {
     number: (a, b) => b.number - a.number,
   }[ui.sort];
   rows.sort(by);
+  const pages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  ui.page = Math.min(Math.max(1, ui.page), pages);
+  const shown = rows.slice((ui.page - 1) * PAGE_SIZE, ui.page * PAGE_SIZE);
   const projects = snap.projects.map(p => `<option value="${p.number}" ${ui.project === String(p.number) ? "selected" : ""}>#${p.number} ${esc(p.title)}</option>`).join("");
   const chip = (id, label) => `<button class="chip ${ui.chip === id ? "on" : ""}" data-chip="${id}">${label}</button>`;
   let body = "";
-  for (const r of rows) {
+  for (const r of shown) {
     body += `<tr data-prs="${prURLs(r)}">${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${prCell(r)}${lastCell(r)}</tr>`;
     if (r.kind === "epic" && !ui.collapsed[r.number]) {
       for (const c of r.children || []) {
@@ -267,7 +276,10 @@ function renderTasks() {
     ${rows.length ? `<div class="tbl-wrap"><table>
       <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>PR</th><th>最終進捗</th></tr></thead>
       <tbody>${body}</tbody></table></div>
-      <div class="foot">Epic ${epics} · 単独Task ${rows.length - epics}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
+      <div class="foot"><span>Epic ${epics} · 単独Task ${rows.length - epics}</span>${pages > 1 ? `<span class="pager">
+        <button data-page="${ui.page - 1}" ${ui.page === 1 ? "disabled" : ""}>‹ 前へ</button>
+        <span>${ui.page} / ${pages}</span>
+        <button data-page="${ui.page + 1}" ${ui.page === pages ? "disabled" : ""}>次へ ›</button></span>` : ""}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
 }
 
 function renderProjects() {
@@ -334,10 +346,11 @@ document.addEventListener("click", async e => {
   const t = e.target.closest("button");
   if (!t) return;
   if (t.dataset.tab) { ui.tab = t.dataset.tab; }
-  else if (t.dataset.chip) { ui.chip = t.dataset.chip; }
+  else if (t.dataset.chip) { ui.chip = t.dataset.chip; ui.page = 1; }
+  else if (t.dataset.page) { ui.page = Number(t.dataset.page); }
   else if (t.dataset.pchip) { ui.pchip = t.dataset.pchip; }
   else if (t.dataset.toggle) { ui.collapsed[t.dataset.toggle] = !ui.collapsed[t.dataset.toggle]; }
-  else if (t.dataset.goproject) { ui.tab = "tasks"; ui.project = t.dataset.goproject; ui.chip = "all"; }
+  else if (t.dataset.goproject) { ui.tab = "tasks"; ui.project = t.dataset.goproject; ui.chip = "all"; ui.page = 1; }
   else if (t.dataset.dispatch) { await dispatchIssue(t); return; }
   else if (t.dataset.open) { await openIssue(t); return; }
   else if (t.dataset.today) { await toggleToday(t); return; }
@@ -361,6 +374,7 @@ document.addEventListener("input", e => {
   const k = e.target.dataset.k;
   if (!k) return;
   ui[k] = e.target.value;
+  if (TASK_FILTERS.includes(k)) ui.page = 1;
   save(); render();
 });
 
