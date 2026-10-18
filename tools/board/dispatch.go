@@ -69,14 +69,16 @@ func branchExists(repoPath, branch string) bool {
 }
 
 // forgetMissingWorktrees drops git's registration of branch's worktree when its
-// directory is gone. The registration is locked by dispatch, so prune alone
-// keeps it, and while it stays Orca creates the worktree under another name.
-func forgetMissingWorktrees(repoPath, branch string) error {
+// directory is gone, and returns the paths it dropped. The registration is
+// locked by dispatch, so prune alone keeps it, and while it stays Orca creates
+// the worktree under another name.
+func forgetMissingWorktrees(repoPath, branch string) ([]string, error) {
 	out, err := exec.Command("git", "-C", repoPath, "worktree", "list", "--porcelain").Output()
 	if err != nil {
-		return fmt.Errorf("git worktree list: %w", err)
+		return nil, fmt.Errorf("git worktree list: %w", err)
 	}
 	var path string
+	var missing []string
 	sc := bufio.NewScanner(bytes.NewReader(out))
 	for sc.Scan() {
 		l := sc.Text()
@@ -88,12 +90,13 @@ func forgetMissingWorktrees(repoPath, branch string) error {
 				continue
 			}
 			exec.Command("git", "-C", repoPath, "worktree", "unlock", path).Run()
+			missing = append(missing, path)
 		}
 	}
 	if b, err := exec.Command("git", "-C", repoPath, "worktree", "prune").CombinedOutput(); err != nil {
-		return fmt.Errorf("git worktree prune: %v: %s", err, strings.TrimSpace(string(b)))
+		return nil, fmt.Errorf("git worktree prune: %v: %s", err, strings.TrimSpace(string(b)))
 	}
-	return nil
+	return missing, nil
 }
 
 // dispatch creates and locks the Issue's worktree, starts its worker in an
@@ -125,8 +128,16 @@ func dispatch(cfg Config, n int, by string) (string, error) {
 			"--name", name,
 			"--no-parent", "--json"}
 		if last != nil && branchExists(cfg.RepoPath, name) {
-			if err := forgetMissingWorktrees(cfg.RepoPath, name); err != nil {
+			missing, err := forgetMissingWorktrees(cfg.RepoPath, name)
+			if err != nil {
 				return err
+			}
+			// Orca keeps the removed worktree's terminals running and attaches
+			// them to the one recreated on the same path, so the old worker would
+			// share the resumed session. Orca may have forgotten the worktree
+			// already, in which case there is nothing to close.
+			for _, p := range missing {
+				runOrca("terminal", "close", "--worktree", "path:"+p, "--all", "--json")
 			}
 			args = append(args, "--base-branch", name)
 		}

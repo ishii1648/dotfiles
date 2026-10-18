@@ -277,8 +277,9 @@ func TestForgetMissingWorktrees(t *testing.T) {
 	if err := os.RemoveAll(wt); err != nil {
 		t.Fatal(err)
 	}
-	if err := forgetMissingWorktrees(repo, "issue-1"); err != nil {
-		t.Fatal(err)
+	missing, err := forgetMissingWorktrees(repo, "issue-1")
+	if err != nil || len(missing) != 1 {
+		t.Fatalf("missing = %v, err = %v", missing, err)
 	}
 	out, _ := exec.Command("git", "-C", repo, "worktree", "list", "--porcelain").Output()
 	if strings.Contains(string(out), "issue-1") {
