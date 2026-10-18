@@ -12,7 +12,7 @@
     "commands": [
       { "id": "open-control-room", "title": "Open Control Room", "context": "global" }
     ],
-    "keybindings": [{ "command": "open-control-room", "key": "Mod+Alt+C", "when": "global" }]
+    "keybindings": [{ "command": "open-control-room", "key": "Mod+K", "when": "global" }]
   },
   "capabilities": []
 }
