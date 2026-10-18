@@ -32,7 +32,7 @@
 - dispatch は `board dispatch <N>` の 1 コマンド。worktree の作成と lock、Orca の端末でのワーカー起動、`dispatched` の追記を行い、ロックファイルで直列化して 1 つの Issue に 2 つのワーカーが起動しないようにする。ワーカーの Claude セッション ID は board が決めて `claude --session-id` で渡し、`dispatched` に記録する
 - Task と結び付けるのは worktree（branch `issue-<N>`）と Claude セッションの両方とする。作業中かどうかは worktree の有無で決める。起動済みなのに worktree が無い Task（手で消された場合など）は「未着手（worktree が見つからない）」として再開ボタンを出す。再開では、lock された git の登録を外して同じ path と branch に worktree を作り直し、記録したセッションを `claude --resume` で続ける。失われるのは commit していない変更だけで、会話の記録から作り直せる。再開は人の操作だけで行い、自動 dispatch の対象にはしない
 - Epic の子 Task は、依存が解けたら board サーバーが自動で dispatch する。5 つ以上が同時に起動待ちになったら起動せず、人の確認を待つ
-- research Task の成果物も、起点のリポジトリの `docs/<topic>/` に commit して PR にする。正本を GitHub に揃え、受け入れを PR のマージで表すことで、通常の Task と同じ流れで閉じる
+- research Task の成果物も、起点のリポジトリの `docs/<topic>/` に commit して PR にする。正本を GitHub に揃え、受け入れを PR のマージで表すことで、通常の Task と同じ流れで閉じる（ADR-097 で research を廃止し、spike に置き換えた）
 - Issue が閉じたら、board サーバーが `board cleanup` を自動で行う（`.repos/*` を `--force` 無しで remove し、worktree の lock を外す）。commit していない変更があれば止まり、Control Room に表示する
 - 操作の API は起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` だけ。Host・Origin・`Sec-Fetch-Site` と、画面に埋め込んだトークンで、別のページや DNS rebinding からの呼び出しを拒否する
 - 起点のリポジトリが端末ごとに違うので、端末をまたいで使う開発環境の道具として dotfiles に置く。起点のリポジトリは `setup-manifest.local.yml` の `components.board.setup_args` で渡し、setup.sh が `~/.config/board/config.json` を書く

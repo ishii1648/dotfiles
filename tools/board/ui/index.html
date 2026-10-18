@@ -125,8 +125,9 @@ dt { font-weight: 700; } dd { margin: 0; }
 let TOKEN = "{{TOKEN}}";
 const KIND_LABEL = { epic: "Epic", task: "Task", project: "Project" };
 const STATE_LABEL = { decide: "判断待ち", review: "レビュー待ち", working: "作業中", blocked: "依存待ち", todo: "未着手", done: "完了" };
+const SPIKE_LABEL = { pending: "spike", rework: "spike：手戻りあり", ok: "spike：手戻りなし" };
 const STATE_ORDER = { decide: 0, review: 1, working: 2, blocked: 3, todo: 4, done: 5 };
-const PHASES = ["調査", "分割案の確認", "実行", "目標の確認"];
+const PHASES = ["計画", "実行", "目標の確認"];
 // Counts top-level rows; an Epic's children stay on the same page as the Epic.
 const PAGE_SIZE = 50;
 const TASK_FILTERS = ["show", "target", "project", "sort", "q"];
@@ -134,6 +135,8 @@ const TASK_FILTERS = ["show", "target", "project", "sort", "q"];
 let snap = null;
 const ui = load({ tab: "tasks", show: "open", target: "all", project: "all", sort: "today", q: "", chip: "all", page: 1,
   phase: "all", psort: "stale", pq: "", pchip: "all", collapsed: {} });
+// localStorage may hold a phase that no longer exists.
+if (ui.phase !== "all" && !PHASES[ui.phase]) ui.phase = "all";
 
 function load(def) {
   try { return Object.assign(def, JSON.parse(localStorage.getItem("board-ui") || "{}")); } catch { return def; }
@@ -209,9 +212,9 @@ function titleCell(r, isChild) {
   const tog = r.kind === "epic" && r.children && r.children.length
     ? `<button class="tog ${ui.collapsed[r.number] ? "" : "open"}" data-toggle="${r.number}" aria-expanded="${!ui.collapsed[r.number]}" title="子 Task を${ui.collapsed[r.number] ? "開く" : "閉じる"}"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3.5 10.5 8 6 12.5"/></svg>${r.children.length}</button>` : "";
   const par = isChild ? "" : `<span class="par">${esc(r.parentTitle || (r.kind === "epic" ? "" : "単独Task"))}</span>`;
-  const research = r.research ? `<span class="par">research</span>` : "";
+  const spike = r.spike ? `<span class="par">${SPIKE_LABEL[r.spike]}</span>` : "";
   const title = r.kind === "epic" ? `<b>${esc(r.title)}</b>` : isChild ? esc(r.title) : `<b>${esc(r.title)}</b>`;
-  return `<td class="title">${tog}<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="n">#${r.number}</span>${title}</a>${par}${research}</td>`;
+  return `<td class="title">${tog}<a href="${esc(r.url)}" target="_blank" rel="noopener"><span class="n">#${r.number}</span>${title}</a>${par}${spike}</td>`;
 }
 
 function matchChip(r, chip) {
@@ -297,7 +300,6 @@ function renderProjects() {
   const cards = ps.map(p => {
     const steps = PHASES.map((l, i) => `<span class="${i < p.phase ? "done" : i === p.phase ? "cur" : ""}">${l}</span>`).join("<hr>");
     const head = p.stale ? `<span class="m hot">${ago(p.lastProgress).replace("前", "")}進捗なし</span>` : `<span class="m now">最終進捗：${ago(p.lastProgress)}</span>`;
-    const itemsTitle = p.phase >= 2 ? "分解済みのEpic / Task" : "計画を進めるTask";
     const items = p.items.length ? p.items.map(it => {
       const right = it.progress && it.progress.total ? `完了 ${it.progress.done}/${it.progress.total}` : `<span class="s ${it.state}">${STATE_LABEL[it.state]}</span>`;
       return `<div class="it"><span class="k">${KIND_LABEL[it.kind]}</span><span>#${it.number} ${esc(it.title)}</span><span class="m">${right}</span></div>`;
@@ -308,7 +310,7 @@ function renderProjects() {
       <div class="pj-b">
         <dl><dt>目標</dt><dd>${esc(p.goal) || '<span class="reason">本文に「## 目標」が無い</span>'}</dd>
             <dt>${esc(p.nextLabel || "次の節目")}</dt><dd>${esc(p.next) || '<span class="reason">本文に「## 次の節目」が無い</span>'}</dd></dl>
-        <div class="pj-r"><span class="h">${itemsTitle}</span>${items}<button class="lk" data-goproject="${p.number}">関連するTask / Epicを見る</button></div>
+        <div class="pj-r"><span class="h">子の Epic / Task</span>${items}<button class="lk" data-goproject="${p.number}">関連するTask / Epicを見る</button></div>
       </div></div>`;
   }).join("");
   return `

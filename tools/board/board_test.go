@@ -178,27 +178,68 @@ func TestEpicAutoDispatchAndHold(t *testing.T) {
 func TestProjectPhase(t *testing.T) {
 	p := issue(80, labelProject)
 	p.Body = "## 目標\n\n地図の読み込みを改善する\n\n## 次に決めること\n- 分割案を確認する\n"
-	research := issue(81, labelResearch)
-	research.Parent = 80
-	issues := map[int]*Issue{80: p, 81: research}
-	if got := build(issues, []Event{ev(81, "dispatched", now)}, nil, "hub", now).Projects[0].Phase; got != 0 {
-		t.Fatalf("phase while researching = %d, want 0", got)
+	issues := map[int]*Issue{80: p}
+	if got := build(issues, nil, nil, "hub", now).Projects[0].Phase; got != 0 {
+		t.Fatalf("phase without children = %d, want 0", got)
 	}
-	research.PRs = []PRRef{{Number: 3, State: "OPEN"}}
-	snap := build(issues, []Event{ev(81, "dispatched", now)}, nil, "hub", now)
-	pv := snap.Projects[0]
-	if pv.Phase != 1 || !pv.Waiting || pv.Goal != "地図の読み込みを改善する" || pv.NextLabel != "次に決めること" || pv.Next != "分割案を確認する" {
+	spike := issue(81, labelSpike, labelSpikeOK)
+	spike.Parent = 80
+	issues[81] = spike
+	pv := build(issues, nil, nil, "hub", now).Projects[0]
+	if pv.Phase != 1 || !pv.Waiting || len(pv.Items) != 1 || pv.Goal != "地図の読み込みを改善する" || pv.NextLabel != "次に決めること" || pv.Next != "分割案を確認する" {
 		t.Fatalf("project = %+v", pv)
 	}
 	epic := issue(82, labelEpic)
 	epic.Parent = 80
-	issues[82] = epic
-	if got := build(issues, nil, nil, "hub", now).Projects[0].Phase; got != 2 {
-		t.Fatalf("phase with open epic = %d, want 2", got)
-	}
 	epic.State = "CLOSED"
-	if got := build(issues, nil, nil, "hub", now).Projects[0].Phase; got != 3 {
-		t.Fatalf("phase with all work closed = %d, want 3", got)
+	issues[82] = epic
+	if got := build(issues, nil, nil, "hub", now).Projects[0].Phase; got != 1 {
+		t.Fatalf("phase with an open spike = %d, want 1", got)
+	}
+	spike.State = "CLOSED"
+	if got := build(issues, nil, nil, "hub", now).Projects[0].Phase; got != 2 {
+		t.Fatalf("phase with all children closed = %d, want 2", got)
+	}
+}
+
+func TestSpike(t *testing.T) {
+	epic := issue(30, labelEpic)
+	rework := issue(31, labelSpike, labelSpikeRework)
+	ok := issue(32, labelSpike, labelSpikeOK)
+	pending := issue(33, labelSpike)
+	issues := map[int]*Issue{30: epic, 31: rework, 32: ok, 33: pending}
+	for n := 34; n <= 35; n++ {
+		c := issue(n)
+		c.Parent = 30
+		issues[n] = c
+	}
+	issues[34].BlockedBy = []IssueRef{{Number: 31, State: "OPEN"}}
+	issues[35].BlockedBy = []IssueRef{{Number: 32, State: "OPEN"}}
+	evs := []Event{ev(31, "dispatched", now), ev(32, "dispatched", now), ev(33, "dispatched", now)}
+	snap := build(issues, evs, nil, "hub", now)
+	for n, want := range map[int]string{31: stReview, 32: stReview, 33: stWorking} {
+		if r := findRow(t, snap.Rows, n); r.State != want {
+			t.Errorf("spike #%d = %s, want %s", n, r.State, want)
+		}
+	}
+	if r := findRow(t, snap.Rows, 31); r.Spike != "rework" {
+		t.Errorf("spike #31 label = %q", r.Spike)
+	}
+
+	rework.State, ok.State = "CLOSED", "CLOSED"
+	issues[34].BlockedBy[0].State = "CLOSED"
+	issues[35].BlockedBy[0].State = "CLOSED"
+	snap = build(issues, evs, nil, "hub", now)
+	if len(snap.AutoDispatch) != 1 || snap.AutoDispatch[0] != 35 {
+		t.Fatalf("auto dispatch = %v, want [35]", snap.AutoDispatch)
+	}
+	r := findRow(t, snap.Rows, 34)
+	if r.State != stDecide || r.Reason != "手戻りの確認" || r.Note != "#31 の spike で手戻りあり" || !r.CanDispatch {
+		t.Fatalf("task after a rework spike = %+v", r)
+	}
+	snap = build(issues, append(evs, ev(34, "dispatched", now)), nil, "hub", now)
+	if r := findRow(t, snap.Rows, 34); r.State != stWorking {
+		t.Fatalf("dispatched task after a rework spike = %s", r.State)
 	}
 }
 
