@@ -21,6 +21,7 @@ const usage = `usage:
                                       append an event (types: dispatched started
                                       question answer blocked unblocked pr revise)
   board open <N>                      bring the worker terminal of Issue N to the front
+  board room                          bring the Control room tab to the front in Orca
   board tasks                         print the board snapshot as JSON
   board cleanup <N>                   after Issue N is closed: remove .repos/*
                                       and unlock its worktree
@@ -168,6 +169,13 @@ func run(args []string) error {
 			return err
 		}
 		return openWorker(cfg, n)
+
+	case "room":
+		cfg, err := loadConfig()
+		if err != nil {
+			return err
+		}
+		return openControlRoom(cfg)
 
 	case "tasks":
 		cfg, err := loadConfig()

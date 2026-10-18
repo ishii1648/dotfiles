@@ -433,6 +433,34 @@ func derefTime(t *time.Time) time.Time {
 	return *t
 }
 
+// controlRoomCard is the card of the origin repository's main worktree, which
+// stays in the Orca sidebar as the way into the Control room.
+func controlRoomCard(snap Snapshot) card {
+	var waiting, working int
+	count := func(r Row) {
+		switch {
+		// An Epic is waiting on its own only when it has a reason; otherwise
+		// its state comes from children that are counted themselves.
+		case r.Kind == "epic" && r.Reason == "":
+		case r.State == stWaiting:
+			waiting++
+		case r.State == stWorking && r.Kind == "task":
+			working++
+		}
+	}
+	for _, r := range snap.Rows {
+		count(r)
+		for _, c := range r.Children {
+			count(c)
+		}
+	}
+	return card{
+		Name:    "Control room",
+		Comment: fmt.Sprintf("確認待ち %d / 作業中 %d", waiting, working),
+		Unread:  waiting > 0,
+	}
+}
+
 // desiredCards maps worktree path to the card the board wants Orca to show.
 func desiredCards(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort string, now time.Time) map[string]card {
 	idx := indexEvents(evs, now)

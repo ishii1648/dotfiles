@@ -138,6 +138,26 @@ func TestDesiredCards(t *testing.T) {
 	}
 }
 
+func TestControlRoomCard(t *testing.T) {
+	epic := issue(10, labelEpic)
+	epic.SubIssues = []IssueRef{{Number: 11, State: "OPEN"}, {Number: 12, State: "OPEN"}}
+	c11, c12 := issue(11), issue(12)
+	c11.Parent, c12.Parent = 10, 10
+	issues := map[int]*Issue{10: epic, 11: c11, 12: c12, 20: issue(20), 21: issue(21)}
+	evs := []Event{
+		ev(11, "dispatched", now), ev(11, "question", now),
+		ev(12, "dispatched", now),
+		ev(20, "dispatched", now), ev(20, "pr", now),
+	}
+	c := controlRoomCard(build(issues, evs, nil, "hub", now))
+	if c.Name != "Control room" || c.Status != "" || c.Comment != "確認待ち 2 / 作業中 1" || !c.Unread {
+		t.Errorf("busy card = %+v", c)
+	}
+	if c := controlRoomCard(build(map[int]*Issue{20: issue(20)}, nil, nil, "hub", now)); c.Unread || c.Comment != "確認待ち 0 / 作業中 0" {
+		t.Errorf("idle card = %+v", c)
+	}
+}
+
 func TestTailerSkipsBadLinesAndWaitsForNewline(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "events.jsonl")

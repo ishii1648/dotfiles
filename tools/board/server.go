@@ -184,6 +184,7 @@ func (s *server) refresh() {
 	var cards map[string]card
 	if s.orcaErr == "" && s.issues != nil {
 		cards = desiredCards(issues, evs, wts, s.cfg.Short(), now)
+		cards[s.cfg.RepoPath] = controlRoomCard(snap)
 	}
 	var ready []int
 	if s.issues != nil && s.githubErr == "" && s.orcaErr == "" && !snap.Held && !s.dispatching {
