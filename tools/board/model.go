@@ -528,7 +528,7 @@ func controlRoomCard(snap Snapshot) card {
 	if decide > 0 {
 		comment = fmt.Sprintf("判断待ち %d / %s", decide, comment)
 	}
-	return card{Name: "Control Room", Comment: comment}
+	return card{Name: "master", Comment: comment}
 }
 
 // desiredCards maps worktree path to the card the board wants Orca to show.
