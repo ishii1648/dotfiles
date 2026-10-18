@@ -19,14 +19,11 @@ const usage = `usage:
   board dispatch <N> [--by NAME]      start a worker for Issue N
   board event <N> <type> [text] [--url URL] [--by NAME]
                                       append an event (types: dispatched started
-                                      question answer blocked unblocked pr revise
-                                      result accepted)
+                                      question answer blocked unblocked pr revise)
   board open <N>                      bring the worker terminal of Issue N to the front
   board tasks                         print the board snapshot as JSON
   board cleanup <N>                   after Issue N is closed: remove .repos/*
                                       and unlock its worktree
-  board sync-research [N] [--if-older 30m]
-                                      mirror research/<N>/*.md to the Issue
 
 --by defaults to $BOARD_BY; N defaults to $BOARD_ISSUE where noted.`
 
@@ -213,27 +210,6 @@ func run(args []string) error {
 			fmt.Println(d)
 		}
 		return err
-
-	case "sync-research":
-		opts, pos, err := splitArgs(rest, "if-older")
-		if err != nil {
-			return err
-		}
-		n, err := issueArg(pos, 0, true)
-		if err != nil || n == 0 {
-			return err
-		}
-		var older time.Duration
-		if v := opts["if-older"]; v != "" {
-			if older, err = time.ParseDuration(v); err != nil {
-				return err
-			}
-		}
-		cfg, err := loadConfig()
-		if err != nil {
-			return err
-		}
-		return syncResearch(cfg, n, older)
 
 	case "help", "-h", "--help":
 		fmt.Println(usage)

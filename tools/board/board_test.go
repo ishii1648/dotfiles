@@ -104,7 +104,7 @@ func TestProjectPhase(t *testing.T) {
 	research := issue(81, labelResearch)
 	research.Parent = 80
 	issues := map[int]*Issue{80: p, 81: research}
-	snap := build(issues, []Event{ev(81, "dispatched", now), ev(81, "result", now)}, nil, "hub", now)
+	snap := build(issues, []Event{ev(81, "dispatched", now), ev(81, "pr", now)}, nil, "hub", now)
 	pv := snap.Projects[0]
 	if pv.Phase != 1 || pv.Goal != "地図の読み込みを改善する" || pv.NextLabel != "次に決めること" || pv.Next != "分割案を確認する" {
 		t.Fatalf("project = %+v", pv)
@@ -197,30 +197,6 @@ func TestSplitArgs(t *testing.T) {
 	if err != nil || opts["url"] != "https://x" || opts["by"] != "hub-42" || len(pos) != 3 {
 		t.Fatalf("opts=%v pos=%v err=%v", opts, pos, err)
 	}
-}
-
-func TestResearchBodyPutsSummaryFirst(t *testing.T) {
-	dir := t.TempDir()
-	os.WriteFile(filepath.Join(dir, "a.md"), []byte("A"), 0o644)
-	os.WriteFile(filepath.Join(dir, "summary.md"), []byte("S"), 0o644)
-	os.WriteFile(filepath.Join(dir, ".synced"), nil, 0o644)
-	body, err := researchBody(42, dir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	si, ai := indexOf(body, "### summary.md"), indexOf(body, "### a.md")
-	if si < 0 || ai < 0 || si > ai || indexOf(body, researchMarker(42)) != 0 {
-		t.Fatalf("body = %q", body)
-	}
-}
-
-func indexOf(s, sub string) int {
-	for i := 0; i+len(sub) <= len(s); i++ {
-		if s[i:i+len(sub)] == sub {
-			return i
-		}
-	}
-	return -1
 }
 
 func TestWaitingAlertsOncePerEvent(t *testing.T) {

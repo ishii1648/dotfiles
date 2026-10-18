@@ -136,8 +136,6 @@ func waitingReason(e *Event) string {
 			return "レビュー: " + e.URL
 		}
 		return "レビュー"
-	case "result":
-		return "受け入れ待ち"
 	}
 	return ""
 }
@@ -159,7 +157,7 @@ func taskState(i *Issue, ie *issueEvents) (state, reason, note string) {
 		return stTodo, "", ""
 	}
 	switch ie.last.Type {
-	case "question", "blocked", "pr", "result":
+	case "question", "blocked", "pr":
 		return stWaiting, waitingReason(ie.last), ""
 	}
 	return stWorking, "", ""
@@ -171,7 +169,7 @@ func cardFor(state string, e *Event) card {
 		return card{Status: "completed", Comment: "完了"}
 	case stWaiting:
 		c := card{Status: "in-progress", Comment: waitingReason(e), Unread: true}
-		if e.Type == "pr" || e.Type == "result" {
+		if e.Type == "pr" {
 			c.Status = "in-review"
 		}
 		return c
@@ -387,7 +385,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 			}
 			if c.Kind() == "task" && c.HasLabel(labelResearch) {
 				research = append(research, item)
-				if r.State == stWaiting && r.Reason == "受け入れ待ち" {
+				if r.State == stWaiting && strings.HasPrefix(r.Reason, "レビュー") {
 					researchWaiting = true
 				}
 			} else {

@@ -50,10 +50,6 @@ func stateDir() string {
 
 func eventsPath() string { return filepath.Join(stateDir(), "events.jsonl") }
 
-func researchDir(n int) string {
-	return filepath.Join(stateDir(), "research", fmt.Sprint(n))
-}
-
 func loadConfig() (Config, error) {
 	var c Config
 	p := configPath()

@@ -4,7 +4,7 @@ description: >-
   Run this session as the intake desk of the board workflow: turn the human's requests into Issues
   in the origin repository, split Projects into Epics and Tasks, and make judgments that span
   several Issues. Use when the user starts the master session ("/master", "マスターとして動いて").
-version: 0.2.0
+version: 0.3.0
 allowed-tools: Bash, Agent
 ---
 
@@ -49,7 +49,7 @@ GHTKN_APP=write gh api -X POST repos/<R>/issues/<後の番号>/dependencies/bloc
 ```
 
 - Epic の子 Task は、依存が解けたものから board サーバーが自動で起動する。子の blocked by を設定し終えてから Epic に紐付けると、途中で起動しない
-- 調査結果を人が受け入れたら、`board event <N> accepted --by master` と `GHTKN_APP=write gh issue close <N> --repo <R>` で閉じる
+- 調査結果は PR として届き、人がマージすると Issue が閉じる
 
 ## しないこと
 

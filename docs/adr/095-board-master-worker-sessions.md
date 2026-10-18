@@ -29,11 +29,12 @@
 - Orca のカードは board サーバーだけが書く。カードと board の表示が同じ規則で決まり、ずれない
 - dispatch は `board dispatch <N>` の 1 コマンド。worktree の作成と lock、Orca の端末でのワーカー起動、`dispatched` の追記を行い、ロックファイルで直列化して 1 つの Issue に 2 つのワーカーが起動しないようにする
 - Epic の子 Task は、依存が解けたら board サーバーが自動で dispatch する。5 つ以上が同時に起動待ちになったら起動せず、人の確認を待つ
+- research Task の成果物も、起点のリポジトリの `docs/<topic>/` に commit して PR にする。正本を GitHub に揃え、受け入れを PR のマージで表すことで、通常の Task と同じ流れで閉じる
 - Issue が閉じたら、board サーバーが `board cleanup` を自動で行う（`.repos/*` を `--force` 無しで remove し、worktree の lock を外す）。commit していない変更があれば止まり、Control room に表示する
 - 操作の API は起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` だけ。Host・Origin・`Sec-Fetch-Site` と、画面に埋め込んだトークンで、別のページや DNS rebinding からの呼び出しを拒否する
 - 起点のリポジトリが端末ごとに違うので、端末をまたいで使う開発環境の道具として dotfiles に置く。起点のリポジトリは `setup-manifest.local.yml` の `components.board.setup_args` で渡し、setup.sh が `~/.config/board/config.json` を書く
 - master / worker skill も dotfiles に置く。skill は events.jsonl を直接書かず、必ず `board event` / `board dispatch` を通す。イベントの形を知るのは board だけになる
-- 起点のリポジトリには、その中でだけ効く設定（allow ルール、調査結果の同期 hook、`.gitignore` の `.repos/`）だけを置く
+- 起点のリポジトリには、その中でだけ効く設定（allow ルール、`.gitignore` の `.repos/`）だけを置く
 - ファイルの監視は fsnotify を使わず 1 秒ごとのポーリングにする。外部依存を持たずに済み、1 秒の遅れは board の用途では問題にならない
 
 ### 案B: 起点のリポジトリ（hub）の `tools/board` に置く（却下）
