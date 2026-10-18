@@ -339,6 +339,14 @@ func (s *server) handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-store")
 		fmt.Fprint(w, strings.Replace(indexHTML, "{{TOKEN}}", s.token, 1))
 	})
+	// The token changes on every server start; a page left open across a
+	// restart fetches the new one here. Cross-origin pages cannot read this
+	// response, and the Host check below rules out DNS rebinding.
+	mux.HandleFunc("/api/token", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain")
+		w.Header().Set("Cache-Control", "no-store")
+		fmt.Fprint(w, s.token)
+	})
 	mux.HandleFunc("/api/tasks", func(w http.ResponseWriter, r *http.Request) {
 		s.mu.Lock()
 		b := s.snapshot
