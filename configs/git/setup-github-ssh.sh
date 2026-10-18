@@ -142,6 +142,29 @@ else
     fi
 fi
 
+# Step 4b: ~/.ssh/allowed_signers（未設定だと git log 等で SSH 署名を検証できない）
+echo -e "  Step 4b: gpg.ssh.allowedSignersFile"
+ALLOWED_SIGNERS="$HOME/.ssh/allowed_signers"
+SIGNER_EMAIL="${SETUP_USER_EMAIL:-$(git config --global user.email)}"
+if [[ -z "$SIGNER_EMAIL" ]]; then
+    echo -e "    ${YELLOW}SKIP${NC} user.email is not set"
+elif [[ ! -f "$SIGN_PUBKEY" ]]; then
+    echo -e "    ${YELLOW}SKIP${NC} $SIGN_PUBKEY not found"
+elif $DRY_RUN; then
+    echo -e "    Would add $SIGNER_EMAIL to $ALLOWED_SIGNERS"
+    echo -e "    Would run: git config --global gpg.ssh.allowedSignersFile $ALLOWED_SIGNERS"
+else
+    SIGNER_LINE="$SIGNER_EMAIL $(cut -d' ' -f1,2 "$SIGN_PUBKEY")"
+    mkdir -p "$HOME/.ssh"
+    if { grep -qxF "$SIGNER_LINE" "$ALLOWED_SIGNERS" 2>/dev/null || echo "$SIGNER_LINE" >> "$ALLOWED_SIGNERS"; } && \
+       git config --global gpg.ssh.allowedSignersFile "$ALLOWED_SIGNERS"; then
+        echo -e "    ${GREEN}✓${NC} gpg.ssh.allowedSignersFile=$ALLOWED_SIGNERS"
+    else
+        echo -e "    ${RED}FAIL${NC} Could not configure $ALLOWED_SIGNERS"
+        ((ERRORS++))
+    fi
+fi
+
 # Step 5: 鍵ファイルの存在確認
 echo -e "  Step 5: key files"
 for key in "$SETUP_AUTH_KEY" "$SETUP_SIGN_KEY"; do
