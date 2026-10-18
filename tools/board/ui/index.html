@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Control room</title>
+<title>Control Room</title>
 <style>
 :root {
   --bg: #f4f5f7; --surface: #fff; --fg: #1b2130; --muted: #5c6575; --line: #d5dae2;
@@ -65,8 +65,8 @@ td.prc { white-space: normal; min-width: 150px; }
 tr.hl td, .pr.hl { background: color-mix(in srgb, var(--warn) 14%, transparent); }
 .hot { color: var(--warn); font-weight: 700; }
 .now { color: var(--accent); font-weight: 700; }
-.prog { display: inline-flex; align-items: center; gap: 8px; }
-.prog i { width: 110px; height: 6px; border-radius: 3px; background: var(--line); display: inline-block; overflow: hidden; }
+.prog { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+.prog i { width: 72px; height: 5px; border-radius: 3px; background: var(--line); display: inline-block; overflow: hidden; }
 .prog i b { display: block; height: 100%; background: var(--accent); }
 .go { all: unset; cursor: pointer; border: 1px solid var(--link); color: var(--link); border-radius: 5px; padding: 0 10px; font-size: 11.5px; font-weight: 700; }
 .go:disabled { opacity: .5; cursor: progress; }
@@ -102,7 +102,7 @@ dt { font-weight: 700; } dd { margin: 0; }
   <div id="alerts"></div>
   <div class="card">
     <div class="top">
-      <h1>Control room</h1>
+      <h1>Control Room</h1>
       <div class="meta"><span class="live" id="live"><i></i><span>接続中</span></span><span id="ghat"></span></div>
     </div>
     <div class="tabs">
@@ -143,28 +143,18 @@ function ago(iso) {
 
 function lastCell(r) {
   const label = ago(r.lastProgress);
-  const cls = label === "今日" ? "now" : r.stale ? "hot" : "";
-  return `<td class="${cls}">${label}</td>`;
-}
-
-function todayCell(r) {
-  if (r.kind === "epic") return `<td>${r.todayCount ? `子Task ${r.todayCount}件` : "—"}</td>`;
-  return r.todayCount ? `<td class="now">今日</td>` : "<td>—</td>";
-}
-
-function progCell(r) {
-  if (r.progress && r.progress.total) {
-    const pct = Math.round(100 * r.progress.done / r.progress.total);
-    return `<td><span class="prog"><i><b style="width:${pct}%"></b></i>完了 ${r.progress.done}/${r.progress.total}</span></td>`;
-  }
-  if (r.note) return `<td>${esc(r.note)}</td>`;
-  if (r.stale && r.state === "todo") return `<td class="hot">進捗なし</td>`;
-  return "<td>—</td>";
+  const cls = label === "今日" && r.state !== "done" ? "now" : r.stale ? "hot" : "";
+  const sub = r.kind === "epic" && r.todayCount ? `<span class="reason">子Task ${r.todayCount}件が今日</span>`
+    : r.stale ? `<span class="reason">3日以上進捗なし</span>` : "";
+  return `<td><span class="${cls}">${label}</span>${sub}</td>`;
 }
 
 function stateCell(r) {
-  const reason = r.reason ? `<span class="reason">${esc(r.reason)}</span>` : "";
-  return `<td><span class="s ${r.state}">${STATE_LABEL[r.state] || r.state}</span>${reason}</td>`;
+  const sub = r.reason || r.note;
+  const reason = sub ? `<span class="reason">${esc(sub)}</span>` : "";
+  const p = r.progress;
+  const prog = p && p.total ? `<span class="prog"><i><b style="width:${Math.round(100 * p.done / p.total)}%"></b></i>完了 ${p.done}/${p.total}</span>` : "";
+  return `<td><span class="s ${r.state}">${STATE_LABEL[r.state] || r.state}</span>${reason}${prog}</td>`;
 }
 
 const PR_STATE = { open: "", draft: "draft", merged: "merged" };
@@ -240,10 +230,10 @@ function renderTasks() {
   const chip = (id, label) => `<button class="chip ${ui.chip === id ? "on" : ""}" data-chip="${id}">${label}</button>`;
   let body = "";
   for (const r of rows) {
-    body += `<tr data-prs="${prURLs(r)}">${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${prCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}</tr>`;
+    body += `<tr data-prs="${prURLs(r)}">${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${prCell(r)}${lastCell(r)}</tr>`;
     if (r.kind === "epic" && !ui.collapsed[r.number]) {
       for (const c of r.children || []) {
-        body += `<tr class="child" data-prs="${prURLs(c)}">${actionCell(c)}${titleCell(c, true)}${stateCell(c)}${prCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}</tr>`;
+        body += `<tr class="child" data-prs="${prURLs(c)}">${actionCell(c)}${titleCell(c, true)}${stateCell(c)}${prCell(c)}${lastCell(c)}</tr>`;
       }
     }
   }
@@ -265,7 +255,7 @@ function renderTasks() {
       <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "判断・レビュー待ち")}</div>
     </div>
     ${rows.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>PR</th><th>今日</th><th>最終進捗</th><th>進み具合</th></tr></thead>
+      <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>PR</th><th>最終進捗</th></tr></thead>
       <tbody>${body}</tbody></table></div>
       <div class="foot">Epic ${epics} · 単独Task ${rows.length - epics}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
 }

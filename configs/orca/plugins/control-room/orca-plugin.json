@@ -2,15 +2,15 @@
   "manifestVersion": 1,
   "id": "control-room",
   "publisher": "ishii1648",
-  "name": "Control room",
+  "name": "Control Room",
   "version": "1.0.0",
-  "description": "A shortcut that brings the board's Control room tab to the front.",
+  "description": "A shortcut that brings the board's Control Room tab to the front.",
   "engines": { "orca": ">=1.4.0" },
   "pluginApi": 1,
   "main": "main.mjs",
   "contributes": {
     "commands": [
-      { "id": "open-control-room", "title": "Open Control room", "context": "global" }
+      { "id": "open-control-room", "title": "Open Control Room", "context": "global" }
     ],
     "keybindings": [{ "command": "open-control-room", "key": "Mod+Alt+C", "when": "global" }]
   },

@@ -10,7 +10,7 @@ allowed-tools: Bash, Agent
 
 # master
 
-マスターは **起票と計画の窓口** だけを担う。Issue の進み具合を見渡すのは Control room（board）、人を待っているワーカーに気付かせるのは Orca の通知で、質問への回答やレビューは人が各ワーカーの端末で直接行う。マスターは報告の通り道に入らない。
+マスターは **起票と計画の窓口** だけを担う。Issue の進み具合を見渡すのは Control Room（board）、人を待っているワーカーに気付かせるのは Orca の通知で、質問への回答やレビューは人が各ワーカーの端末で直接行う。マスターは報告の通り道に入らない。
 
 起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>` と書く。
 
@@ -24,8 +24,8 @@ allowed-tools: Bash, Agent
 - 人の依頼を Issue にする。漠然とした依頼は、目的と完了条件を人と詰めてから起票する
 - Project を分割する。まず `research` の Task で分割案を作らせ、人が承認したら Epic / Task を起票する
 - Issue をまたぐ判断をする。重複や衝突、順序（blocked by）に気付いたら人に伝え、Issue に反映する
-- 人に頼まれたら `board dispatch <N> --by master` で着手させてよい（ふだんは人が Control room の起動ボタンで行う）。一度に 5 つ以上なら先に一覧を示して確認する
-- 状況を聞かれたら `board tasks` を読んで答える。ただし詳しい経過は Control room とワーカー本人に任せ、要約を中継し続けない
+- 人に頼まれたら `board dispatch <N> --by master` で着手させてよい（ふだんは人が Control Room の起動ボタンで行う）。一度に 5 つ以上なら先に一覧を示して確認する
+- 状況を聞かれたら `board tasks` を読んで答える。ただし詳しい経過は Control Room とワーカー本人に任せ、要約を中継し続けない
 
 重い処理（起票文の下書き、分割案の読み込み）は background の subagent に任せ、ターンを短く保つ。
 
@@ -37,7 +37,7 @@ allowed-tools: Bash, Agent
 |---|---|---|
 | Task | なし（調査が成果物なら `research`） | 目的と完了条件 |
 | Epic | `type:epic` | 子 Task の一覧と順序 |
-| Project | `type:project` | `## 目標` と `## 次の節目` の見出しを必ず書く（Control room がその直下の 1 行を表示する）。節目が変わったら本文を更新する |
+| Project | `type:project` | `## 目標` と `## 次の節目` の見出しを必ず書く（Control Room がその直下の 1 行を表示する）。節目が変わったら本文を更新する |
 
 親子は sub-issue、順序は blocked by で表す。API は Issue の **id**（number ではない）を取る。
 

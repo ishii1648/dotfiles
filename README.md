@@ -116,19 +116,19 @@ bash scripts/setup.sh --profile remote
 
 worktree 管理は [docs/reference.md](docs/reference.md) を参照。
 
-### Control room（board と master / worker セッション）
+### Control Room（board と master / worker セッション）
 
-実作業は Issue ごとの worktree で動くワーカーのセッションに任せ、どこで何が起きているかは Control room（Orca のブラウザで開く board）で見る。人を待っているワーカーは Orca が検知して通知し、サイドバーに未読を付けるので、そこから開いて直接答える。Control room は Issue 単位の見取り図（未着手・依存待ち・レビュー待ち・Epic / Project の進み具合）を受け持つ。マスターのセッションは起票と計画の窓口だけを担う（[ADR-095](docs/adr/095-board-master-worker-sessions.md)）。起点のリポジトリは `scripts/setup-manifest.local.yml` の `components.board.setup_args`（`repo` / `repo_path`）で指定し、setup.sh を実行すると `board` CLI と LaunchAgent `com.user.board` が入る。
+実作業は Issue ごとの worktree で動くワーカーのセッションに任せ、どこで何が起きているかは Control Room（Orca のブラウザで開く board）で見る。人を待っているワーカーは Orca が検知して通知し、サイドバーに未読を付けるので、そこから開いて直接答える。Control Room は Issue 単位の見取り図（未着手・依存待ち・レビュー待ち・Epic / Project の進み具合）を受け持つ。マスターのセッションは起票と計画の窓口だけを担う（[ADR-095](docs/adr/095-board-master-worker-sessions.md)）。起点のリポジトリは `scripts/setup-manifest.local.yml` の `components.board.setup_args`（`repo` / `repo_path`）で指定し、setup.sh を実行すると `board` CLI と LaunchAgent `com.user.board` が入る。
 
 マスターの開き方:
 
 ```bash
-# Orca で起点のリポジトリの main のカード（サイドバーの「Control room」）を開き、その端末で
+# Orca で起点のリポジトリの main のカード（サイドバーの「Control Room」）を開き、その端末で
 claude --permission-mode auto
 # 起動したら /master を実行する
 ```
 
-Control room は main のワークスペースにある Orca のブラウザタブ（`http://127.0.0.1:7342/`）で開く。board は main のカードを表示名「Control room」にし、コメントに判断待ち・レビュー待ち・作業中の件数を書くので、サイドバーからいつでも辿れる。`board room` はこのタブを前面に出し、閉じていれば開き直す。Orca のショートカット（既定は `Mod+Alt+C`）で呼ぶには、Orca の設定のプラグインからローカルパス `configs/orca/plugins/control-room` を一度インストールする。Orca はプラグインをコピーして使うので、変更したら入れ直す。起動ボタンと「開く」ボタンは、board サーバーが起動するたびに作るトークンで守られている。人が設定する値は無く、サーバーの再起動で変わっても、開いたままの画面が自動で取り直す。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) と [worker skill](configs/claude/skills/worker/SKILL.md) を参照。
+Control Room は main のワークスペースにある Orca のブラウザタブ（`http://127.0.0.1:7342/`）で開く。board は main のカードを表示名「Control Room」にし、コメントに判断待ち・レビュー待ち・作業中の件数を書くので、サイドバーからいつでも辿れる。`board room` はこのタブを前面に出し、閉じていれば開き直す。Orca のショートカット（既定は `Mod+Alt+C`）で呼ぶには、Orca の設定のプラグインからローカルパス `configs/orca/plugins/control-room` を一度インストールする。Orca はプラグインをコピーして使うので、変更したら入れ直す。起動ボタンと「開く」ボタンは、board サーバーが起動するたびに作るトークンで守られている。人が設定する値は無く、サーバーの再起動で変わっても、開いたままの画面が自動で取り直す。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) と [worker skill](configs/claude/skills/worker/SKILL.md) を参照。
 
 ### Docker サンドボックス
 

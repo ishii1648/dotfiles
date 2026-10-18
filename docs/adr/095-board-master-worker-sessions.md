@@ -22,8 +22,8 @@
 
 ### 案A: board CLI と常駐サーバーを dotfiles に置く（採用）
 
-- Orca の標準機能と Control room（board）で受け持ちを分ける。セッション単位で今その場で対応すべきもの（エージェントの入力待ち・要対応の検知、デスクトップとスマートフォンへの通知、未読、端末への移動）は Orca に任せる。ワーカーは自分の端末で問いを出してターンを終えるだけで、Orca がアイドルへの遷移を検知して通知する。Control room は Issue 単位で、まだセッションが無いもの・セッションをまたぐもの（未着手と起動、依存待ちと自動起動、Epic / Project の階層とフェーズ、進捗の滞り、close 後の片付け）を受け持つ。cross-session messaging は使わない
-- Control room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR（draft を除く）から判定する。PR と Task は多対多なので、Task の行には紐付く PR（open・draft・merged）をすべて並べ、同じ PR が閉じるほかの Issue も示す。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
+- Orca の標準機能と Control Room（board）で受け持ちを分ける。セッション単位で今その場で対応すべきもの（エージェントの入力待ち・要対応の検知、デスクトップとスマートフォンへの通知、未読、端末への移動）は Orca に任せる。ワーカーは自分の端末で問いを出してターンを終えるだけで、Orca がアイドルへの遷移を検知して通知する。Control Room は Issue 単位で、まだセッションが無いもの・セッションをまたぐもの（未着手と起動、依存待ちと自動起動、Epic / Project の階層とフェーズ、進捗の滞り、close 後の片付け）を受け持つ。cross-session messaging は使わない
+- Control Room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR（draft を除く）から判定する。PR と Task は多対多なので、Task の行には紐付く PR（open・draft・merged）をすべて並べ、同じ PR が閉じるほかの Issue も示す。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
 - 進捗の時刻は、board の event、Issue と紐付く PR の updatedAt、Orca のワークツリーの lastActivityAt のうち最も新しいものとする
 - マスターは起票と計画の窓口だけを担う（起票、Project の分割、Issue をまたぐ判断）。報告の通り道には入らない。起点のリポジトリの main のカードで `claude --permission-mode auto` として開き、`/master` を実行する
 - Issue の内容・open / close・PR は GitHub を正とする。ローカルの追記専用ログ `~/.local/state/board/events.jsonl` には、ワーカーを起動した事実（`dispatched` / `started`）だけを `board event` / `board dispatch` で追記する
@@ -33,7 +33,7 @@
 - Task と結び付けるのは worktree（branch `issue-<N>`）と Claude セッションの両方とする。作業中かどうかは worktree の有無で決める。起動済みなのに worktree が無い Task（手で消された場合など）は「未着手（worktree が見つからない）」として再開ボタンを出す。再開では、lock された git の登録を外して同じ path と branch に worktree を作り直し、記録したセッションを `claude --resume` で続ける。失われるのは commit していない変更だけで、会話の記録から作り直せる。再開は人の操作だけで行い、自動 dispatch の対象にはしない
 - Epic の子 Task は、依存が解けたら board サーバーが自動で dispatch する。5 つ以上が同時に起動待ちになったら起動せず、人の確認を待つ
 - research Task の成果物も、起点のリポジトリの `docs/<topic>/` に commit して PR にする。正本を GitHub に揃え、受け入れを PR のマージで表すことで、通常の Task と同じ流れで閉じる
-- Issue が閉じたら、board サーバーが `board cleanup` を自動で行う（`.repos/*` を `--force` 無しで remove し、worktree の lock を外す）。commit していない変更があれば止まり、Control room に表示する
+- Issue が閉じたら、board サーバーが `board cleanup` を自動で行う（`.repos/*` を `--force` 無しで remove し、worktree の lock を外す）。commit していない変更があれば止まり、Control Room に表示する
 - 操作の API は起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` だけ。Host・Origin・`Sec-Fetch-Site` と、画面に埋め込んだトークンで、別のページや DNS rebinding からの呼び出しを拒否する
 - 起点のリポジトリが端末ごとに違うので、端末をまたいで使う開発環境の道具として dotfiles に置く。起点のリポジトリは `setup-manifest.local.yml` の `components.board.setup_args` で渡し、setup.sh が `~/.config/board/config.json` を書く
 - master / worker skill も dotfiles に置く。skill は events.jsonl を直接書かず、必ず `board event` / `board dispatch` を通す。イベントの形を知るのは board だけになる
@@ -48,7 +48,7 @@ repo-index の基準（hub 以外で作業するときにも効いてほしい�
 
 人が話す相手は 1 つで済むが、マスターのターンがすべてのやりとりの待ち行列になり、人が見るのはマスターの要約だけになる。質問への回答は、文脈を持つワーカー本人に直接伝えるほうが速く、情報も落ちない。代わりに、どのワーカーが人を待っているかを Orca の通知と未読で見えるようにする。
 
-### 案E: ワーカーの確認待ちを board event で記録し、Control room が通知する（却下）
+### 案E: ワーカーの確認待ちを board event で記録し、Control Room が通知する（却下）
 
 当初はこの形で実装した。ワーカーが `question` / `blocked` / `pr` を記録し、board が確認待ちとして並べて macOS 通知を出す。しかし Orca は同じことを標準機能で、実際のエージェントの状態から行い、スマートフォンにも届く。board の通知は記録を忘れると出ず、Mac にしか届かず、同じ出来事で通知が二重になる。さらに board がカードに `--read` を書いて Orca の未読を消していた。
 

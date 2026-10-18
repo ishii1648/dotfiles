@@ -62,7 +62,7 @@ func openWorker(cfg Config, n int) error {
 	return nil
 }
 
-// openControlRoom brings the Control room tab of the main worktree to the front
+// openControlRoom brings the Control Room tab of the main worktree to the front
 // in Orca, opening one there when it is gone.
 func openControlRoom(cfg Config) error {
 	url := fmt.Sprintf("http://127.0.0.1:%d/", cfg.Port)

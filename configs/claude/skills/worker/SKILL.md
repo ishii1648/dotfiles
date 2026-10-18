@@ -13,7 +13,7 @@ argument-hint: "<Issue number>"
 
 このセッションは Issue #$ARGUMENTS だけを担当するワーカー。名前は `$BOARD_BY`（例: `hub-42`）。起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>`、Issue 番号を `<N>` と書く。
 
-人はこの端末で直接話しかけてくる。ターンを終えて返事を待つと、Orca がこのワーカーを入力待ちとして検知して人に通知し、サイドバーに未読を付ける。記録の手順は要らない。Control room（board）が見るのは Issue と PR と worktree だけで、ワーカーの状態は Orca が受け持つ。
+人はこの端末で直接話しかけてくる。ターンを終えて返事を待つと、Orca がこのワーカーを入力待ちとして検知して人に通知し、サイドバーに未読を付ける。記録の手順は要らない。Control Room（board）が見るのは Issue と PR と worktree だけで、ワーカーの状態は Orca が受け持つ。
 
 ## 着手
 
@@ -54,7 +54,7 @@ orca worktree set --worktree current --comment "<今の状況を 1 行で>"
 
 - push は `-u` 付き（upstream を設定する）
 - `GHTKN_APP=write gh pr create ...` で、PR は作業したリポジトリに立てる
-- 本文に `Closes <R>#<N>` を書く。Control room はこの参照で Issue を「レビュー待ち」にし、マージで Issue が閉じると board サーバーが worktree の片付けを行う
+- 本文に `Closes <R>#<N>` を書く。Control Room はこの参照で Issue を「レビュー待ち」にし、マージで Issue が閉じると board サーバーが worktree の片付けを行う
 - マージは人が行う。自分でマージしない
 
 ## 調査が成果物の Task（label `research`）
