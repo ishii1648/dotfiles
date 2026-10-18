@@ -1,6 +1,9 @@
 package main
 
 import (
+	"bufio"
+	"bytes"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,14 +34,75 @@ func withLock(fn func() error) error {
 	return fn()
 }
 
-func workerCommand(cfg Config, n int) string {
+// resumePrompt is sent to a worker resumed in a recreated worktree.
+const resumePrompt = "worktree を作り直した。commit していない変更は失われている。git status と git log で状態を確かめ、必要な変更をやり直してから作業を続けて"
+
+func workerCommand(cfg Config, n int, session string, resume bool) string {
 	name := cfg.WorkerName(n)
 	// Typed into the login shell (fish) by Orca, so keep it to plain words.
-	return fmt.Sprintf("env BOARD_BY=%s BOARD_ISSUE=%d claude --name %s --permission-mode auto '/worker %d'", name, n, name, n)
+	if resume {
+		return fmt.Sprintf("env BOARD_BY=%s BOARD_ISSUE=%d claude --resume %s --name %s --permission-mode auto '%s'", name, n, session, name, resumePrompt)
+	}
+	return fmt.Sprintf("env BOARD_BY=%s BOARD_ISSUE=%d claude --session-id %s --name %s --permission-mode auto '/worker %d'", name, n, session, name, n)
+}
+
+func newSessionID() string {
+	b := make([]byte, 16)
+	rand.Read(b)
+	b[6] = b[6]&0x0f | 0x40
+	b[8] = b[8]&0x3f | 0x80
+	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
+}
+
+// sessionExists reports whether Claude Code still has the session's record.
+func sessionExists(id string) bool {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return false
+	}
+	m, _ := filepath.Glob(filepath.Join(home, ".claude", "projects", "*", id+".jsonl"))
+	return len(m) > 0
+}
+
+func branchExists(repoPath, branch string) bool {
+	return exec.Command("git", "-C", repoPath, "show-ref", "--verify", "--quiet", "refs/heads/"+branch).Run() == nil
+}
+
+// forgetMissingWorktrees drops git's registration of branch's worktree when its
+// directory is gone, and returns the paths it dropped. The registration is
+// locked by dispatch, so prune alone keeps it, and while it stays Orca creates
+// the worktree under another name.
+func forgetMissingWorktrees(repoPath, branch string) ([]string, error) {
+	out, err := exec.Command("git", "-C", repoPath, "worktree", "list", "--porcelain").Output()
+	if err != nil {
+		return nil, fmt.Errorf("git worktree list: %w", err)
+	}
+	var path string
+	var missing []string
+	sc := bufio.NewScanner(bytes.NewReader(out))
+	for sc.Scan() {
+		l := sc.Text()
+		switch {
+		case strings.HasPrefix(l, "worktree "):
+			path = strings.TrimPrefix(l, "worktree ")
+		case l == "branch refs/heads/"+branch:
+			if _, err := os.Stat(path); err == nil {
+				continue
+			}
+			exec.Command("git", "-C", repoPath, "worktree", "unlock", path).Run()
+			missing = append(missing, path)
+		}
+	}
+	if b, err := exec.Command("git", "-C", repoPath, "worktree", "prune").CombinedOutput(); err != nil {
+		return nil, fmt.Errorf("git worktree prune: %v: %s", err, strings.TrimSpace(string(b)))
+	}
+	return missing, nil
 }
 
 // dispatch creates and locks the Issue's worktree, starts its worker in an
 // Orca terminal and records the dispatched event. It returns the worktree path.
+// An Issue dispatched before whose worktree is gone gets it back on the same
+// branch, and its worker resumes the recorded Claude session.
 func dispatch(cfg Config, n int, by string) (string, error) {
 	var wtPath string
 	err := withLock(func() error {
@@ -46,21 +110,38 @@ func dispatch(cfg Config, n int, by string) (string, error) {
 		if err != nil {
 			return err
 		}
-		if hasDispatched(evs, n) {
-			return errAlreadyDispatched
-		}
+		last := lastDispatch(evs, n)
 		wts, err := orcaPS()
 		if err != nil {
 			return err
 		}
 		if w := worktreeFor(wts, cfg.Short(), n); w != nil {
+			if last != nil {
+				return errAlreadyDispatched
+			}
 			return fmt.Errorf("issue %d already has a worktree without a dispatched event: %s", n, w.Path)
 		}
-		out, err := runOrca("worktree", "create",
-			"--repo", "path:"+cfg.RepoPath,
+		name := fmt.Sprintf("issue-%d", n)
+		args := []string{"worktree", "create",
+			"--repo", "path:" + cfg.RepoPath,
 			"--issue", fmt.Sprint(n),
-			"--name", fmt.Sprintf("issue-%d", n),
-			"--no-parent", "--json")
+			"--name", name,
+			"--no-parent", "--json"}
+		if last != nil && branchExists(cfg.RepoPath, name) {
+			missing, err := forgetMissingWorktrees(cfg.RepoPath, name)
+			if err != nil {
+				return err
+			}
+			// Orca keeps the removed worktree's terminals running and attaches
+			// them to the one recreated on the same path, so the old worker would
+			// share the resumed session. Orca may have forgotten the worktree
+			// already, in which case there is nothing to close.
+			for _, p := range missing {
+				runOrca("terminal", "close", "--worktree", "path:"+p, "--all", "--json")
+			}
+			args = append(args, "--base-branch", name)
+		}
+		out, err := runOrca(args...)
 		if err != nil {
 			return err
 		}
@@ -76,14 +157,18 @@ func dispatch(cfg Config, n int, by string) (string, error) {
 		if b, err := lock.CombinedOutput(); err != nil {
 			return fmt.Errorf("git worktree lock: %v: %s", err, strings.TrimSpace(string(b)))
 		}
+		session, resume := newSessionID(), false
+		if last != nil && last.Session != "" && sessionExists(last.Session) {
+			session, resume = last.Session, true
+		}
 		if _, err := runOrca("terminal", "create",
 			"--worktree", "path:"+wtPath,
 			"--title", fmt.Sprintf("%s#%d", cfg.Short(), n),
-			"--command", workerCommand(cfg, n),
+			"--command", workerCommand(cfg, n, session, resume),
 			"--json"); err != nil {
 			return fmt.Errorf("worktree %s is created and locked, but the worker did not start: %w", wtPath, err)
 		}
-		return appendEvent(Event{Issue: n, By: by, Type: "dispatched"})
+		return appendEvent(Event{Issue: n, By: by, Type: "dispatched", Session: session})
 	})
 	return wtPath, err
 }

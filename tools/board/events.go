@@ -16,6 +16,8 @@ type Event struct {
 	By    string    `json:"by"`
 	Type  string    `json:"type"`
 	Text  string    `json:"text,omitempty"`
+	// Session is the worker's Claude session ID on dispatched events.
+	Session string `json:"session,omitempty"`
 }
 
 var eventTypes = map[string]bool{"dispatched": true, "started": true}
@@ -143,13 +145,14 @@ func readAllEvents() ([]Event, error) {
 	return evs, nil
 }
 
-func hasDispatched(evs []Event, n int) bool {
-	for _, e := range evs {
-		if e.Issue == n && e.Type == "dispatched" {
-			return true
+func lastDispatch(evs []Event, n int) *Event {
+	var last *Event
+	for i := range evs {
+		if evs[i].Issue == n && evs[i].Type == "dispatched" {
+			last = &evs[i]
 		}
 	}
-	return false
+	return last
 }
 
 func ensureStateDir() error {

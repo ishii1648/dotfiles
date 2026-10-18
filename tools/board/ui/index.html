@@ -194,7 +194,7 @@ function prURLs(r) {
 }
 
 function actionCell(r) {
-  if (r.canDispatch) return `<td><button class="go" data-dispatch="${r.number}">▶ 起動</button></td>`;
+  if (r.canDispatch) return `<td><button class="go" data-dispatch="${r.number}">${r.resume ? "▶ 再開" : "▶ 起動"}</button></td>`;
   if (r.worktree && r.kind === "task" && r.state !== "done") return `<td><button class="go" data-open="${r.number}">開く</button></td>`;
   return "<td></td>";
 }

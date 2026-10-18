@@ -16,7 +16,8 @@ import (
 const usage = `usage:
   board serve                         run the board server (launchd runs this)
   board setup [--print]               write and register the LaunchAgent
-  board dispatch <N> [--by NAME]      start a worker for Issue N
+  board dispatch <N> [--by NAME]      start a worker for Issue N, or resume it
+                                      when its worktree is gone
   board event <N> <type> [text] [--by NAME]
                                       append an event (types: dispatched started)
   board open <N>                      bring the worker terminal of Issue N to the front
