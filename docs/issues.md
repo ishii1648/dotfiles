@@ -1959,7 +1959,8 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] Orca のブラウザで `http://127.0.0.1:7342/` を開くと、Task / Epic タブと Project タブが表示され、起動や PR の作成が再読み込みなしで反映される
 - [ ] `board dispatch <N>` で worktree が作られて lock され、Orca の端末で `/worker <N>` のワーカーが起動し、同じ Issue に重ねて呼んでも 2 つ目は起動しない
 - [ ] board の状態（作業中・レビュー待ち・完了）が Orca のカードの status に反映され、board はカードの未読とワーカーのカードのコメントを書き換えない
-- [ ] Issue を `Closes` で参照する open な PR（別リポジトリの PR を含む）があると、その Task が「レビュー待ち」になる
+- [ ] Issue を `Closes` で参照する open な PR（別リポジトリの PR を含む、draft を除く）があると、その Task が「レビュー待ち」になる
+- [ ] Task / Epic タブの PR 列に、Task を閉じる PR（open・draft・merged）が並び、同じ PR が閉じるほかの Task と、Epic では子 Task の PR の件数が出る
 - [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
 - [ ] 起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
 - [ ] ワーカーが端末で問いかけてターンを終えると Orca が通知し、通知か Control room の「開く」ボタンからそのワーカーの端末に移れる

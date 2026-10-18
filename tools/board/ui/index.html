@@ -53,6 +53,16 @@ td.title { white-space: normal; min-width: 260px; }
 .s.decide, .s.review { color: var(--warn); font-weight: 700; }
 .s.blocked { color: var(--warn); }
 .s.todo, .s.done { color: var(--muted); }
+.prs { display: grid; gap: 2px; }
+.pr { display: inline-flex; align-items: baseline; gap: 6px; flex-wrap: wrap; border-radius: 4px; padding: 0 4px; margin: 0 -4px; }
+.pr::before { content: ""; width: 8px; height: 8px; border-radius: 50%; display: inline-block; align-self: center; }
+.pr.open::before { background: var(--warn); }
+.pr.draft::before { border: 1.5px solid var(--muted); box-sizing: border-box; }
+.pr.merged::before { background: var(--muted); }
+.pr a { color: var(--link); font-family: ui-monospace, Menlo, monospace; font-size: 12px; }
+.pr .also { color: var(--muted); font-size: 11.5px; }
+td.prc { white-space: normal; min-width: 150px; }
+tr.hl td, .pr.hl { background: color-mix(in srgb, var(--warn) 14%, transparent); }
 .hot { color: var(--warn); font-weight: 700; }
 .now { color: var(--accent); font-weight: 700; }
 .prog { display: inline-flex; align-items: center; gap: 8px; }
@@ -153,10 +163,34 @@ function progCell(r) {
 }
 
 function stateCell(r) {
-  const reason = !r.reason ? ""
-    : r.state === "review" ? `<a class="reason" href="${esc(r.reason)}" target="_blank" rel="noopener">${esc(r.reason.replace(/^https:\/\/github\.com\//, ""))}</a>`
-    : `<span class="reason">${esc(r.reason)}</span>`;
+  const reason = r.reason ? `<span class="reason">${esc(r.reason)}</span>` : "";
   return `<td><span class="s ${r.state}">${STATE_LABEL[r.state] || r.state}</span>${reason}</td>`;
+}
+
+const PR_STATE = { open: "", draft: "draft", merged: "merged" };
+
+function prCell(r) {
+  if (r.kind === "epic") {
+    const seen = new Map();
+    for (const c of r.children || []) for (const p of c.prs || []) seen.set(p.url, p.state);
+    if (!seen.size) return `<td class="prc">—</td>`;
+    const n = s => [...seen.values()].filter(x => x === s).length;
+    const parts = ["open", "draft", "merged"].filter(s => n(s)).map(s => `${s} ${n(s)}`);
+    return `<td class="prc"><span class="reason">PR ${seen.size} 件 · ${parts.join(" · ")}</span></td>`;
+  }
+  if (!r.prs || !r.prs.length) return `<td class="prc">—</td>`;
+  const items = r.prs.map(p => {
+    const also = p.also || [];
+    const others = also.length > 3 ? `#${also[0]} ほか ${also.length - 1} 件も閉じる` : also.map(n => `#${n}`).join("・") + " も閉じる";
+    const note = [PR_STATE[p.state], also.length ? others : ""].filter(Boolean).join(" · ");
+    return `<span class="pr ${p.state}" data-pr="${esc(p.url)}"><a href="${esc(p.url)}" target="_blank" rel="noopener">${esc(p.label)}</a>${note ? `<span class="also">${esc(note)}</span>` : ""}</span>`;
+  }).join("");
+  return `<td class="prc"><div class="prs">${items}</div></td>`;
+}
+
+function prURLs(r) {
+  const rows = r.kind === "epic" ? r.children || [] : [r];
+  return esc(rows.flatMap(x => (x.prs || []).map(p => p.url)).join(" "));
 }
 
 function actionCell(r) {
@@ -206,10 +240,10 @@ function renderTasks() {
   const chip = (id, label) => `<button class="chip ${ui.chip === id ? "on" : ""}" data-chip="${id}">${label}</button>`;
   let body = "";
   for (const r of rows) {
-    body += `<tr>${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}</tr>`;
+    body += `<tr data-prs="${prURLs(r)}">${actionCell(r)}${titleCell(r, false)}${stateCell(r)}${prCell(r)}${todayCell(r)}${lastCell(r)}${progCell(r)}</tr>`;
     if (r.kind === "epic" && !ui.collapsed[r.number]) {
       for (const c of r.children || []) {
-        body += `<tr class="child">${actionCell(c)}${titleCell(c, true)}${stateCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}</tr>`;
+        body += `<tr class="child" data-prs="${prURLs(c)}">${actionCell(c)}${titleCell(c, true)}${stateCell(c)}${prCell(c)}${todayCell(c)}${lastCell(c)}${progCell(c)}</tr>`;
       }
     }
   }
@@ -231,7 +265,7 @@ function renderTasks() {
       <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "判断・レビュー待ち")}</div>
     </div>
     ${rows.length ? `<div class="tbl-wrap"><table>
-      <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>今日</th><th>最終進捗</th><th>進み具合</th></tr></thead>
+      <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>PR</th><th>今日</th><th>最終進捗</th><th>進み具合</th></tr></thead>
       <tbody>${body}</tbody></table></div>
       <div class="foot">Epic ${epics} · 単独Task ${rows.length - epics}</div>` : `<div class="empty">該当する Task / Epic はない</div>`}`;
 }
@@ -308,6 +342,18 @@ document.addEventListener("click", async e => {
   else if (t.dataset.open) { await openIssue(t); return; }
   else return;
   save(); render();
+});
+
+// Hovering a PR highlights every row it closes, since one PR can close several Issues.
+function highlightPR(url) {
+  for (const tr of document.querySelectorAll("tr[data-prs]")) {
+    tr.classList.toggle("hl", !!url && tr.dataset.prs.split(" ").includes(url));
+  }
+  for (const p of document.querySelectorAll(".pr[data-pr]")) p.classList.toggle("hl", !!url && p.dataset.pr === url);
+}
+document.addEventListener("mouseover", e => {
+  const p = e.target.closest(".pr[data-pr]");
+  highlightPR(p ? p.dataset.pr : "");
 });
 
 document.addEventListener("input", e => {

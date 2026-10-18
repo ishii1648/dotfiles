@@ -23,8 +23,8 @@ type Issue struct {
 	Parent    int
 	SubIssues []IssueRef
 	BlockedBy []IssueRef
-	// PRs are the open pull requests that close this Issue ("Closes <R>#<N>"),
-	// including ones in other repositories.
+	// PRs are the open and merged pull requests that close this Issue
+	// ("Closes <R>#<N>"), including ones in other repositories.
 	PRs []PRRef
 }
 
@@ -38,6 +38,7 @@ type PRRef struct {
 	Number    int       `json:"number"`
 	URL       string    `json:"url"`
 	State     string    `json:"state"`
+	IsDraft   bool      `json:"isDraft"`
 	UpdatedAt time.Time `json:"updatedAt"`
 }
 
@@ -73,7 +74,7 @@ labels(first: 20) { nodes { name } }
 parent { number }
 subIssues(first: 50) { nodes { number title state } }
 blockedBy(first: 20) { nodes { number title state } }
-closedByPullRequestsReferences(first: 5, includeClosedPrs: false) { nodes { number url state updatedAt } }`
+closedByPullRequestsReferences(first: 10, includeClosedPrs: true) { nodes { number url state isDraft updatedAt } }`
 
 // Closed issues are limited to the most recently updated ones; older closed
 // children still count toward progress through their parent's subIssues.
@@ -162,7 +163,7 @@ func fetchIssues(repo string) (map[int]*Issue, error) {
 				SubIssues: g.SubIssues.Nodes, BlockedBy: g.BlockedBy.Nodes,
 			}
 			for _, p := range g.PRs.Nodes {
-				if p.State == "OPEN" {
+				if p.State != "CLOSED" {
 					i.PRs = append(i.PRs, p)
 				}
 			}

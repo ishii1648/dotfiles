@@ -23,7 +23,7 @@
 ### 案A: board CLI と常駐サーバーを dotfiles に置く（採用）
 
 - Orca の標準機能と Control room（board）で受け持ちを分ける。セッション単位で今その場で対応すべきもの（エージェントの入力待ち・要対応の検知、デスクトップとスマートフォンへの通知、未読、端末への移動）は Orca に任せる。ワーカーは自分の端末で問いを出してターンを終えるだけで、Orca がアイドルへの遷移を検知して通知する。Control room は Issue 単位で、まだセッションが無いもの・セッションをまたぐもの（未着手と起動、依存待ちと自動起動、Epic / Project の階層とフェーズ、進捗の滞り、close 後の片付け）を受け持つ。cross-session messaging は使わない
-- Control room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR から判定する。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
+- Control room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR（draft を除く）から判定する。PR と Task は多対多なので、Task の行には紐付く PR（open・draft・merged）をすべて並べ、同じ PR が閉じるほかの Issue も示す。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
 - 進捗の時刻は、board の event、Issue と紐付く PR の updatedAt、Orca のワークツリーの lastActivityAt のうち最も新しいものとする
 - マスターは起票と計画の窓口だけを担う（起票、Project の分割、Issue をまたぐ判断）。報告の通り道には入らない。起点のリポジトリの main のカードで `claude --permission-mode auto` として開き、`/master` を実行する
 - Issue の内容・open / close・PR は GitHub を正とする。ローカルの追記専用ログ `~/.local/state/board/events.jsonl` には、ワーカーを起動した事実（`dispatched` / `started`）だけを `board event` / `board dispatch` で追記する
