@@ -19,7 +19,7 @@ ghtkn には、リポジトリやディレクトリごとに App を選ぶ設定
 
 ### 案A: direnv の `.envrc` で切り替える（採用）
 
-- direnv を aqua で導入し、fish の `conf.d/direnv.fish` で hook を有効にする
+- direnv を aqua で導入し、fish の `conf.d/zz-direnv.fish`（env.fish と path.fish の後に読ませる名前）で hook を有効にする
 - 起点のリポジトリに `.envrc`（`export GHTKN_APP=write` と `export GHTKN_GIT_APP=write`）を置く。App の名前だけで秘密ではないのでコミットしてよい
 - direnv は `.envrc` をパスごとに `direnv allow` しないと読まない。ワーカーの worktree は dispatch のたびに新しいパスにできるので、`~/.config/direnv/direnv.toml` の `[whitelist] prefix` で自動で許可する。対象（起点のリポジトリの clone、Orca の worktree の置き場所）は端末ごとに違うので、`setup-manifest.local.yml` の `components.direnv.setup_args.whitelist_prefix` から setup.sh が生成する
 - Claude Code のセッションは起動した fish の環境変数を引き継ぐので、起点のリポジトリで起動したセッションの `gh` と `git push` も write になる

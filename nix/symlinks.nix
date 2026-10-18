@@ -30,13 +30,13 @@ let
   fishConfdNames = [
     "aliases.fish"
     "completions.fish"
-    "direnv.fish"
     "env.fish"
     "fzf-fish-config.fish"
     "fzf.fish"
     "herdr-ssh-tab.fish"
     "path.fish"
     "ssh-agent.fish"
+    "zz-direnv.fish"
   ];
 in
 {
