@@ -87,6 +87,7 @@
 | - | ○ | git / gh / codex-issue-loop | GitHub の自動操作が広権限のユーザートークンを共有する — ghtkn で権限と有効期間を限定する | [ADR-094](adr/094-ghtkn-github-app-authentication.md) |
 | - | ○ | herdr / ghostty | Orca を併用するとキーバインドが herdr（ghostty の Cmd キー経由）と食い違い、指が迷う — Orca の `~/.orca/keybindings.json` を dotfiles 管理して Cmd 系の割り当てを herdr に揃える | — |
 | - | ○ | claude / orca / gh | マスターの Claude Code セッションから複数のワーカーセッションに Issue を任せたいが、dispatch・状態・進捗の表示がマスターの手作業になり並列性が出ない — 追記専用ログと board サーバーで分担する | [ADR-095](adr/095-board-master-worker-sessions.md) |
+| - | ○ | ghtkn / fish / aqua | 起点のリポジトリでは Issue・PR・push を日常的に行うのに、毎回 `GHTKN_APP=write` を付ける必要がある — ghtkn にはディレクトリ単位の設定が無いため、direnv で切り替える | [ADR-096](adr/096-direnv-per-directory-ghtkn-app.md) |
 
 > ○ = 解決可能 / △ = 緩和可能（ワークアラウンド） / × = 対応不可
 
@@ -1963,3 +1964,15 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] Task が確認待ちになると macOS 通知が 1 回出て、通知か「開く」ボタンからそのワーカーの端末に移れる
 - [ ] `board sync-research <N>` が `research/<N>/*.md` を Issue の目印付きコメント 1 つに書き、2 回目以降は同じコメントを更新する
 - [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control room に表示する
+
+---
+
+### ADR-096: direnv でディレクトリごとに ghtkn の App を切り替える
+
+**コンポーネント**: ghtkn / fish / aqua | **ADR**: [ADR-096](adr/096-direnv-per-directory-ghtkn-app.md)
+
+**受け入れ条件**:
+
+- [ ] setup.sh で direnv が aqua から入り、fish で `direnv hook` が有効になる
+- [ ] `components.direnv.setup_args.whitelist_prefix` を書いて setup.sh を実行すると、`~/.config/direnv/direnv.toml` の `[whitelist] prefix` が生成される
+- [ ] 起点のリポジトリとその worktree に入ると、`direnv allow` 無しで `GHTKN_APP=write` と `GHTKN_GIT_APP=write` が設定され、出ると外れる

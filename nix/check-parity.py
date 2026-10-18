@@ -26,7 +26,7 @@ QUIET = "--quiet" in sys.argv
 
 # configs/fish/setup.sh が full profile で home-manager に委ねる conf.d ファイル
 FISH_CONFD = [
-    "aliases.fish", "completions.fish", "env.fish", "fzf-fish-config.fish",
+    "aliases.fish", "completions.fish", "direnv.fish", "env.fish", "fzf-fish-config.fish",
     "fzf.fish", "herdr-ssh-tab.fish", "path.fish", "ssh-agent.fish",
 ]
 # 同じく fish のルートファイル

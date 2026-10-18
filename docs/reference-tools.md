@@ -80,6 +80,7 @@
 | junegunn/fzf | v0.68.0 |
 | sharkdp/fd | v10.3.0 |
 | BurntSushi/ripgrep | 15.1.0 |
+| direnv/direnv | v2.37.1 |
 | toshimaru/nyan | v1.2.5 |
 | nodejs/node | v22.7.0 |
 | hashicorp/terraform | v1.10.3 |

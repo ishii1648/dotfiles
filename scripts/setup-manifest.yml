@@ -23,6 +23,8 @@ profiles:
     - ghtkn
     # aqua の go でビルドし、ghtkn 経由の gh を使うので aqua / ghtkn の後（ADR-095）
     - board
+    # ADR-096: aqua の direnv を使うので aqua の後
+    - direnv
     - vim
   remote:
     - fish
@@ -151,6 +153,11 @@ components:
   # setup-manifest.local.yml の components.board.setup_args（repo / repo_path）で渡す
   board:
     setup: configs/board/setup.sh
+
+  # ADR-096: whitelist の対象は setup-manifest.local.yml の
+  # components.direnv.setup_args.whitelist_prefix（":" 区切り）で渡す
+  direnv:
+    setup: configs/direnv/setup.sh
 
   vim:
     symlinks:
