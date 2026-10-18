@@ -30,6 +30,7 @@ let
   fishConfdNames = [
     "aliases.fish"
     "completions.fish"
+    "direnv.fish"
     "env.fish"
     "fzf-fish-config.fish"
     "fzf.fish"

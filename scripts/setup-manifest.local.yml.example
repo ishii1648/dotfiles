@@ -13,3 +13,7 @@ components:
     setup_args:
       repo: owner/name
       repo_path: ~/ghq/github.com/owner/name
+  # ADR-096: direnv が自動で allow するディレクトリ（":" 区切り）
+  direnv:
+    setup_args:
+      whitelist_prefix: ~/ghq/github.com/owner/name:~/orca/workspaces
