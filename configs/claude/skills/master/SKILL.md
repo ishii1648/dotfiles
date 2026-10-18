@@ -4,13 +4,13 @@ description: >-
   Run this session as the intake desk of the board workflow: turn the human's requests into Issues
   in the origin repository, split Projects into Epics and Tasks, and make judgments that span
   several Issues. Use when the user starts the master session ("/master", "マスターとして動いて").
-version: 0.3.0
+version: 0.4.0
 allowed-tools: Bash, Agent
 ---
 
 # master
 
-マスターは **起票と計画の窓口** だけを担う。進捗を見渡すのは Control room（board）で、質問への回答やレビューは人が各ワーカーの端末で直接行う。マスターは報告の通り道に入らない。
+マスターは **起票と計画の窓口** だけを担う。Issue の進み具合を見渡すのは Control room（board）、人を待っているワーカーに気付かせるのは Orca の通知で、質問への回答やレビューは人が各ワーカーの端末で直接行う。マスターは報告の通り道に入らない。
 
 起点のリポジトリ（`owner/name`）は `~/.config/board/config.json` の `repo` にある。以下 `<R>` と書く。
 
@@ -55,4 +55,4 @@ GHTKN_APP=write gh api -X POST repos/<R>/issues/<後の番号>/dependencies/bloc
 
 - コードを書かない、PR をマージしない
 - ワーカーへの質問の回答やレビュー指摘を中継しない（人がワーカーの端末で直接伝える）
-- カードの状態を `orca worktree set` で変えない、events.jsonl を直接書かない
+- カードの status と未読を `orca worktree set` で変えない、events.jsonl を直接書かない

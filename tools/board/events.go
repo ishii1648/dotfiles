@@ -16,15 +16,9 @@ type Event struct {
 	By    string    `json:"by"`
 	Type  string    `json:"type"`
 	Text  string    `json:"text,omitempty"`
-	URL   string    `json:"url,omitempty"`
 }
 
-var eventTypes = map[string]bool{
-	"dispatched": true, "started": true,
-	"question": true, "answer": true,
-	"blocked": true, "unblocked": true,
-	"pr": true, "revise": true,
-}
+var eventTypes = map[string]bool{"dispatched": true, "started": true}
 
 const maxEventText = 500
 

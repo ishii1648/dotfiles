@@ -17,9 +17,8 @@ const usage = `usage:
   board serve                         run the board server (launchd runs this)
   board setup [--print]               write and register the LaunchAgent
   board dispatch <N> [--by NAME]      start a worker for Issue N
-  board event <N> <type> [text] [--url URL] [--by NAME]
-                                      append an event (types: dispatched started
-                                      question answer blocked unblocked pr revise)
+  board event <N> <type> [text] [--by NAME]
+                                      append an event (types: dispatched started)
   board open <N>                      bring the worker terminal of Issue N to the front
   board room                          bring the Control room tab to the front in Orca
   board tasks                         print the board snapshot as JSON
@@ -142,18 +141,18 @@ func run(args []string) error {
 		return nil
 
 	case "event":
-		opts, pos, err := splitArgs(rest, "url", "by")
+		opts, pos, err := splitArgs(rest, "by")
 		if err != nil {
 			return err
 		}
 		if len(pos) < 2 {
-			return errors.New("usage: board event <N> <type> [text] [--url URL] [--by NAME]")
+			return errors.New("usage: board event <N> <type> [text] [--by NAME]")
 		}
 		n, err := issueArg(pos, 0, false)
 		if err != nil {
 			return err
 		}
-		return appendEvent(Event{Issue: n, By: byOf(opts), Type: pos[1], Text: strings.Join(pos[2:], " "), URL: opts["url"]})
+		return appendEvent(Event{Issue: n, By: byOf(opts), Type: pos[1], Text: strings.Join(pos[2:], " ")})
 
 	case "open":
 		_, pos, err := splitArgs(rest)

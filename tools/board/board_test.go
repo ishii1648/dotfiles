@@ -40,28 +40,43 @@ func TestTaskStates(t *testing.T) {
 	closed.State = "CLOSED"
 	blocked := issue(2)
 	blocked.BlockedBy = []IssueRef{{Number: 9, State: "OPEN"}}
-	issues := map[int]*Issue{1: closed, 2: blocked, 3: issue(3), 4: issue(4), 5: issue(5), 6: issue(6)}
+	review := issue(5)
+	review.PRs = []PRRef{{Number: 7, URL: "https://x/pull/7", State: "OPEN"}}
+	issues := map[int]*Issue{1: closed, 2: blocked, 3: issue(3), 4: issue(4), 5: review, 6: issue(6), 7: issue(7)}
+	issues[6].CreatedAt = now.Add(-5 * 24 * time.Hour)
+	issues[7].CreatedAt = now.Add(-5 * 24 * time.Hour)
 	evs := []Event{
 		ev(2, "dispatched", now), // open blocker still wins
-		ev(4, "dispatched", now), ev(4, "question", now),
-		ev(5, "dispatched", now), ev(5, "pr", now), ev(5, "revise", now),
+		ev(4, "dispatched", now),
 		ev(6, "dispatched", now.Add(-4*24*time.Hour)),
 	}
-	snap := build(issues, evs, nil, "hub", now)
-	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWaiting, 5: stWorking, 6: stWorking}
+	wts := []OrcaWorktree{{Path: "/w/7", Repo: "hub", LinkedIssue: json.RawMessage("7"), LastActivityAt: now.Add(-4 * 24 * time.Hour).UnixMilli()}}
+	snap := build(issues, evs, wts, "hub", now)
+	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWorking, 5: stReview, 6: stWorking, 7: stWorking}
 	for n, want := range cases {
 		if got := findRow(t, snap.Rows, n).State; got != want {
 			t.Errorf("#%d state = %s, want %s", n, got, want)
 		}
 	}
-	if !findRow(t, snap.Rows, 6).Stale {
-		t.Error("#6 should be stale after 4 days without events")
+	if r := findRow(t, snap.Rows, 5); r.Reason != "https://x/pull/7" {
+		t.Errorf("review reason = %q", r.Reason)
 	}
-	if !findRow(t, snap.Rows, 3).CanDispatch || findRow(t, snap.Rows, 4).CanDispatch {
+	if !findRow(t, snap.Rows, 6).Stale || !findRow(t, snap.Rows, 7).Stale {
+		t.Error("#6 and #7 should be stale after 4 days without progress")
+	}
+	if !findRow(t, snap.Rows, 3).CanDispatch || findRow(t, snap.Rows, 4).CanDispatch || findRow(t, snap.Rows, 7).CanDispatch {
 		t.Error("only untouched open tasks can be dispatched")
 	}
 	if findRow(t, snap.Rows, 4).TodayCount != 1 {
 		t.Error("#4 moved today")
+	}
+
+	// Recent activity in the worktree or on GitHub counts as progress.
+	wts[0].LastActivityAt = now.Add(-time.Hour).UnixMilli()
+	issues[6].UpdatedAt = now.Add(-time.Hour)
+	snap = build(issues, evs, wts, "hub", now)
+	if findRow(t, snap.Rows, 6).Stale || findRow(t, snap.Rows, 7).Stale || findRow(t, snap.Rows, 7).TodayCount != 1 {
+		t.Error("#6 and #7 moved today")
 	}
 }
 
@@ -93,7 +108,7 @@ func TestEpicAutoDispatchAndHold(t *testing.T) {
 	if !snap.Held {
 		t.Fatalf("%d ready children should be held", len(snap.AutoDispatch))
 	}
-	if got := findRow(t, snap.Rows, 20); got.State != stWaiting || got.Reason != "起動の確認" {
+	if got := findRow(t, snap.Rows, 20); got.State != stDecide || got.Reason != "起動の確認" {
 		t.Fatalf("held child = %s %q", got.State, got.Reason)
 	}
 }
@@ -104,9 +119,13 @@ func TestProjectPhase(t *testing.T) {
 	research := issue(81, labelResearch)
 	research.Parent = 80
 	issues := map[int]*Issue{80: p, 81: research}
-	snap := build(issues, []Event{ev(81, "dispatched", now), ev(81, "pr", now)}, nil, "hub", now)
+	if got := build(issues, []Event{ev(81, "dispatched", now)}, nil, "hub", now).Projects[0].Phase; got != 0 {
+		t.Fatalf("phase while researching = %d, want 0", got)
+	}
+	research.PRs = []PRRef{{Number: 3, State: "OPEN"}}
+	snap := build(issues, []Event{ev(81, "dispatched", now)}, nil, "hub", now)
 	pv := snap.Projects[0]
-	if pv.Phase != 1 || pv.Goal != "地図の読み込みを改善する" || pv.NextLabel != "次に決めること" || pv.Next != "分割案を確認する" {
+	if pv.Phase != 1 || !pv.Waiting || pv.Goal != "地図の読み込みを改善する" || pv.NextLabel != "次に決めること" || pv.Next != "分割案を確認する" {
 		t.Fatalf("project = %+v", pv)
 	}
 	epic := issue(82, labelEpic)
@@ -122,18 +141,19 @@ func TestProjectPhase(t *testing.T) {
 }
 
 func TestDesiredCards(t *testing.T) {
-	issues := map[int]*Issue{42: issue(42), 57: issue(57)}
+	pr := issue(57)
+	pr.PRs = []PRRef{{Number: 1, State: "OPEN"}}
+	issues := map[int]*Issue{42: issue(42), 57: pr}
 	wts := []OrcaWorktree{
 		{Path: "/w/42", Repo: "hub", LinkedIssue: json.RawMessage("42")},
 		{Path: "/w/57", Repo: "hub", LinkedIssue: json.RawMessage(`{"number":57}`)},
 	}
-	evs := []Event{ev(42, "dispatched", now), {At: now, Issue: 42, Type: "question", Text: "出力先は?"},
-		ev(57, "dispatched", now), {At: now, Issue: 57, Type: "pr", URL: "https://x/pr/1"}}
-	cards := desiredCards(issues, evs, wts, "hub", now)
-	if c := cards["/w/42"]; c.Status != "in-progress" || !c.Unread || c.Comment != "質問: 出力先は?" {
-		t.Errorf("question card = %+v", c)
+	evs := []Event{ev(42, "dispatched", now), ev(57, "dispatched", now)}
+	cards := desiredCards(issues, evs, wts, "hub")
+	if c := cards["/w/42"]; c != (card{Status: "in-progress"}) {
+		t.Errorf("working card = %+v", c)
 	}
-	if c := cards["/w/57"]; c.Status != "in-review" || !c.Unread {
+	if c := cards["/w/57"]; c != (card{Status: "in-review"}) {
 		t.Errorf("pr card = %+v", c)
 	}
 }
@@ -141,27 +161,27 @@ func TestDesiredCards(t *testing.T) {
 func TestControlRoomCard(t *testing.T) {
 	epic := issue(10, labelEpic)
 	epic.SubIssues = []IssueRef{{Number: 11, State: "OPEN"}, {Number: 12, State: "OPEN"}}
-	c11, c12 := issue(11), issue(12)
+	c11, c12, c20 := issue(11), issue(12), issue(20)
 	c11.Parent, c12.Parent = 10, 10
-	issues := map[int]*Issue{10: epic, 11: c11, 12: c12, 20: issue(20), 21: issue(21)}
-	evs := []Event{
-		ev(11, "dispatched", now), ev(11, "question", now),
-		ev(12, "dispatched", now),
-		ev(20, "dispatched", now), ev(20, "pr", now),
-	}
+	c11.PRs = []PRRef{{Number: 1, State: "OPEN"}}
+	c20.PRs = []PRRef{{Number: 2, State: "OPEN"}}
+	issues := map[int]*Issue{10: epic, 11: c11, 12: c12, 20: c20, 21: issue(21)}
+	evs := []Event{ev(11, "dispatched", now), ev(12, "dispatched", now), ev(20, "dispatched", now)}
 	c := controlRoomCard(build(issues, evs, nil, "hub", now))
-	if c.Name != "Control room" || c.Status != "" || c.Comment != "確認待ち 2 / 作業中 1" || !c.Unread {
+	if c != (card{Name: "Control room", Comment: "レビュー待ち 2 / 作業中 1"}) {
 		t.Errorf("busy card = %+v", c)
 	}
-	if c := controlRoomCard(build(map[int]*Issue{20: issue(20)}, nil, nil, "hub", now)); c.Unread || c.Comment != "確認待ち 0 / 作業中 0" {
-		t.Errorf("idle card = %+v", c)
+	epic.SubIssues = []IssueRef{{Number: 11, State: "CLOSED"}, {Number: 12, State: "CLOSED"}}
+	c11.State, c12.State = "CLOSED", "CLOSED"
+	if c := controlRoomCard(build(issues, evs, nil, "hub", now)); c.Comment != "判断待ち 1 / レビュー待ち 1 / 作業中 0" {
+		t.Errorf("epic decision card = %+v", c)
 	}
 }
 
 func TestTailerSkipsBadLinesAndWaitsForNewline(t *testing.T) {
 	dir := t.TempDir()
 	p := filepath.Join(dir, "events.jsonl")
-	os.WriteFile(p, []byte(`{"at":"2026-10-18T10:00:00Z","issue":1,"by":"a","type":"started"}`+"\nnot json\n"+`{"issue":2,"type":"pr"`), 0o644)
+	os.WriteFile(p, []byte(`{"at":"2026-10-18T10:00:00Z","issue":1,"by":"a","type":"started"}`+"\nnot json\n"+`{"issue":2,"type":"started"`), 0o644)
 	tl := &tailer{path: p}
 	evs, _, err := tl.read()
 	if err != nil || len(evs) != 1 || tl.bad != 1 {
@@ -216,22 +236,5 @@ func TestSplitArgs(t *testing.T) {
 	opts, pos, err := splitArgs([]string{"42", "pr", "--url", "https://x", "要約", "--by=hub-42"}, "url", "by")
 	if err != nil || opts["url"] != "https://x" || opts["by"] != "hub-42" || len(pos) != 3 {
 		t.Fatalf("opts=%v pos=%v err=%v", opts, pos, err)
-	}
-}
-
-func TestWaitingAlertsOncePerEvent(t *testing.T) {
-	s := &server{issues: map[int]*Issue{42: issue(42)}}
-	s.events = []Event{ev(42, "dispatched", now), ev(42, "question", now)}
-	snap := build(s.issues, s.events, nil, "hub", now)
-	if got := s.waitingAlerts(snap); len(got) != 0 {
-		t.Fatalf("first snapshot must not notify: %v", got)
-	}
-	s.events = append(s.events, ev(42, "answer", now.Add(time.Minute)), ev(42, "question", now.Add(2*time.Minute)))
-	snap = build(s.issues, s.events, nil, "hub", now.Add(2*time.Minute))
-	if got := s.waitingAlerts(snap); len(got) != 1 || got[0].number != 42 {
-		t.Fatalf("new question should notify once: %v", got)
-	}
-	if got := s.waitingAlerts(snap); len(got) != 0 {
-		t.Fatalf("same event must not notify again: %v", got)
 	}
 }

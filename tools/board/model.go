@@ -7,10 +7,13 @@ import (
 	"time"
 )
 
-// Board states. The UI and the Orca cards both derive from these.
+// Board states. The UI and the Orca cards both derive from these. A worker
+// waiting for the person's answer is not a board state: Orca detects the idle
+// agent and notifies (ADR-095).
 const (
+	stDecide   = "decide"  // 判断待ち: an Issue-level decision only the board shows
+	stReview   = "review"  // レビュー待ち: an open PR closes the Issue
 	stWorking  = "working" // 作業中
-	stWaiting  = "waiting" // 確認待ち
 	stBlocked  = "blocked" // 依存待ち
 	stTodo     = "todo"    // 未着手
 	stDone     = "done"    // 完了
@@ -85,15 +88,12 @@ type Snapshot struct {
 }
 
 type issueEvents struct {
-	last       *Event
 	lastAt     time.Time
-	today      bool
 	dispatched bool
 }
 
-func indexEvents(evs []Event, now time.Time) map[int]*issueEvents {
+func indexEvents(evs []Event) map[int]*issueEvents {
 	m := map[int]*issueEvents{}
-	y, mo, d := now.Date()
 	for i := range evs {
 		e := &evs[i]
 		ie := m[e.Issue]
@@ -101,18 +101,20 @@ func indexEvents(evs []Event, now time.Time) map[int]*issueEvents {
 			ie = &issueEvents{}
 			m[e.Issue] = ie
 		}
-		ie.last = e
 		if e.At.After(ie.lastAt) {
 			ie.lastAt = e.At
-		}
-		if ey, emo, ed := e.At.In(now.Location()).Date(); ey == y && emo == mo && ed == d {
-			ie.today = true
 		}
 		if e.Type == "dispatched" {
 			ie.dispatched = true
 		}
 	}
 	return m
+}
+
+func sameDay(a, b time.Time) bool {
+	ay, am, ad := a.In(b.Location()).Date()
+	by, bm, bd := b.Date()
+	return ay == by && am == bm && ad == bd
 }
 
 func openBlockers(i *Issue) []int {
@@ -125,24 +127,9 @@ func openBlockers(i *Issue) []int {
 	return ns
 }
 
-func waitingReason(e *Event) string {
-	switch e.Type {
-	case "question":
-		return "質問: " + e.Text
-	case "blocked":
-		return "blocked: " + e.Text
-	case "pr":
-		if e.URL != "" {
-			return "レビュー: " + e.URL
-		}
-		return "レビュー"
-	}
-	return ""
-}
-
-// taskState decides a Task's board state. Closed wins, then open blockers,
-// then the latest event.
-func taskState(i *Issue, ie *issueEvents) (state, reason, note string) {
+// taskState decides a Task's board state from GitHub and whether a worker was
+// started. Closed wins, then open blockers, then an open PR.
+func taskState(i *Issue, started bool) (state, reason, note string) {
 	if !i.Open() {
 		return stDone, "", ""
 	}
@@ -153,32 +140,24 @@ func taskState(i *Issue, ie *issueEvents) (state, reason, note string) {
 		}
 		return stBlocked, "", strings.Join(parts, "・") + " の完了待ち"
 	}
-	if ie == nil || ie.last == nil {
-		return stTodo, "", ""
+	if len(i.PRs) > 0 {
+		return stReview, i.PRs[0].URL, ""
 	}
-	switch ie.last.Type {
-	case "question", "blocked", "pr":
-		return stWaiting, waitingReason(ie.last), ""
+	if started {
+		return stWorking, "", ""
 	}
-	return stWorking, "", ""
+	return stTodo, "", ""
 }
 
-func cardFor(state string, e *Event) card {
+// cardFor leaves the comment to the worker, which knows what it is doing.
+func cardFor(state string) card {
 	switch state {
 	case stDone:
-		return card{Status: "completed", Comment: "完了"}
-	case stWaiting:
-		c := card{Status: "in-progress", Comment: waitingReason(e), Unread: true}
-		if e.Type == "pr" {
-			c.Status = "in-review"
-		}
-		return c
+		return card{Status: "completed"}
+	case stReview:
+		return card{Status: "in-review"}
 	}
-	comment := ""
-	if e != nil && e.Text != "" {
-		comment = e.Text
-	}
-	return card{Status: "in-progress", Comment: comment}
+	return card{Status: "in-progress"}
 }
 
 // heading returns the first non-empty line under "## name" in a Markdown body.
@@ -205,7 +184,7 @@ func heading(body string, names ...string) (string, string) {
 }
 
 func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort string, now time.Time) Snapshot {
-	idx := indexEvents(evs, now)
+	idx := indexEvents(evs)
 	snap := Snapshot{Generated: now}
 
 	children := map[int][]*Issue{}
@@ -218,11 +197,26 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		sort.Slice(cs, func(a, b int) bool { return cs[a].Number < cs[b].Number })
 	}
 
+	// Progress is the latest sign of work: board events, Issue and PR updates
+	// on GitHub, and terminal activity in the worker's Orca worktree.
 	lastProgress := func(i *Issue) time.Time {
-		if ie := idx[i.Number]; ie != nil && !ie.lastAt.IsZero() {
-			return ie.lastAt
+		t := i.CreatedAt
+		later := func(u time.Time) {
+			if u.After(t) {
+				t = u
+			}
 		}
-		return i.CreatedAt
+		if ie := idx[i.Number]; ie != nil {
+			later(ie.lastAt)
+		}
+		later(i.UpdatedAt)
+		for _, p := range i.PRs {
+			later(p.UpdatedAt)
+		}
+		if w := worktreeFor(wts, repoShort, i.Number); w != nil && w.LastActivityAt > 0 {
+			later(time.UnixMilli(w.LastActivityAt))
+		}
+		return t
 	}
 	projectOf := func(i *Issue) int {
 		for p, hops := i.Parent, 0; p != 0 && hops < 3; hops++ {
@@ -265,9 +259,10 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 
 	taskRow := func(i *Issue) Row {
 		ie := idx[i.Number]
-		st, reason, note := taskState(i, ie)
+		wt := worktreeFor(wts, repoShort, i.Number)
+		st, reason, note := taskState(i, (ie != nil && ie.dispatched) || wt != nil)
 		if st == stTodo && held[i.Number] {
-			st, reason = stWaiting, "起動の確認"
+			st, reason = stDecide, "起動の確認"
 		}
 		r := Row{
 			Number: i.Number, Title: i.Title, URL: i.URL, Kind: "task",
@@ -277,13 +272,13 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		if p := issues[i.Parent]; p != nil {
 			r.ParentTitle = p.Title
 		}
-		if ie != nil && ie.today {
+		if st != stDone && sameDay(r.LastProgress, now) {
 			r.TodayCount = 1
 		}
 		r.Stale = st != stDone && now.Sub(r.LastProgress) >= staleAfter
 		r.CanDispatch = st == stTodo && i.Open()
-		if w := worktreeFor(wts, repoShort, i.Number); w != nil {
-			r.Worktree = w.Path
+		if wt != nil {
+			r.Worktree = wt.Path
 		}
 		return r
 	}
@@ -327,12 +322,14 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 		switch {
 		case !i.Open():
 			r.State = stDone
-		case has(stWaiting):
-			r.State = stWaiting
+		case has(stDecide):
+			r.State = stDecide
+		case has(stReview):
+			r.State = stReview
 		case has(stWorking):
 			r.State = stWorking
 		case prog.Total > 0 && prog.Done == prog.Total:
-			r.State, r.Reason = stWaiting, "子 Task がすべて完了"
+			r.State, r.Reason = stDecide, "子 Task がすべて完了"
 		case has(stTodo):
 			r.State = stTodo
 		case has(stBlocked):
@@ -380,12 +377,12 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 				pv.LastProgress = r.LastProgress
 			}
 			pv.TodayCount += r.TodayCount
-			if r.State == stWaiting {
+			if r.State == stDecide || r.State == stReview {
 				pv.Waiting = true
 			}
 			if c.Kind() == "task" && c.HasLabel(labelResearch) {
 				research = append(research, item)
-				if r.State == stWaiting && strings.HasPrefix(r.Reason, "レビュー") {
+				if r.State == stReview {
 					researchWaiting = true
 				}
 			} else {
@@ -436,14 +433,16 @@ func derefTime(t *time.Time) time.Time {
 // controlRoomCard is the card of the origin repository's main worktree, which
 // stays in the Orca sidebar as the way into the Control room.
 func controlRoomCard(snap Snapshot) card {
-	var waiting, working int
+	var decide, review, working int
 	count := func(r Row) {
 		switch {
-		// An Epic is waiting on its own only when it has a reason; otherwise
-		// its state comes from children that are counted themselves.
+		// An Epic needs a decision on its own only when it has a reason;
+		// otherwise its state comes from children that are counted themselves.
 		case r.Kind == "epic" && r.Reason == "":
-		case r.State == stWaiting:
-			waiting++
+		case r.State == stDecide:
+			decide++
+		case r.State == stReview:
+			review++
 		case r.State == stWorking && r.Kind == "task":
 			working++
 		}
@@ -454,16 +453,16 @@ func controlRoomCard(snap Snapshot) card {
 			count(c)
 		}
 	}
-	return card{
-		Name:    "Control room",
-		Comment: fmt.Sprintf("確認待ち %d / 作業中 %d", waiting, working),
-		Unread:  waiting > 0,
+	comment := fmt.Sprintf("レビュー待ち %d / 作業中 %d", review, working)
+	if decide > 0 {
+		comment = fmt.Sprintf("判断待ち %d / %s", decide, comment)
 	}
+	return card{Name: "Control room", Comment: comment}
 }
 
 // desiredCards maps worktree path to the card the board wants Orca to show.
-func desiredCards(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort string, now time.Time) map[string]card {
-	idx := indexEvents(evs, now)
+func desiredCards(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort string) map[string]card {
+	idx := indexEvents(evs)
 	out := map[string]card{}
 	for _, w := range wts {
 		n := w.IssueNumber()
@@ -475,8 +474,8 @@ func desiredCards(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoSh
 		if i == nil || ie == nil || !ie.dispatched {
 			continue
 		}
-		st, _, _ := taskState(i, ie)
-		out[w.Path] = cardFor(st, ie.last)
+		st, _, _ := taskState(i, true)
+		out[w.Path] = cardFor(st)
 	}
 	return out
 }

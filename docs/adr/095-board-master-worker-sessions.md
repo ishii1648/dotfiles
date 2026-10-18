@@ -22,11 +22,13 @@
 
 ### 案A: board CLI と常駐サーバーを dotfiles に置く（採用）
 
-- 把握と操作の入口は Control room（board）に集める。人の判断が要るワーカーは確認待ちとして並び、macOS 通知も出る。人は「開く」ボタンか通知のクリックでそのワーカーの端末へ飛び（`orca terminal switch`）、直接答える。ワーカーは自分の端末で問いを出して止まり、`board event` で記録する。cross-session messaging は使わない
+- Orca の標準機能と Control room（board）で受け持ちを分ける。セッション単位で今その場で対応すべきもの（エージェントの入力待ち・要対応の検知、デスクトップとスマートフォンへの通知、未読、端末への移動）は Orca に任せる。ワーカーは自分の端末で問いを出してターンを終えるだけで、Orca がアイドルへの遷移を検知して通知する。Control room は Issue 単位で、まだセッションが無いもの・セッションをまたぐもの（未着手と起動、依存待ちと自動起動、Epic / Project の階層とフェーズ、進捗の滞り、close 後の片付け）を受け持つ。cross-session messaging は使わない
+- Control room の状態は GitHub と worktree の有無だけで決める（判断待ち・レビュー待ち・作業中・依存待ち・未着手・完了）。レビュー待ちは Issue を `Closes` で参照する open な PR から判定する。判断待ちは Issue 単位で人の判断が要るもの（同時に起動待ちになった Task の確認、子 Task がすべて閉じた Epic）だけで、ワーカーの入力待ちは出さない。Orca のエージェント状態（`orca worktree ps` の `agents[].state`）は安定した API と言い切れないので、状態の判定には使わない
+- 進捗の時刻は、board の event、Issue と紐付く PR の updatedAt、Orca のワークツリーの lastActivityAt のうち最も新しいものとする
 - マスターは起票と計画の窓口だけを担う（起票、Project の分割、Issue をまたぐ判断）。報告の通り道には入らない。起点のリポジトリの main のカードで `claude --permission-mode auto` として開き、`/master` を実行する
-- 状態の正本はローカルの追記専用ログ `~/.local/state/board/events.jsonl`。マスターとワーカーは `board event` で直接追記し、互いを待たない。Issue の内容と open / close は GitHub から読む
+- Issue の内容・open / close・PR は GitHub を正とする。ローカルの追記専用ログ `~/.local/state/board/events.jsonl` には、ワーカーを起動した事実（`dispatched` / `started`）だけを `board event` / `board dispatch` で追記する
 - `board serve`（LaunchAgent `com.user.board`）がログを 1 秒ごとに読み、GitHub（60 秒ごと）と `orca worktree ps`（10 秒ごと）と合わせて board を作り、`127.0.0.1:7342` から SSE で配信する
-- Orca のカードは board サーバーだけが書く。カードと board の表示が同じ規則で決まり、ずれない
+- Orca のカードの status は board サーバーだけが書く。未読は Orca が付けるものなので board は触らず、ワーカーのカードのコメントはワーカー自身が書く
 - dispatch は `board dispatch <N>` の 1 コマンド。worktree の作成と lock、Orca の端末でのワーカー起動、`dispatched` の追記を行い、ロックファイルで直列化して 1 つの Issue に 2 つのワーカーが起動しないようにする
 - Epic の子 Task は、依存が解けたら board サーバーが自動で dispatch する。5 つ以上が同時に起動待ちになったら起動せず、人の確認を待つ
 - research Task の成果物も、起点のリポジトリの `docs/<topic>/` に commit して PR にする。正本を GitHub に揃え、受け入れを PR のマージで表すことで、通常の Task と同じ流れで閉じる
@@ -43,7 +45,11 @@ repo-index の基準（hub 以外で作業するときにも効いてほしい�
 
 ### 案C: 人はマスターとだけ話し、マスターが中継する（却下）
 
-人が話す相手は 1 つで済むが、マスターのターンがすべてのやりとりの待ち行列になり、人が見るのはマスターの要約だけになる。質問への回答は、文脈を持つワーカー本人に直接伝えるほうが速く、情報も落ちない。代わりに、どのワーカーが人を待っているかを Control room と通知で見えるようにする。
+人が話す相手は 1 つで済むが、マスターのターンがすべてのやりとりの待ち行列になり、人が見るのはマスターの要約だけになる。質問への回答は、文脈を持つワーカー本人に直接伝えるほうが速く、情報も落ちない。代わりに、どのワーカーが人を待っているかを Orca の通知と未読で見えるようにする。
+
+### 案E: ワーカーの確認待ちを board event で記録し、Control room が通知する（却下）
+
+当初はこの形で実装した。ワーカーが `question` / `blocked` / `pr` を記録し、board が確認待ちとして並べて macOS 通知を出す。しかし Orca は同じことを標準機能で、実際のエージェントの状態から行い、スマートフォンにも届く。board の通知は記録を忘れると出ず、Mac にしか届かず、同じ出来事で通知が二重になる。さらに board がカードに `--read` を書いて Orca の未読を消していた。
 
 ### 案D: 状態をマスターだけが書く（却下）
 
