@@ -1,8 +1,13 @@
 # ssh-agent 自動起動（SSH セッション・Linux 環境向け）
 # macOS GUI ログイン時は launchd の agent をそのまま使う
 
-# 既存の agent が動作中ならそのまま使う
-if ssh-add -l &>/dev/null; or test $status -eq 1
+# 既存の agent が動作中ならそのまま使う。
+# 鍵が空（status 1）なら Keychain から読み込む。launchd の agent は再起動直後に空で、
+# ssh 接続前だと git の SSH 署名がパスフレーズ入力待ちになり、非対話のエージェントが署名できない。
+if ssh-add -l &>/dev/null
+    return
+else if test $status -eq 1
+    ssh-add --apple-load-keychain &>/dev/null
     return
 end
 
@@ -10,7 +15,10 @@ end
 set -gx SSH_AUTH_SOCK "$HOME/.ssh/agent.sock"
 
 # 固定ソケットの agent が生きていればそのまま使う
-if ssh-add -l &>/dev/null; or test $status -eq 1
+if ssh-add -l &>/dev/null
+    return
+else if test $status -eq 1
+    ssh-add --apple-load-keychain &>/dev/null
     return
 end
 
