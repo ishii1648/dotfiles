@@ -26,31 +26,9 @@ func openWorker(cfg Config, n int) error {
 	if w == nil {
 		return fmt.Errorf("#%d has no worktree", n)
 	}
-	out, err := runOrca("terminal", "list", "--worktree", "path:"+w.Path, "--json")
+	best, err := bestTerminal(w.Path)
 	if err != nil {
 		return err
-	}
-	var resp struct {
-		Result struct {
-			Terminals []orcaTerminal `json:"terminals"`
-		} `json:"result"`
-	}
-	if err := json.Unmarshal(out, &resp); err != nil {
-		return fmt.Errorf("parse orca terminal list: %w", err)
-	}
-	var best *orcaTerminal
-	for i := range resp.Result.Terminals {
-		t := &resp.Result.Terminals[i]
-		if t.WorktreePath != w.Path || !t.Connected {
-			continue
-		}
-		// Prefer the Claude terminal, then the most recently active one.
-		better := best == nil ||
-			(t.AgentIdentity == "claude" && best.AgentIdentity != "claude") ||
-			((t.AgentIdentity == "claude") == (best.AgentIdentity == "claude") && t.LastOutputAt > best.LastOutputAt)
-		if better {
-			best = t
-		}
 	}
 	if best == nil {
 		return fmt.Errorf("#%d has no open terminal in %s", n, w.Path)
@@ -60,6 +38,38 @@ func openWorker(cfg Config, n int) error {
 	}
 	_ = exec.Command("open", "-b", "com.stablyai.orca").Run()
 	return nil
+}
+
+// bestTerminal picks the connected terminal of the worktree at path, preferring
+// the Claude terminal and then the most recently active one. It is nil when the
+// worktree has none.
+func bestTerminal(path string) (*orcaTerminal, error) {
+	out, err := runOrca("terminal", "list", "--worktree", "path:"+path, "--json")
+	if err != nil {
+		return nil, err
+	}
+	var resp struct {
+		Result struct {
+			Terminals []orcaTerminal `json:"terminals"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(out, &resp); err != nil {
+		return nil, fmt.Errorf("parse orca terminal list: %w", err)
+	}
+	var best *orcaTerminal
+	for i := range resp.Result.Terminals {
+		t := &resp.Result.Terminals[i]
+		if t.WorktreePath != path || !t.Connected {
+			continue
+		}
+		better := best == nil ||
+			(t.AgentIdentity == "claude" && best.AgentIdentity != "claude") ||
+			((t.AgentIdentity == "claude") == (best.AgentIdentity == "claude") && t.LastOutputAt > best.LastOutputAt)
+		if better {
+			best = t
+		}
+	}
+	return best, nil
 }
 
 // openControlRoom brings the Control Room tab of the main worktree to the front
@@ -103,6 +113,15 @@ func openControlRoom(cfg Config) error {
 			return fmt.Errorf("parse orca tab create: %v", err)
 		}
 		page = created.Result.Page
+	}
+	// tab switch --focus only surfaces the tab when the main worktree is already
+	// the one on screen, so switch to one of its terminals first.
+	if t, err := bestTerminal(cfg.RepoPath); err != nil {
+		return err
+	} else if t != nil {
+		if _, err := runOrca("terminal", "switch", "--terminal", t.Handle); err != nil {
+			return err
+		}
 	}
 	if _, err := runOrca("tab", "switch", "--page", page, "--worktree", wt, "--focus"); err != nil {
 		return err
