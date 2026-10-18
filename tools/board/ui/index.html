@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Hub board</title>
+<title>Control room</title>
 <style>
 :root {
   --bg: #f4f5f7; --surface: #fff; --fg: #1b2130; --muted: #5c6575; --line: #d5dae2;
@@ -92,7 +92,7 @@ dt { font-weight: 700; } dd { margin: 0; }
   <div id="alerts"></div>
   <div class="card">
     <div class="top">
-      <h1>Hub board</h1>
+      <h1>Control room</h1>
       <div class="meta"><span class="live" id="live"><i></i><span>接続中</span></span><span id="ghat"></span></div>
     </div>
     <div class="tabs">
@@ -158,8 +158,9 @@ function stateCell(r) {
 }
 
 function actionCell(r) {
-  if (!r.canDispatch) return "<td></td>";
-  return `<td><button class="go" data-dispatch="${r.number}">▶ 起動</button></td>`;
+  if (r.canDispatch) return `<td><button class="go" data-dispatch="${r.number}">▶ 起動</button></td>`;
+  if (r.worktree && r.kind === "task" && r.state !== "done") return `<td><button class="go" data-open="${r.number}">開く</button></td>`;
+  return "<td></td>";
 }
 
 function titleCell(r, isChild) {
@@ -302,6 +303,7 @@ document.addEventListener("click", async e => {
   else if (t.dataset.toggle) { ui.collapsed[t.dataset.toggle] = !ui.collapsed[t.dataset.toggle]; }
   else if (t.dataset.goproject) { ui.tab = "tasks"; ui.project = t.dataset.goproject; ui.chip = "all"; }
   else if (t.dataset.dispatch) { await dispatchIssue(t); return; }
+  else if (t.dataset.open) { await openIssue(t); return; }
   else return;
   save(); render();
 });
@@ -323,6 +325,15 @@ async function dispatchIssue(btn) {
     document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.dispatch)} を起動できなかった: ${esc(err.message)}</div>`);
     btn.disabled = false;
     btn.textContent = "▶ 起動";
+  }
+}
+
+async function openIssue(btn) {
+  try {
+    const res = await fetch(`/api/open/${btn.dataset.open}`, { method: "POST", headers: { "X-Board-Token": TOKEN } });
+    if (!res.ok) throw new Error(await res.text());
+  } catch (err) {
+    document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.open)} を開けなかった: ${esc(err.message)}</div>`);
   }
 }
 
