@@ -230,7 +230,7 @@ func TestControlRoomCard(t *testing.T) {
 	issues := map[int]*Issue{10: epic, 11: c11, 12: c12, 20: c20, 21: issue(21)}
 	evs := []Event{ev(11, "dispatched", now), ev(12, "dispatched", now), ev(20, "dispatched", now)}
 	c := controlRoomCard(build(issues, evs, nil, "hub", now))
-	if c != (card{Name: "Control Room", Comment: "レビュー待ち 2 / 作業中 1"}) {
+	if c != (card{Name: "master", Comment: "レビュー待ち 2 / 作業中 1"}) {
 		t.Errorf("busy card = %+v", c)
 	}
 	epic.SubIssues = []IssueRef{{Number: 11, State: "CLOSED"}, {Number: 12, State: "CLOSED"}}
