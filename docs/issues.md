@@ -1964,9 +1964,9 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 - [ ] Task / Epic タブの PR 列に、Task を閉じる PR（open・draft・merged）が並び、同じ PR が閉じるほかの Task と、Epic では子 Task の PR の件数が出る
 - [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
 - [ ] 起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
-- [ ] ワーカーが端末で問いかけてターンを終えると Orca が通知し、通知か Control room の「開く」ボタンからそのワーカーの端末に移れる
+- [ ] ワーカーが端末で問いかけてターンを終えると Orca が通知し、通知か Control Room の「開く」ボタンからそのワーカーの端末に移れる
 - [ ] research Task の PR が出ると Project タブが「分割案の確認」になり、マージで Issue が閉じる
-- [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control room に表示する
+- [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control Room に表示する
 
 ---
 

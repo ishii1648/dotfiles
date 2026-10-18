@@ -1,5 +1,5 @@
 // Command board tracks Issues handed to worker Claude Code sessions: an
-// append-only event log, the Control room page for the Orca browser, and the
+// append-only event log, the Control Room page for the Orca browser, and the
 // commands sessions use to dispatch and report.
 package main
 
@@ -21,7 +21,7 @@ const usage = `usage:
   board event <N> <type> [text] [--by NAME]
                                       append an event (types: dispatched started)
   board open <N>                      bring the worker terminal of Issue N to the front
-  board room                          bring the Control room tab to the front in Orca
+  board room                          bring the Control Room tab to the front in Orca
   board tasks                         print the board snapshot as JSON
   board cleanup <N>                   after Issue N is closed: remove .repos/*
                                       and unlock its worktree

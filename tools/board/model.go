@@ -502,7 +502,7 @@ func derefTime(t *time.Time) time.Time {
 }
 
 // controlRoomCard is the card of the origin repository's main worktree, which
-// stays in the Orca sidebar as the way into the Control room.
+// stays in the Orca sidebar as the way into the Control Room.
 func controlRoomCard(snap Snapshot) card {
 	var decide, review, working int
 	count := func(r Row) {
@@ -528,7 +528,7 @@ func controlRoomCard(snap Snapshot) card {
 	if decide > 0 {
 		comment = fmt.Sprintf("判断待ち %d / %s", decide, comment)
 	}
-	return card{Name: "Control room", Comment: comment}
+	return card{Name: "Control Room", Comment: comment}
 }
 
 // desiredCards maps worktree path to the card the board wants Orca to show.
