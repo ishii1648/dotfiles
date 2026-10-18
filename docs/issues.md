@@ -1956,12 +1956,13 @@ herdr（ghostty）の英数字は `font-family = "BIZ UDGothic Bold"` が解決�
 **受け入れ条件**:
 
 - [ ] `setup-manifest.local.yml` に `components.board.setup_args`（repo / repo_path）を書いて setup.sh を実行すると、`~/.local/bin/board`、`~/.config/board/config.json`、LaunchAgent `com.user.board` が配置される
-- [ ] Orca のブラウザで `http://127.0.0.1:7342/` を開くと、Task / Epic タブと Project タブが表示され、`board event` の追記が再読み込みなしで反映される
+- [ ] Orca のブラウザで `http://127.0.0.1:7342/` を開くと、Task / Epic タブと Project タブが表示され、起動や PR の作成が再読み込みなしで反映される
 - [ ] `board dispatch <N>` で worktree が作られて lock され、Orca の端末で `/worker <N>` のワーカーが起動し、同じ Issue に重ねて呼んでも 2 つ目は起動しない
-- [ ] board の状態（作業中・確認待ち・依存待ち・未着手・完了）が Orca のカードの status / comment / unread に反映される
+- [ ] board の状態（作業中・レビュー待ち・完了）が Orca のカードの status に反映され、board はカードの未読とワーカーのカードのコメントを書き換えない
+- [ ] Issue を `Closes` で参照する open な PR（別リポジトリの PR を含む）があると、その Task が「レビュー待ち」になる
 - [ ] Epic の子 Task が、blocked by の Issue が閉じたあと自動で dispatch され、5 つ以上が同時に対象になると起動せず「起動の確認」になる
 - [ ] 起動ボタンの `POST /api/dispatch/<N>` と「開く」ボタンの `POST /api/open/<N>` が、別オリジンのページ・トークン無し・別の Host からの要求を拒否する
-- [ ] Task が確認待ちになると macOS 通知が 1 回出て、通知か「開く」ボタンからそのワーカーの端末に移れる
+- [ ] ワーカーが端末で問いかけてターンを終えると Orca が通知し、通知か Control room の「開く」ボタンからそのワーカーの端末に移れる
 - [ ] research Task の PR が出ると Project タブが「分割案の確認」になり、マージで Issue が閉じる
 - [ ] Issue が close されると、board サーバーがその worktree の `.repos/*` を `--force` 無しで remove してから lock を外し、commit していない変更があれば止めて Control room に表示する
 

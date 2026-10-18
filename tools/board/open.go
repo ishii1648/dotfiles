@@ -3,9 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 )
 
@@ -111,26 +109,4 @@ func openControlRoom(cfg Config) error {
 	}
 	_ = exec.Command("open", "-b", "com.stablyai.orca").Run()
 	return nil
-}
-
-// notify shows a macOS notification whose click runs `board open <n>`.
-func notify(n int, title, message string) {
-	bin, err := os.Executable()
-	if err != nil {
-		return
-	}
-	bin, _ = filepath.Abs(bin)
-	subtitle := fmt.Sprintf("#%d %s", n, title)
-	if tn, err := exec.LookPath("terminal-notifier"); err == nil {
-		_ = exec.Command(tn,
-			"-title", "Control room",
-			"-subtitle", subtitle,
-			"-message", message,
-			"-group", fmt.Sprintf("board-%d", n),
-			"-execute", fmt.Sprintf("%q open %d", bin, n),
-		).Run()
-		return
-	}
-	esc := func(s string) string { return strings.ReplaceAll(strings.ReplaceAll(s, `\`, `\\`), `"`, `\"`) }
-	_ = exec.Command("osascript", "-e", fmt.Sprintf(`display notification "%s" with title "Control room" subtitle "%s"`, esc(message), esc(subtitle))).Run()
 }

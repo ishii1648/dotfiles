@@ -47,11 +47,8 @@ type server struct {
 	cleaning    bool
 	cleaned     map[int]bool
 	cleanTried  map[int]time.Time
-	// notified remembers the event that last raised a notification per Issue;
-	// nil until the first snapshot, so a restart does not re-notify.
-	notified map[int]time.Time
-	snapshot []byte
-	subs     map[chan []byte]struct{}
+	snapshot    []byte
+	subs        map[chan []byte]struct{}
 }
 
 func newServer(cfg Config) (*server, error) {
@@ -183,7 +180,7 @@ func (s *server) refresh() {
 	}
 	var cards map[string]card
 	if s.orcaErr == "" && s.issues != nil {
-		cards = desiredCards(issues, evs, wts, s.cfg.Short(), now)
+		cards = desiredCards(issues, evs, wts, s.cfg.Short())
 		cards[s.cfg.RepoPath] = controlRoomCard(snap)
 	}
 	var ready []int
@@ -201,7 +198,6 @@ func (s *server) refresh() {
 			s.attempts[n] = now
 		}
 	}
-	alerts := s.waitingAlerts(snap)
 	var closed []int
 	if s.issues != nil && s.githubErr == "" && s.orcaErr == "" && !s.cleaning {
 		for n, i := range issues {
@@ -220,9 +216,6 @@ func (s *server) refresh() {
 	}
 	s.mu.Unlock()
 
-	for _, a := range alerts {
-		notify(a.number, a.title, a.message)
-	}
 	if len(closed) > 0 {
 		go s.autoCleanup(closed)
 	}
@@ -245,45 +238,6 @@ func (s *server) refresh() {
 	if len(ready) > 0 {
 		go s.autoDispatch(ready)
 	}
-}
-
-type alert struct {
-	number         int
-	title, message string
-}
-
-// waitingAlerts returns the rows that became 確認待ち since the last call.
-// Called with s.mu held.
-func (s *server) waitingAlerts(snap Snapshot) []alert {
-	idx := indexEvents(s.events, snap.Generated)
-	current := map[int]time.Time{}
-	var rows []Row
-	for _, r := range snap.Rows {
-		rows = append(rows, r)
-		rows = append(rows, r.Children...)
-	}
-	var out []alert
-	for _, r := range rows {
-		if r.State != stWaiting || r.Kind != "task" {
-			continue
-		}
-		var at time.Time
-		if ie := idx[r.Number]; ie != nil && ie.last != nil {
-			at = ie.last.At
-		}
-		current[r.Number] = at
-		if s.notified == nil {
-			continue
-		}
-		if prev, ok := s.notified[r.Number]; ok && prev.Equal(at) {
-			continue
-		}
-		out = append(out, alert{number: r.Number, title: r.Title, message: r.Reason})
-	}
-	if s.issues != nil {
-		s.notified = current
-	}
-	return out
 }
 
 func (s *server) autoCleanup(ns []int) {

@@ -17,17 +17,28 @@ type Issue struct {
 	State     string // OPEN or CLOSED
 	Body      string
 	CreatedAt time.Time
+	UpdatedAt time.Time
 	ClosedAt  *time.Time
 	Labels    []string
 	Parent    int
 	SubIssues []IssueRef
 	BlockedBy []IssueRef
+	// PRs are the open pull requests that close this Issue ("Closes <R>#<N>"),
+	// including ones in other repositories.
+	PRs []PRRef
 }
 
 type IssueRef struct {
 	Number int    `json:"number"`
 	Title  string `json:"title"`
 	State  string `json:"state"`
+}
+
+type PRRef struct {
+	Number    int       `json:"number"`
+	URL       string    `json:"url"`
+	State     string    `json:"state"`
+	UpdatedAt time.Time `json:"updatedAt"`
 }
 
 func (i *Issue) Open() bool { return i.State == "OPEN" }
@@ -57,11 +68,12 @@ func (i *Issue) Kind() string {
 	return "task"
 }
 
-const issueFields = `number title url state body createdAt closedAt
+const issueFields = `number title url state body createdAt updatedAt closedAt
 labels(first: 20) { nodes { name } }
 parent { number }
 subIssues(first: 50) { nodes { number title state } }
-blockedBy(first: 20) { nodes { number title state } }`
+blockedBy(first: 20) { nodes { number title state } }
+closedByPullRequestsReferences(first: 5, includeClosedPrs: false) { nodes { number url state updatedAt } }`
 
 // Closed issues are limited to the most recently updated ones; older closed
 // children still count toward progress through their parent's subIssues.
@@ -79,6 +91,7 @@ type gqlIssue struct {
 	State     string     `json:"state"`
 	Body      string     `json:"body"`
 	CreatedAt time.Time  `json:"createdAt"`
+	UpdatedAt time.Time  `json:"updatedAt"`
 	ClosedAt  *time.Time `json:"closedAt"`
 	Labels    struct {
 		Nodes []struct {
@@ -94,6 +107,9 @@ type gqlIssue struct {
 	BlockedBy struct {
 		Nodes []IssueRef `json:"nodes"`
 	} `json:"blockedBy"`
+	PRs struct {
+		Nodes []PRRef `json:"nodes"`
+	} `json:"closedByPullRequestsReferences"`
 }
 
 func runGH(write bool, args ...string) ([]byte, error) {
@@ -142,8 +158,13 @@ func fetchIssues(repo string) (map[int]*Issue, error) {
 		for _, g := range list {
 			i := &Issue{
 				Number: g.Number, Title: g.Title, URL: g.URL, State: g.State, Body: g.Body,
-				CreatedAt: g.CreatedAt, ClosedAt: g.ClosedAt,
+				CreatedAt: g.CreatedAt, UpdatedAt: g.UpdatedAt, ClosedAt: g.ClosedAt,
 				SubIssues: g.SubIssues.Nodes, BlockedBy: g.BlockedBy.Nodes,
+			}
+			for _, p := range g.PRs.Nodes {
+				if p.State == "OPEN" {
+					i.PRs = append(i.PRs, p)
+				}
 			}
 			for _, l := range g.Labels.Nodes {
 				i.Labels = append(i.Labels, l.Name)

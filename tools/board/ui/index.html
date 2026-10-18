@@ -50,7 +50,7 @@ td.title { white-space: normal; min-width: 260px; }
 .tog { all: unset; cursor: pointer; width: 14px; display: inline-block; color: var(--muted); }
 .s::before { content: "●"; margin-right: 6px; }
 .s.working { color: var(--accent); font-weight: 700; }
-.s.waiting { color: var(--warn); font-weight: 700; }
+.s.decide, .s.review { color: var(--warn); font-weight: 700; }
 .s.blocked { color: var(--warn); }
 .s.todo, .s.done { color: var(--muted); }
 .hot { color: var(--warn); font-weight: 700; }
@@ -105,8 +105,8 @@ dt { font-weight: 700; } dd { margin: 0; }
 <script>
 let TOKEN = "{{TOKEN}}";
 const KIND_LABEL = { epic: "Epic", task: "Task", project: "Project" };
-const STATE_LABEL = { working: "作業中", waiting: "確認待ち", blocked: "依存待ち", todo: "未着手", done: "完了" };
-const STATE_ORDER = { waiting: 0, working: 1, blocked: 2, todo: 3, done: 4 };
+const STATE_LABEL = { decide: "判断待ち", review: "レビュー待ち", working: "作業中", blocked: "依存待ち", todo: "未着手", done: "完了" };
+const STATE_ORDER = { decide: 0, review: 1, working: 2, blocked: 3, todo: 4, done: 5 };
 const PHASES = ["調査", "分割案の確認", "実行", "目標の確認"];
 
 let snap = null;
@@ -153,7 +153,9 @@ function progCell(r) {
 }
 
 function stateCell(r) {
-  const reason = r.reason ? `<span class="reason">${esc(r.reason)}</span>` : "";
+  const reason = !r.reason ? ""
+    : r.state === "review" ? `<a class="reason" href="${esc(r.reason)}" target="_blank" rel="noopener">${esc(r.reason.replace(/^https:\/\/github\.com\//, ""))}</a>`
+    : `<span class="reason">${esc(r.reason)}</span>`;
   return `<td><span class="s ${r.state}">${STATE_LABEL[r.state] || r.state}</span>${reason}</td>`;
 }
 
@@ -175,7 +177,7 @@ function titleCell(r, isChild) {
 function matchChip(r, chip) {
   if (chip === "today") return r.todayCount > 0;
   if (chip === "stale") return r.stale;
-  if (chip === "waiting") return r.state === "waiting";
+  if (chip === "waiting") return r.state === "decide" || r.state === "review";
   return true;
 }
 
@@ -226,7 +228,7 @@ function renderTasks() {
         </select>
         <input type="search" data-k="q" placeholder="名前で検索" value="${esc(ui.q)}">
       </div>
-      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "確認待ち")}</div>
+      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "判断・レビュー待ち")}</div>
     </div>
     ${rows.length ? `<div class="tbl-wrap"><table>
       <thead><tr><th>操作</th><th>Epic / Task</th><th>状態</th><th>今日</th><th>最終進捗</th><th>進み具合</th></tr></thead>
@@ -270,7 +272,7 @@ function renderProjects() {
         <select data-k="psort"><option value="stale" ${ui.psort === "stale" ? "selected" : ""}>並び順：最終進捗が古い順</option><option value="number" ${ui.psort === "number" ? "selected" : ""}>並び順：新しい Issue 順</option></select>
         <input type="search" data-k="pq" placeholder="Projectを検索" value="${esc(ui.pq)}">
       </div>
-      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "確認待ち")}</div>
+      <div class="row">${chip("all", "すべて")}${chip("today", "今日やる")}${chip("stale", "3日以上進捗なし")}${chip("waiting", "判断・レビュー待ち")}</div>
     </div>
     ${cards || `<div class="empty">該当する Project はない</div>`}`;
 }

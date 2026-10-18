@@ -20,6 +20,7 @@ type OrcaWorktree struct {
 	Unread          bool            `json:"unread"`
 	LinkedIssue     json.RawMessage `json:"linkedIssue"`
 	Status          string          `json:"status"`
+	LastActivityAt  int64           `json:"lastActivityAt"` // Unix milliseconds
 }
 
 // IssueNumber reads linkedIssue, which Orca stores either as a bare number or
@@ -132,27 +133,25 @@ func findPath(v any) string {
 	return ""
 }
 
-// card is what the board writes onto an Orca sidebar card. Empty Status and
-// Name leave Orca's values as they are.
+// card is what the board writes onto an Orca sidebar card. Empty fields leave
+// Orca's values as they are. The unread dot is never written: Orca sets it
+// when an agent stops and needs the person.
 type card struct {
 	Name    string
 	Status  string
 	Comment string
-	Unread  bool
 }
 
 func orcaSetCard(path string, c card) error {
-	args := []string{"worktree", "set", "--worktree", "path:" + path, "--comment", c.Comment}
+	args := []string{"worktree", "set", "--worktree", "path:" + path}
 	if c.Status != "" {
 		args = append(args, "--workspace-status", c.Status)
 	}
 	if c.Name != "" {
 		args = append(args, "--display-name", c.Name)
 	}
-	if c.Unread {
-		args = append(args, "--unread")
-	} else {
-		args = append(args, "--read")
+	if c.Comment != "" {
+		args = append(args, "--comment", c.Comment)
 	}
 	_, err := runOrca(args...)
 	return err
