@@ -64,6 +64,55 @@ func openWorker(cfg Config, n int) error {
 	return nil
 }
 
+// openControlRoom brings the Control room tab of the main worktree to the front
+// in Orca, opening one there when it is gone.
+func openControlRoom(cfg Config) error {
+	url := fmt.Sprintf("http://127.0.0.1:%d/", cfg.Port)
+	wt := "path:" + cfg.RepoPath
+	out, err := runOrca("tab", "list", "--worktree", wt, "--json")
+	if err != nil {
+		return err
+	}
+	var list struct {
+		Result struct {
+			Tabs []struct {
+				Page string `json:"browserPageId"`
+				URL  string `json:"url"`
+			} `json:"tabs"`
+		} `json:"result"`
+	}
+	if err := json.Unmarshal(out, &list); err != nil {
+		return fmt.Errorf("parse orca tab list: %w", err)
+	}
+	page := ""
+	for _, t := range list.Result.Tabs {
+		if strings.HasPrefix(t.URL, url) || strings.HasPrefix(t.URL, fmt.Sprintf("http://localhost:%d/", cfg.Port)) {
+			page = t.Page
+			break
+		}
+	}
+	if page == "" {
+		out, err := runOrca("tab", "create", "--worktree", wt, "--url", url, "--json")
+		if err != nil {
+			return err
+		}
+		var created struct {
+			Result struct {
+				Page string `json:"browserPageId"`
+			} `json:"result"`
+		}
+		if err := json.Unmarshal(out, &created); err != nil || created.Result.Page == "" {
+			return fmt.Errorf("parse orca tab create: %v", err)
+		}
+		page = created.Result.Page
+	}
+	if _, err := runOrca("tab", "switch", "--page", page, "--worktree", wt, "--focus"); err != nil {
+		return err
+	}
+	_ = exec.Command("open", "-b", "com.stablyai.orca").Run()
+	return nil
+}
+
 // notify shows a macOS notification whose click runs `board open <n>`.
 func notify(n int, title, message string) {
 	bin, err := os.Executable()

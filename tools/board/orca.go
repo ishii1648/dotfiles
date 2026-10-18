@@ -132,14 +132,23 @@ func findPath(v any) string {
 	return ""
 }
 
+// card is what the board writes onto an Orca sidebar card. Empty Status and
+// Name leave Orca's values as they are.
 type card struct {
+	Name    string
 	Status  string
 	Comment string
 	Unread  bool
 }
 
 func orcaSetCard(path string, c card) error {
-	args := []string{"worktree", "set", "--worktree", "path:" + path, "--workspace-status", c.Status, "--comment", c.Comment}
+	args := []string{"worktree", "set", "--worktree", "path:" + path, "--comment", c.Comment}
+	if c.Status != "" {
+		args = append(args, "--workspace-status", c.Status)
+	}
+	if c.Name != "" {
+		args = append(args, "--display-name", c.Name)
+	}
 	if c.Unread {
 		args = append(args, "--unread")
 	} else {
