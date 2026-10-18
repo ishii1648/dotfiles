@@ -42,24 +42,24 @@ func TestTaskStates(t *testing.T) {
 	blocked.BlockedBy = []IssueRef{{Number: 9, State: "OPEN"}}
 	review := issue(5)
 	review.PRs = []PRRef{{Number: 7, URL: "https://x/pull/7", State: "OPEN"}}
-	issues := map[int]*Issue{1: closed, 2: blocked, 3: issue(3), 4: issue(4), 5: review, 6: issue(6), 7: issue(7)}
+	draft := issue(8)
+	draft.PRs = []PRRef{{Number: 8, URL: "https://x/pull/8", State: "OPEN", IsDraft: true}, {Number: 6, URL: "https://x/pull/6", State: "MERGED"}}
+	issues := map[int]*Issue{1: closed, 2: blocked, 3: issue(3), 4: issue(4), 5: review, 6: issue(6), 7: issue(7), 8: draft}
 	issues[6].CreatedAt = now.Add(-5 * 24 * time.Hour)
 	issues[7].CreatedAt = now.Add(-5 * 24 * time.Hour)
 	evs := []Event{
 		ev(2, "dispatched", now), // open blocker still wins
 		ev(4, "dispatched", now),
 		ev(6, "dispatched", now.Add(-4*24*time.Hour)),
+		ev(8, "dispatched", now),
 	}
 	wts := []OrcaWorktree{{Path: "/w/7", Repo: "hub", LinkedIssue: json.RawMessage("7"), LastActivityAt: now.Add(-4 * 24 * time.Hour).UnixMilli()}}
 	snap := build(issues, evs, wts, "hub", now)
-	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWorking, 5: stReview, 6: stWorking, 7: stWorking}
+	cases := map[int]string{1: stDone, 2: stBlocked, 3: stTodo, 4: stWorking, 5: stReview, 6: stWorking, 7: stWorking, 8: stWorking}
 	for n, want := range cases {
 		if got := findRow(t, snap.Rows, n).State; got != want {
 			t.Errorf("#%d state = %s, want %s", n, got, want)
 		}
-	}
-	if r := findRow(t, snap.Rows, 5); r.Reason != "https://x/pull/7" {
-		t.Errorf("review reason = %q", r.Reason)
 	}
 	if !findRow(t, snap.Rows, 6).Stale || !findRow(t, snap.Rows, 7).Stale {
 		t.Error("#6 and #7 should be stale after 4 days without progress")
@@ -77,6 +77,26 @@ func TestTaskStates(t *testing.T) {
 	snap = build(issues, evs, wts, "hub", now)
 	if findRow(t, snap.Rows, 6).Stale || findRow(t, snap.Rows, 7).Stale || findRow(t, snap.Rows, 7).TodayCount != 1 {
 		t.Error("#6 and #7 moved today")
+	}
+}
+
+func TestRowPRs(t *testing.T) {
+	a, b, c := issue(31), issue(32), issue(33)
+	a.URL, b.URL, c.URL = "https://github.com/me/hub/issues/31", "https://github.com/me/hub/issues/32", "https://github.com/me/hub/issues/33"
+	shared := PRRef{Number: 41, URL: "https://github.com/me/hub/pull/41", State: "OPEN"}
+	a.PRs = []PRRef{shared}
+	b.PRs = []PRRef{shared, {Number: 9, URL: "https://github.com/you/lib/pull/9", State: "MERGED"}}
+	c.PRs = []PRRef{{Number: 43, URL: "https://github.com/me/dotfiles/pull/43", State: "OPEN", IsDraft: true}}
+	snap := build(map[int]*Issue{31: a, 32: b, 33: c}, nil, nil, "hub", now)
+	got := func(n int) []RowPR { return findRow(t, snap.Rows, n).PRs }
+	if p := got(31); len(p) != 1 || p[0].Label != "hub#41" || p[0].State != "open" || len(p[0].Also) != 1 || p[0].Also[0] != 32 {
+		t.Errorf("#31 prs = %+v", p)
+	}
+	if p := got(32); len(p) != 2 || p[0].Also[0] != 31 || p[1].Label != "you/lib#9" || p[1].State != "merged" || p[1].Also != nil {
+		t.Errorf("#32 prs = %+v", p)
+	}
+	if p := got(33); len(p) != 1 || p[0].Label != "dotfiles#43" || p[0].State != "draft" {
+		t.Errorf("#33 prs = %+v", p)
 	}
 }
 

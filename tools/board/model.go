@@ -12,7 +12,7 @@ import (
 // agent and notifies (ADR-095).
 const (
 	stDecide   = "decide"  // 判断待ち: an Issue-level decision only the board shows
-	stReview   = "review"  // レビュー待ち: an open PR closes the Issue
+	stReview   = "review"  // レビュー待ち: an open, non-draft PR closes the Issue
 	stWorking  = "working" // 作業中
 	stBlocked  = "blocked" // 依存待ち
 	stTodo     = "todo"    // 未着手
@@ -46,7 +46,16 @@ type Row struct {
 	Note         string    `json:"note,omitempty"`
 	CanDispatch  bool      `json:"canDispatch,omitempty"`
 	Worktree     string    `json:"worktree,omitempty"`
+	PRs          []RowPR   `json:"prs,omitempty"`
 	Children     []Row     `json:"children,omitempty"`
+}
+
+type RowPR struct {
+	Label string `json:"label"`
+	URL   string `json:"url"`
+	State string `json:"state"` // open, draft or merged
+	// Also lists the other Issues the same PR closes.
+	Also []int `json:"also,omitempty"`
 }
 
 type ProjectItem struct {
@@ -128,7 +137,7 @@ func openBlockers(i *Issue) []int {
 }
 
 // taskState decides a Task's board state from GitHub and whether a worker was
-// started. Closed wins, then open blockers, then an open PR.
+// started. Closed wins, then open blockers, then an open PR ready for review.
 func taskState(i *Issue, started bool) (state, reason, note string) {
 	if !i.Open() {
 		return stDone, "", ""
@@ -140,8 +149,10 @@ func taskState(i *Issue, started bool) (state, reason, note string) {
 		}
 		return stBlocked, "", strings.Join(parts, "・") + " の完了待ち"
 	}
-	if len(i.PRs) > 0 {
-		return stReview, i.PRs[0].URL, ""
+	for _, p := range i.PRs {
+		if p.State == "OPEN" && !p.IsDraft {
+			return stReview, "", ""
+		}
 	}
 	if started {
 		return stWorking, "", ""
@@ -158,6 +169,20 @@ func cardFor(state string) card {
 		return card{Status: "in-review"}
 	}
 	return card{Status: "in-progress"}
+}
+
+// prLabel is "repo#N", or "owner/repo#N" when the PR lives under another owner
+// than the Issue.
+func prLabel(prURL, issueURL string) string {
+	path := func(u string) []string { return strings.Split(strings.TrimPrefix(u, "https://github.com/"), "/") }
+	p, i := path(prURL), path(issueURL)
+	if len(p) < 4 {
+		return prURL
+	}
+	if p[0] == i[0] {
+		return p[1] + "#" + p[3]
+	}
+	return p[0] + "/" + p[1] + "#" + p[3]
 }
 
 // heading returns the first non-empty line under "## name" in a Markdown body.
@@ -186,6 +211,35 @@ func heading(body string, names ...string) (string, string) {
 func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort string, now time.Time) Snapshot {
 	idx := indexEvents(evs)
 	snap := Snapshot{Generated: now}
+
+	closes := map[string][]int{}
+	for _, i := range issues {
+		for _, p := range i.PRs {
+			closes[p.URL] = append(closes[p.URL], i.Number)
+		}
+	}
+	for _, ns := range closes {
+		sort.Ints(ns)
+	}
+	rowPRs := func(i *Issue) []RowPR {
+		var out []RowPR
+		for _, p := range i.PRs {
+			rp := RowPR{Label: prLabel(p.URL, i.URL), URL: p.URL, State: "open"}
+			switch {
+			case p.State == "MERGED":
+				rp.State = "merged"
+			case p.IsDraft:
+				rp.State = "draft"
+			}
+			for _, n := range closes[p.URL] {
+				if n != i.Number {
+					rp.Also = append(rp.Also, n)
+				}
+			}
+			out = append(out, rp)
+		}
+		return out
+	}
 
 	children := map[int][]*Issue{}
 	for _, i := range issues {
@@ -268,6 +322,7 @@ func build(issues map[int]*Issue, evs []Event, wts []OrcaWorktree, repoShort str
 			Number: i.Number, Title: i.Title, URL: i.URL, Kind: "task",
 			Research: i.HasLabel(labelResearch), State: st, Reason: reason, Note: note,
 			Parent: i.Parent, Project: projectOf(i), LastProgress: lastProgress(i),
+			PRs: rowPRs(i),
 		}
 		if p := issues[i.Parent]; p != nil {
 			r.ParentTitle = p.Title
