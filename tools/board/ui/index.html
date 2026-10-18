@@ -103,7 +103,7 @@ dt { font-weight: 700; } dd { margin: 0; }
   </div>
 </div>
 <script>
-const TOKEN = "{{TOKEN}}";
+let TOKEN = "{{TOKEN}}";
 const KIND_LABEL = { epic: "Epic", task: "Task", project: "Project" };
 const STATE_LABEL = { working: "作業中", waiting: "確認待ち", blocked: "依存待ち", todo: "未着手", done: "完了" };
 const STATE_ORDER = { waiting: 0, working: 1, blocked: 2, todo: 3, done: 4 };
@@ -315,11 +315,23 @@ document.addEventListener("input", e => {
   save(); render();
 });
 
+// The server makes a new token each time it starts. If this page outlived a
+// restart, fetch the current token and retry once.
+async function action(path) {
+  const post = () => fetch(path, { method: "POST", headers: { "X-Board-Token": TOKEN } });
+  let res = await post();
+  if (res.status === 403 && (await res.clone().text()).includes("bad token")) {
+    TOKEN = await (await fetch("/api/token", { cache: "no-store" })).text();
+    res = await post();
+  }
+  return res;
+}
+
 async function dispatchIssue(btn) {
   btn.disabled = true;
   btn.textContent = "起動中…";
   try {
-    const res = await fetch(`/api/dispatch/${btn.dataset.dispatch}`, { method: "POST", headers: { "X-Board-Token": TOKEN } });
+    const res = await action(`/api/dispatch/${btn.dataset.dispatch}`);
     if (!res.ok) throw new Error(await res.text());
   } catch (err) {
     document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.dispatch)} を起動できなかった: ${esc(err.message)}</div>`);
@@ -330,7 +342,7 @@ async function dispatchIssue(btn) {
 
 async function openIssue(btn) {
   try {
-    const res = await fetch(`/api/open/${btn.dataset.open}`, { method: "POST", headers: { "X-Board-Token": TOKEN } });
+    const res = await action(`/api/open/${btn.dataset.open}`);
     if (!res.ok) throw new Error(await res.text());
   } catch (err) {
     document.getElementById("alerts").insertAdjacentHTML("beforeend", `<div class="alert">#${esc(btn.dataset.open)} を開けなかった: ${esc(err.message)}</div>`);

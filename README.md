@@ -128,7 +128,7 @@ claude --permission-mode auto
 # 起動したら /master を実行する
 ```
 
-Control room は Orca のブラウザで `http://127.0.0.1:7342/` を開く。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) と [worker skill](configs/claude/skills/worker/SKILL.md) を参照。
+Control room は Orca のブラウザで `http://127.0.0.1:7342/` を開く。起動ボタンと「開く」ボタンは、board サーバーが起動するたびに作るトークンで守られている。人が設定する値は無く、サーバーの再起動で変わっても、開いたままの画面が自動で取り直す。手順の詳細は [master skill](configs/claude/skills/master/SKILL.md) と [worker skill](configs/claude/skills/worker/SKILL.md) を参照。
 
 ### Docker サンドボックス
 
